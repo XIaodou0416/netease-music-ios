@@ -8,6 +8,8 @@ struct AddToPlaylistSheet: View {
     @State private var toast: String?
 
     var body: some View {
+        // 修复：sheet 内需要独立玻璃采样容器，否则玻璃组件渲染空白/糊块
+        GlassEffectContainer {
         NavigationStack {
             Group {
                 if auth.isLoggedIn {
@@ -74,6 +76,7 @@ struct AddToPlaylistSheet: View {
                 }
             }
             .beansToast(message: $toast)
+        }
         }
     }
 

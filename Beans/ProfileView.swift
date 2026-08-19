@@ -17,7 +17,10 @@ struct ProfileView: View {
                     if let user = auth.user {
                         accountCard(user)
                         statsCard
-                        if !player.topPlayed.isEmpty {
+                        // 修复：没有播放数据时展示提示文本，而不是空白区域
+                        if player.topPlayed.isEmpty {
+                            emptyStatsCard
+                        } else {
                             topPlayedCard
                         }
                         servicesCard
@@ -191,6 +194,29 @@ struct ProfileView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+        )
+    }
+
+    private var emptyStatsCard: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "chart.bar")
+                .font(.title2)
+                .foregroundStyle(Color.beansSecondary)
+                .frame(width: 40, height: 40)
+                .background(Color.beansSecondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            VStack(alignment: .leading, spacing: 3) {
+                Text("暂无听歌数据").font(.subheadline.weight(.semibold)).foregroundStyle(Color.beansLabel)
+                Text("播放过的歌曲会自动计入听歌排行").font(.caption2).foregroundStyle(Color.beansSecondary)
+            }
+            Spacer()
+        }
+        .padding(16)
+        .background(Color.beansGlassFill)
+        .glassEffect(.regular)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
         )
     }

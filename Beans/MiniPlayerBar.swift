@@ -10,7 +10,13 @@ struct MiniPlayerBar: View {
                 AsyncImage(url: song.coverURL) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
-                    Color.beansCard
+                    // 占位不再使用纯色块：避免封面加载失败时出现"空白占位框"
+                    ZStack {
+                        Color.beansCard
+                        Image(systemName: "music.note")
+                            .font(.footnote)
+                            .foregroundStyle(Color.beansSecondary.opacity(0.6))
+                    }
                 }
                 .frame(width: 42, height: 42)
                 .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -37,21 +43,27 @@ struct MiniPlayerBar: View {
             }
             .padding(.horizontal, 12)
             .padding(.top, 10)
-            .padding(.bottom, 6)
-            .background(
+            .padding(.bottom, 8)
+            // 修复：玻璃效果需要非透明基底采样，否则毛玻璃失效/糊块
+            .background(Color.beansGlassFill)
+            .glassEffect(.regular)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(alignment: .bottom) {
+                // 修复：进度条原先用固定 offset(y:21) 悬浮在文本区，位置随字体/尺寸错乱；
+                // 改为贴底布局，随底栏高度自动对齐，不再错位。
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Rectangle().fill(.clear)
-                        Rectangle()
+                        Capsule().fill(.white.opacity(0.12))
+                        Capsule()
                             .fill(Color.beansAmber)
                             .frame(width: max(0, geo.size.width * (player.duration > 0 ? player.progress / player.duration : 0)))
                     }
                 }
-                .frame(height: 2)
-                .offset(y: 21)
-            )
-            .glassEffect(.regular)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .frame(height: 3)
+                .padding(.horizontal, 10)
+                .padding(.bottom, 4)
+                .allowsHitTesting(false)
+            }
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(.primary.opacity(0.1), lineWidth: 1)

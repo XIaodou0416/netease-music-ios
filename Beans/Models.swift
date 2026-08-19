@@ -127,7 +127,7 @@ enum LyricParser {
             var fraction = 0.0
             if match.numberOfRanges > 3, let fracRange = Range(match.range(at: 3), in: line) {
                 let raw = String(line[fracRange])
-                fraction = Double(raw)! / pow(10, Double(raw.count))
+                fraction = (Double(raw) ?? 0) / pow(10, Double(max(raw.count, 1)))
             }
             times.append(minutes * 60 + seconds + fraction)
         }

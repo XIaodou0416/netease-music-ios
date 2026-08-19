@@ -16,15 +16,12 @@ struct RootView: View {
                 switch selectedTab {
                 case .library:
                     LibraryView(tab: $selectedTab)
-                        .transition(.opacity)
                 case .profile:
                     ProfileView(tab: $selectedTab)
-                        .transition(.opacity)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .animation(.easeInOut(duration: 0.18), value: selectedTab)
     }
 }
 
@@ -73,7 +70,9 @@ struct BeansTabBar: View {
     private var barBackground: some View {
         GeometryReader { geo in
             Capsule()
-                .fill(Color.clear)
+                // 修复：原实现 fill(Color.clear) + glassEffect 导致玻璃无内容可采样，
+                // 表现为模糊失效/渲染糊块。改用半透明动态基底色，玻璃效果可正常采样背景。
+                .fill(Color.beansGlassFill)
                 .glassEffect(.regular)
                 .clipShape(Capsule())
                 .overlay(

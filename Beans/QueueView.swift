@@ -5,6 +5,8 @@ struct QueueView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        // 修复：sheet 内需要独立玻璃采样容器，否则玻璃组件渲染空白/糊块
+        GlassEffectContainer {
         NavigationStack {
             Group {
                 if player.queue.isEmpty {
@@ -89,6 +91,7 @@ struct QueueView: View {
                     Button("完成") { dismiss() }
                 }
             }
+        }
         }
         .presentationDragIndicator(.hidden)
     }

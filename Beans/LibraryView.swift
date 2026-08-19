@@ -237,6 +237,12 @@ struct LibraryView: View {
         VStack(alignment: .leading, spacing: 20) {
             Text("发现").font(.title2.bold()).foregroundStyle(Color.beansLabel)
 
+            // 修复：所有发现数据为空（网络失败/接口空数据）时展示兜底提示与重试，
+            // 避免页面加载完成后一片空白
+            if topLists.isEmpty && newSongs.isEmpty && recommended.isEmpty && topPlaylists.isEmpty {
+                discoveryEmptyCard
+            }
+
             if auth.isLoggedIn {
                 HStack(spacing: 12) {
                     dailyCard
@@ -361,6 +367,42 @@ struct LibraryView: View {
         }
     }
 
+    private var discoveryEmptyCard: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 36))
+                .foregroundStyle(Color.beansSecondary)
+            Text("发现内容加载失败")
+                .font(.headline)
+                .foregroundStyle(Color.beansLabel)
+            Text("请检查网络后重试")
+                .font(.footnote)
+                .foregroundStyle(Color.beansSecondary)
+            Button {
+                Task { await refreshAll() }
+            } label: {
+                Label("重新加载", systemImage: "arrow.clockwise")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.beansLabel)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(Color.beansGlassFill)
+                    .glassEffect(.regular)
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background(Color.beansGlassFill)
+        .glassEffect(.regular)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+        )
+    }
+
     private var dailyCard: some View {
         Button {
             Task { await playDaily() }
@@ -461,7 +503,13 @@ struct LibraryView: View {
         AsyncImage(url: url) { image in
             image.resizable().scaledToFill()
         } placeholder: {
-            Rectangle().fill(Color.beansCard)
+            // 修复：封面加载失败/为空时显示图标兜底，避免空白占位框
+            ZStack {
+                Rectangle().fill(Color.beansCard)
+                Image(systemName: "music.note")
+                    .font(.title2)
+                    .foregroundStyle(Color.beansSecondary.opacity(0.5))
+            }
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(1, contentMode: .fit)

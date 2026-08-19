@@ -3,6 +3,7 @@ import MediaPlayer
 
 struct PlayerView: View {
     @EnvironmentObject private var player: PlayerManager
+    @Environment(\.dismiss) private var dismiss
     @State private var lyrics: [LyricLine] = []
     @State private var showLyrics = false
     @State private var showQueue = false
@@ -14,27 +15,22 @@ struct PlayerView: View {
     private let rates: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 
     var body: some View {
-        ZStack {
-            backgroundBlur
-            Color.beansBackground.opacity(0.3).ignoresSafeArea()
+        // 修复：播放器以 sheet 弹出，脱离了根视图的 GlassEffectContainer 采样区域，
+        // 页内所有 .glassEffect 组件无法采样背景，表现为整页空白/灰糊块。
+        // 在 sheet 内部重新声明容器，让液态玻璃有独立的采样区域。
+        GlassEffectContainer {
+            ZStack {
+                backgroundBlur
+                Color.beansBackground.opacity(0.3).ignoresSafeArea()
 
-            VStack(spacing: 16) {
-                dragHandle
-                songHeader
-                Spacer(minLength: 8)
-
-                if showLyrics {
-                    lyricsView
-                        .frame(height: 320)
+                // 兜底：currentSong 为空（例如播放失败后清空队列）时展示占位，
+                // 避免整个播放器页面渲染空白。
+                if player.currentSong == nil {
+                    emptyFallback
                 } else {
-                    coverArt
+                    content
                 }
-
-                Spacer(minLength: 8)
-                controlPanel
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 14)
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
@@ -50,6 +46,63 @@ struct PlayerView: View {
             loadLyrics()
             isLiked = false
         }
+    }
+
+    // MARK: - 主内容（小屏可滚动，修复固定 280 封面+超长控制面板在小屏溢出裁切/空白）
+
+    private var content: some View {
+        GeometryReader { geo in
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    dragHandle
+                    songHeader
+                    Spacer(minLength: 8)
+                    if showLyrics {
+                        lyricsView
+                            .frame(height: max(200, min(320, geo.size.height * 0.30)))
+                    } else {
+                        coverArt(side: min(280, max(180, geo.size.width - 96)))
+                    }
+                    Spacer(minLength: 8)
+                    controlPanel
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: geo.size.height - 24, alignment: .top)
+            }
+        }
+    }
+
+    // MARK: - 兜底视图
+
+    private var emptyFallback: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "music.note")
+                .font(.system(size: 52))
+                .foregroundStyle(Color.beansSecondary)
+            Text("暂无可播放的歌曲")
+                .font(.headline)
+                .foregroundStyle(Color.beansLabel)
+            Text("从歌单或搜索中选择一首歌开始播放")
+                .font(.footnote)
+                .foregroundStyle(Color.beansSecondary)
+                .multilineTextAlignment(.center)
+            Button {
+                dismiss()
+            } label: {
+                Text("关闭")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 36)
+                    .padding(.vertical, 12)
+                    .background(Capsule().fill(Color.beansAmber))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 6)
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - 视觉
@@ -98,6 +151,7 @@ struct PlayerView: View {
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
+        .background(Color.beansGlassFill)
         .glassEffect(.regular)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
@@ -106,7 +160,7 @@ struct PlayerView: View {
         )
     }
 
-    private var coverArt: some View {
+    private func coverArt(side: CGFloat) -> some View {
         Button {
             withAnimation(.snappy) { showLyrics.toggle() }
         } label: {
@@ -115,16 +169,16 @@ struct PlayerView: View {
                 AsyncImage(url: player.currentSong?.coverURL) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
-                    Color.beansCard
+                    ZStack {
+                        Color.beansCard
+                        Image(systemName: "music.note")
+                            .font(.system(size: 40))
+                            .foregroundStyle(Color.beansSecondary.opacity(0.5))
+                    }
                 }
-                .frame(width: 280, height: 280)
+                .frame(width: side, height: side)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .rotationEffect(.degrees(angle.truncatingRemainder(dividingBy: 360)))
-                .glassEffect(.regular)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .strokeBorder(.white.opacity(0.2), lineWidth: 1)
-                )
                 .shadow(color: .black.opacity(0.4), radius: 30, y: 12)
             }
         }
@@ -388,6 +442,8 @@ struct PlayerView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
+        .frame(maxWidth: .infinity)
+        .background(Color.beansGlassFill)
         .glassEffect(.regular)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(

@@ -7,6 +7,8 @@ struct SleepTimerSheet: View {
     private let options: [Int] = [15, 30, 45, 60, 90]
 
     var body: some View {
+        // 修复：sheet 内需要独立玻璃采样容器，否则玻璃组件渲染空白/糊块
+        GlassEffectContainer {
         NavigationStack {
             List {
                 if player.sleepTimerEndsAt != nil {
@@ -64,6 +66,7 @@ struct SleepTimerSheet: View {
                     Button("完成") { dismiss() }
                 }
             }
+        }
         }
         .presentationDragIndicator(.hidden)
     }

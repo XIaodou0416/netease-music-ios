@@ -33,6 +33,12 @@ extension UIColor {
         light: UIColor(red: 0.384, green: 0.482, blue: 0.310, alpha: 1),
         dark: UIColor(red: 0.560, green: 0.650, blue: 0.480, alpha: 1)
     )
+    /// 液态玻璃基底填充：修复 `.glassEffect` 配 `Color.clear` 时玻璃无内容可采样、
+    /// 渲染成灰糊块/模糊失效的问题（玻璃效果需要一个非透明基底色）。
+    static let beansGlassFill = beansDynamic(
+        light: UIColor(white: 0.96, alpha: 0.55),
+        dark: UIColor(white: 0.07, alpha: 0.55)
+    )
 }
 
 extension Color {
@@ -42,6 +48,7 @@ extension Color {
     static let beansSecondary = Color(uiColor: .beansSecondary)
     static let beansAmber = Color(uiColor: .beansAmber)
     static let beansSage = Color(uiColor: .beansSage)
+    static let beansGlassFill = Color(uiColor: .beansGlassFill)
 }
 
 // MARK: - 主题偏好

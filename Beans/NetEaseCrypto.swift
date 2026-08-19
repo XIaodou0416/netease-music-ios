@@ -296,11 +296,15 @@ struct BigUInt {
 
 extension Data {
     init(hexString: String) {
+        // 修复：奇数长度 hex 时 index+2 会越界崩溃；先补前导 0 保证成对解析
+        var hex = hexString
+        if hex.hasPrefix("0x") { hex.removeFirst(2) }
+        if !hex.count.isMultiple(of: 2) { hex = "0" + hex }
         var bytes: [UInt8] = []
-        var index = hexString.startIndex
-        while index < hexString.endIndex {
-            let next = hexString.index(index, offsetBy: 2)
-            if let byte = UInt8(hexString[index..<next], radix: 16) {
+        var index = hex.startIndex
+        while index < hex.endIndex {
+            let next = hex.index(index, offsetBy: 2)
+            if let byte = UInt8(hex[index..<next], radix: 16) {
                 bytes.append(byte)
             }
             index = next

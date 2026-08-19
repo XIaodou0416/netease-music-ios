@@ -7,6 +7,7 @@ struct SearchView: View {
     @State private var songs: [Song] = []
     @State private var isLoading = false
     @State private var searched = false
+    @State private var searchFailed = false
     @State private var hotKeywords: [String] = []
     @State private var history: [String] = UserDefaults.standard.stringArray(forKey: "beans.searchhistory") ?? []
 
@@ -61,6 +62,7 @@ struct SearchView: View {
                                         .foregroundStyle(Color.beansLabel)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
+                                        .background(Color.beansGlassFill)
                                         .glassEffect(.regular)
                                         .clipShape(Capsule())
                                 }
@@ -89,6 +91,7 @@ struct SearchView: View {
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
+                                    .background(Color.beansGlassFill)
                                     .glassEffect(.regular)
                                     .clipShape(Capsule())
                                 }
@@ -107,7 +110,31 @@ struct SearchView: View {
 
     private var resultsList: some View {
         Group {
-            if songs.isEmpty && !isLoading {
+            // 修复：接口失败时展示错误+重试，与"真的没有结果"区分开
+            if songs.isEmpty && !isLoading && searchFailed {
+                VStack(spacing: 12) {
+                    Image(systemName: "wifi.exclamationmark")
+                        .font(.system(size: 40))
+                        .foregroundStyle(Color.beansSecondary)
+                    Text("搜索失败")
+                        .font(.headline)
+                        .foregroundStyle(Color.beansLabel)
+                    Button {
+                        runSearch()
+                    } label: {
+                        Label("重新搜索", systemImage: "arrow.clockwise")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.beansLabel)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(Color.beansGlassFill)
+                            .glassEffect(.regular)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if songs.isEmpty && !isLoading {
                 VStack(spacing: 12) {
                     Image(systemName: "music.note")
                         .font(.system(size: 40))
@@ -147,7 +174,13 @@ struct SearchView: View {
         isLoading = true
         Task {
             defer { isLoading = false }
-            songs = (try? await NetEaseAPI.shared.search(keyword: trimmed)) ?? []
+            do {
+                searchFailed = false
+                songs = try await NetEaseAPI.shared.search(keyword: trimmed)
+            } catch {
+                searchFailed = true
+                songs = []
+            }
         }
     }
 

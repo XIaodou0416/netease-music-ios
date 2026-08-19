@@ -44,7 +44,8 @@ final class NetEaseAPI {
         var request: URLRequest
 
         if crypto == "weapi" {
-            url = URL(string: domain + "/weapi" + uri.dropFirst(4))!
+            guard let parsed = URL(string: domain + "/weapi" + uri.dropFirst(4)) else { throw NetEaseError.unknown("请求地址无效") }
+            url = parsed
             var data = payload
             data["csrf_token"] = csrfToken
             let enc = NetEaseCrypto.weapi(data)
@@ -54,7 +55,8 @@ final class NetEaseAPI {
             request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0", forHTTPHeaderField: "User-Agent")
             request.setValue(domain, forHTTPHeaderField: "Referer")
         } else {
-            url = URL(string: apiDomain + "/eapi" + uri.dropFirst(4))!
+            guard let parsed = URL(string: apiDomain + "/eapi" + uri.dropFirst(4)) else { throw NetEaseError.unknown("请求地址无效") }
+            url = parsed
             let header = eapiHeader()
             var data = payload
             data["e_r"] = false

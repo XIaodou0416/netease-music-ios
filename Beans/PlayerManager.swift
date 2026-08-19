@@ -49,6 +49,7 @@ final class PlayerManager: NSObject, ObservableObject {
     private var playOrder: [Int] = []
     private var orderPosition = 0
     private var sleepTimer: Timer?
+    private var lastCountedSongID: Int?
     private var wasPlayingBeforeInterruption = false
 
     private let historyKey = "beans.history"
@@ -235,6 +236,7 @@ final class PlayerManager: NSObject, ObservableObject {
     private func advance() {
         switch playMode {
         case .shuffle:
+            guard !playOrder.isEmpty else { return }
             orderPosition = (orderPosition + 1) % playOrder.count
             currentIndex = playOrder[orderPosition]
         default:
@@ -273,7 +275,6 @@ final class PlayerManager: NSObject, ObservableObject {
         isBuffering = true
         loadFailed = false
         pushHistory(song)
-        bumpPlayCount(song)
         Task {
             let urls = try? await NetEaseAPI.shared.songURLs(ids: [song.id])
             guard let urlString = urls?[song.id], let url = URL(string: urlString) else {
@@ -298,6 +299,12 @@ final class PlayerManager: NSObject, ObservableObject {
         isPlaying = true
         isBuffering = false
         loadFailed = false
+        // 修复：播放次数原先在 loadCurrent 里预计数，URL 加载失败/手动重试也会 +1，
+        // 导致统计异常；改为真正开始播放时计数，且同一首歌同一会话只计一次。
+        if let song = currentSong, lastCountedSongID != song.id {
+            bumpPlayCount(song)
+            lastCountedSongID = song.id
+        }
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] time in
             guard let self, let player = self.player else { return }
             self.progress = player.currentTime().seconds

@@ -67,7 +67,7 @@ final class NetEaseAPI {
         guard let http = response as? HTTPURLResponse else { throw NetEaseError.network }
         guard http.statusCode == 200 else {
             let snippet = String(data: data, encoding: .utf8)?.prefix(120) ?? ""
-            throw NetEaseError.httpStatus(http.statusCode, snippet: String(snippet))
+            throw NetEaseError.httpStatus(http.statusCode, String(snippet))
         }
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             let snippet = String(data: data, encoding: .utf8)?.prefix(120) ?? ""

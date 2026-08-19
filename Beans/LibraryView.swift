@@ -51,7 +51,7 @@ struct LibraryView: View {
                 loaded = true
             }
         }
-        .beansToast(message: )
+        .beansToast(message: $toast)
     }
 
     // MARK: - 头部
@@ -342,8 +342,8 @@ struct BeansToastModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .bottom) {
-            if let message {
-                Text(message)
+            if let text = message.wrappedValue {
+                Text(text)
                     .font(.footnote)
                     .foregroundStyle(Color.beansLabel)
                     .padding(.horizontal, 16)

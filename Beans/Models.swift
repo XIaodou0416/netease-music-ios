@@ -13,14 +13,6 @@ struct Song: Identifiable, Hashable, Codable {
         return String(format: "%d:%02d", total / 60, total % 60)
     }
 
-    init(id: Int, name: String, coverURL: URL?, trackCount: Int = 0) {
-        self.id = id
-        self.name = name
-        self.coverURL = coverURL
-        self.trackCount = trackCount
-        self.creatorName = ""
-    }
-
     init?(json: [String: Any]) {
         guard let id = json["id"] as? Int else { return nil }
         self.id = id
@@ -85,14 +77,6 @@ struct TopList: Identifiable, Hashable {
     let name: String
     let coverURL: URL?
     let updateFrequency: String
-
-    init(id: Int, name: String, coverURL: URL?, trackCount: Int = 0) {
-        self.id = id
-        self.name = name
-        self.coverURL = coverURL
-        self.trackCount = trackCount
-        self.creatorName = ""
-    }
 
     init?(json: [String: Any]) {
         guard let id = json["id"] as? Int else { return nil }

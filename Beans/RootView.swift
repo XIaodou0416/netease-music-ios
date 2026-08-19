@@ -1,30 +1,25 @@
 import SwiftUI
 
-struct RootView: View {
-    @EnvironmentObject private var auth: AuthStore
-
-    var body: some View {
-        Group {
-            if auth.isLoggedIn {
-                MainView()
-            } else {
-                LoginView()
-            }
-        }
-        .tint(Color.beansAmber)
-    }
+enum BeansTab: Hashable {
+    case library
+    case profile
 }
 
-struct MainView: View {
+struct RootView: View {
+    @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
+    @State private var selectedTab: BeansTab = .library
 
     var body: some View {
-        TabView {
-            LibraryView()
+        TabView(selection: $selectedTab) {
+            LibraryView(tab: $selectedTab)
                 .tabItem { Label("音乐库", systemImage: "music.note.list") }
-            SettingsView()
-                .tabItem { Label("设置", systemImage: "gearshape") }
+                .tag(BeansTab.library)
+            ProfileView()
+                .tabItem { Label("我的", systemImage: "person.crop.circle") }
+                .tag(BeansTab.profile)
         }
+        .tint(Color.beansAmber)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if player.currentSong != nil {
                 MiniPlayerBar()

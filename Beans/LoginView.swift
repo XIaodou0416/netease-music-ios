@@ -3,9 +3,10 @@ import CoreImage.CIFilterBuiltins
 
 struct LoginView: View {
     @EnvironmentObject private var auth: AuthStore
+    @Environment(\.dismiss) private var dismiss
 
     @State private var qrImage: UIImage?
-    @State private var statusText = "用网易云 App 扫码登录，就能听你的收藏"
+    @State private var statusText = "正在获取二维码…"
     @State private var isLoading = false
     @State private var pollTask: Task<Void, Never>?
     @State private var unikey = ""
@@ -18,60 +19,22 @@ struct LoginView: View {
             LinearGradient(colors: [Color.beansAmber.opacity(0.16), .clear], startPoint: .top, endPoint: .center)
                 .ignoresSafeArea()
 
-            VStack(spacing: 28) {
-                Spacer()
-
-                Text("Beans")
-                    .font(.system(size: 64, weight: .black, design: .rounded))
-                    .foregroundStyle(Color.beansCream)
-
-                Text("你的网易云音乐，泡在杯子里")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.beansMuted)
-
-                if let qrImage {
-                    Image(uiImage: qrImage)
-                        .interpolation(.none)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 216, height: 216)
-                        .padding(14)
-                        .glassEffect(.regular)
-                        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                                .strokeBorder(.white.opacity(0.18), lineWidth: 1)
-                        )
-                } else {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(.white.opacity(0.06))
-                        .frame(width: 244, height: 244)
-                        .overlay(
-                            VStack(spacing: 10) {
-                                Image(systemName: "qrcode")
-                                    .font(.largeTitle)
-                                    .foregroundStyle(Color.beansAmber)
-                                Text("二维码会出现在这里")
-                                    .font(.footnote)
-                                    .foregroundStyle(Color.beansMuted)
-                            }
-                        )
-                }
-
+            VStack(spacing: 20) {
+                header
+                Spacer(minLength: 8)
+                qrSection
                 Text(statusText)
                     .font(.footnote)
                     .foregroundStyle(Color.beansMuted)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-
+                    .padding(.horizontal, 24)
                 if isLoading {
                     ProgressView().tint(Color.beansAmber)
                 }
-
                 Button {
                     Task { await startLogin() }
                 } label: {
-                    Text(qrImage == nil ? "登录网易云账号" : "刷新二维码")
+                    Text(qrImage == nil ? "获取二维码" : "刷新二维码")
                         .font(.headline)
                         .foregroundStyle(Color.beansBackground)
                         .frame(maxWidth: .infinity)
@@ -79,12 +42,10 @@ struct LoginView: View {
                         .background(Capsule().fill(Color.beansAmber))
                 }
                 .disabled(isLoading)
-                .padding(.horizontal, 36)
-                .padding(.top, 8)
-
-                Spacer()
-                Spacer()
+                .padding(.horizontal, 32)
+                Spacer(minLength: 24)
             }
+            .padding(.top, 14)
         }
         .alert("出错了", isPresented: $showAlert) {
             Button("好", role: .cancel) {}
@@ -92,6 +53,63 @@ struct LoginView: View {
             Text(alertMessage)
         }
         .onDisappear { pollTask?.cancel() }
+        .task { await startLogin() }
+    }
+
+    private var header: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("登录网易云")
+                    .font(.title2.bold())
+                    .foregroundStyle(Color.beansCream)
+                Text("扫码登录，同步你的收藏与歌单")
+                    .font(.footnote)
+                    .foregroundStyle(Color.beansMuted)
+            }
+            Spacer()
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(Color.beansMuted)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private var qrSection: some View {
+        Group {
+            if let qrImage {
+                Image(uiImage: qrImage)
+                    .interpolation(.none)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 216, height: 216)
+                    .padding(14)
+                    .glassEffect(.regular)
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(.white.opacity(0.06))
+                    .frame(width: 244, height: 244)
+                    .overlay(
+                        VStack(spacing: 10) {
+                            Image(systemName: "qrcode")
+                                .font(.largeTitle)
+                                .foregroundStyle(Color.beansAmber)
+                            Text("二维码会出现在这里")
+                                .font(.footnote)
+                                .foregroundStyle(Color.beansMuted)
+                        }
+                    )
+            }
+        }
     }
 
     private func startLogin() async {
@@ -100,19 +118,15 @@ struct LoginView: View {
         do {
             let key = try await NetEaseAPI.shared.qrKey()
             unikey = key
-            let qr = try await NetEaseAPI.shared.qrCreate(key: key)
-            if let data = Data(base64Encoded: qr.imageBase64), let image = UIImage(data: data) {
-                qrImage = image
-            } else if let url = URL(string: qr.url) {
-                qrImage = QRGenerator.image(for: url.absoluteString)
-            }
+            let loginURL = NetEaseAPI.shared.qrLoginURL(key: key)
+            qrImage = QRGenerator.image(for: loginURL)
             statusText = "用网易云 App 扫一扫，然后在手机上确认"
             pollTask?.cancel()
             pollTask = Task { await pollLogin() }
         } catch {
             alertMessage = error.localizedDescription
             showAlert = true
-            statusText = "获取二维码失败，请重试"
+            statusText = "获取二维码失败，点下方重试"
         }
     }
 
@@ -130,6 +144,7 @@ struct LoginView: View {
                     await MainActor.run { statusText = "登录成功，正在泡你的音乐…" }
                     do {
                         try await auth.finishLogin()
+                        await MainActor.run { dismiss() }
                     } catch {
                         await MainActor.run {
                             alertMessage = "登录已确认，但加载资料失败：\(error.localizedDescription)"

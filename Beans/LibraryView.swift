@@ -3,6 +3,7 @@ import SwiftUI
 struct LibraryView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
+    @Binding var tab: BeansTab
     @State private var selectedPlaylist: Playlist?
     @State private var loaded = false
 
@@ -13,13 +14,12 @@ struct LibraryView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     header
-                    if auth.playlists.isEmpty && !loaded {
+                    if !auth.isLoggedIn {
+                        loginPromptCard
+                    } else if auth.playlists.isEmpty && !loaded {
                         ProgressView().frame(maxWidth: .infinity).padding(.top, 60)
                     } else if auth.playlists.isEmpty {
-                        Text("还没有加载到歌单，下拉重试")
-                            .font(.footnote)
-                            .foregroundStyle(Color.beansMuted)
-                            .frame(maxWidth: .infinity)
+                        emptyHint
                     } else {
                         favoriteCard
                         playlistGrid
@@ -59,6 +59,55 @@ struct LibraryView: View {
             }
         }
         .padding(.top, 10)
+    }
+
+    private var loginPromptCard: some View {
+        Button {
+            tab = .profile
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "person.crop.circle.badge.plus")
+                    .font(.title2)
+                    .foregroundStyle(Color.beansAmber)
+                    .frame(width: 52, height: 52)
+                    .background(Color.beansAmber.opacity(0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("登录后同步你的收藏")
+                        .font(.headline)
+                        .foregroundStyle(Color.beansCream)
+                    Text("扫码登录网易云，歌单和「我喜欢的音乐」都会出现在这里")
+                        .font(.caption)
+                        .foregroundStyle(Color.beansMuted)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.footnote.bold())
+                    .foregroundStyle(Color.beansMuted)
+            }
+            .padding(16)
+            .glassEffect(.regular)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(.white.opacity(0.14), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var emptyHint: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "music.note.list")
+                .font(.largeTitle)
+                .foregroundStyle(Color.beansMuted)
+            Text("还没有加载到歌单，下拉重试")
+                .font(.footnote)
+                .foregroundStyle(Color.beansMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 40)
     }
 
     private var favoriteCard: some View {

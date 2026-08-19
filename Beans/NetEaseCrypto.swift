@@ -43,7 +43,7 @@ enum NetEaseCrypto {
                     CCAlgorithm(kCCAlgorithmAES),
                     CCOptions(kCCOptionPKCS7Padding | kCCOptionECBMode),
                     keyBytes.baseAddress, key.count,
-                    nil, nil,
+                    nil,
                     dataBytes.baseAddress, input.count,
                     &outBytes, outBytes.count,
                     &outLen

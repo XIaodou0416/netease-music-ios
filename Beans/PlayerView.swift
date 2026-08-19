@@ -44,11 +44,11 @@ struct PlayerView: View {
                     VStack(spacing: 6) {
                         Text(song.name)
                             .font(.title2.bold())
-                            .foregroundStyle(.beansCream)
+                            .foregroundStyle(Color.beansCream)
                             .lineLimit(1)
                         Text(song.artists)
                             .font(.subheadline)
-                            .foregroundStyle(.beansMuted)
+                            .foregroundStyle(Color.beansMuted)
                             .lineLimit(1)
                     }
                 }
@@ -61,15 +61,15 @@ struct PlayerView: View {
                             if !editing { player.seek(to: player.progress) }
                         }
                     )
-                    .tint(.beansAmber)
+                    .tint(Color.beansAmber)
                     HStack {
                         Text(formatTime(player.progress))
                             .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.beansMuted)
+                            .foregroundStyle(Color.beansMuted)
                         Spacer()
                         Text(formatTime(player.duration))
                             .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.beansMuted)
+                            .foregroundStyle(Color.beansMuted)
                     }
                 }
 
@@ -82,13 +82,13 @@ struct PlayerView: View {
                     } label: {
                         Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                             .font(.system(size: 68))
-                            .foregroundStyle(.beansAmber)
+                            .foregroundStyle(Color.beansAmber)
                     }
                     Image(systemName: "forward.fill")
                         .font(.title2)
                         .onTapGesture { player.next() }
                 }
-                .foregroundStyle(.beansCream)
+                .foregroundStyle(Color.beansCream)
                 .padding(.bottom, 36)
             }
             .padding(.horizontal, 24)

@@ -14,15 +14,15 @@ struct SettingsView: View {
                             } placeholder: {
                                 Image(systemName: "person.crop.circle.fill")
                                     .font(.largeTitle)
-                                    .foregroundStyle(.beansMuted)
+                                    .foregroundStyle(Color.beansMuted)
                             }
                             .frame(width: 56, height: 56)
                             .clipShape(Circle())
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(user.nickname).font(.headline).foregroundStyle(.beansCream)
+                                Text(user.nickname).font(.headline).foregroundStyle(Color.beansCream)
                                 Text("网易云账号已连接")
                                     .font(.caption)
-                                    .foregroundStyle(.beansMuted)
+                                    .foregroundStyle(Color.beansMuted)
                             }
                         }
                         .padding(.vertical, 4)
@@ -36,7 +36,7 @@ struct SettingsView: View {
                     }
                 } else {
                     Text("未登录")
-                        .foregroundStyle(.beansMuted)
+                        .foregroundStyle(Color.beansMuted)
                 }
             }
             .scrollContentBackground(.hidden)

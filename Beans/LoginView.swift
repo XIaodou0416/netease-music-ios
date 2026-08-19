@@ -15,7 +15,7 @@ struct LoginView: View {
     var body: some View {
         ZStack {
             Color.beansBackground.ignoresSafeArea()
-            LinearGradient(colors: [.beansAmber.opacity(0.16), .clear], startPoint: .top, endPoint: .center)
+            LinearGradient(colors: [Color.beansAmber.opacity(0.16), .clear], startPoint: .top, endPoint: .center)
                 .ignoresSafeArea()
 
             VStack(spacing: 28) {
@@ -23,11 +23,11 @@ struct LoginView: View {
 
                 Text("Beans")
                     .font(.system(size: 64, weight: .black, design: .rounded))
-                    .foregroundStyle(.beansCream)
+                    .foregroundStyle(Color.beansCream)
 
                 Text("你的网易云音乐，泡在杯子里")
                     .font(.subheadline)
-                    .foregroundStyle(.beansMuted)
+                    .foregroundStyle(Color.beansMuted)
 
                 if let qrImage {
                     Image(uiImage: qrImage)
@@ -50,22 +50,22 @@ struct LoginView: View {
                             VStack(spacing: 10) {
                                 Image(systemName: "qrcode")
                                     .font(.largeTitle)
-                                    .foregroundStyle(.beansAmber)
+                                    .foregroundStyle(Color.beansAmber)
                                 Text("二维码会出现在这里")
                                     .font(.footnote)
-                                    .foregroundStyle(.beansMuted)
+                                    .foregroundStyle(Color.beansMuted)
                             }
                         )
                 }
 
                 Text(statusText)
                     .font(.footnote)
-                    .foregroundStyle(.beansMuted)
+                    .foregroundStyle(Color.beansMuted)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
 
                 if isLoading {
-                    ProgressView().tint(.beansAmber)
+                    ProgressView().tint(Color.beansAmber)
                 }
 
                 Button {
@@ -73,10 +73,10 @@ struct LoginView: View {
                 } label: {
                     Text(qrImage == nil ? "登录网易云账号" : "刷新二维码")
                         .font(.headline)
-                        .foregroundStyle(.beansBackground)
+                        .foregroundStyle(Color.beansBackground)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 15)
-                        .background(Capsule().fill(.beansAmber))
+                        .background(Capsule().fill(Color.beansAmber))
                 }
                 .disabled(isLoading)
                 .padding(.horizontal, 36)

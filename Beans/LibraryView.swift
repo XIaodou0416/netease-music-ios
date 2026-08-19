@@ -18,7 +18,7 @@ struct LibraryView: View {
                     } else if auth.playlists.isEmpty {
                         Text("还没有加载到歌单，下拉重试")
                             .font(.footnote)
-                            .foregroundStyle(.beansMuted)
+                            .foregroundStyle(Color.beansMuted)
                             .frame(maxWidth: .infinity)
                     } else {
                         favoriteCard
@@ -43,17 +43,17 @@ struct LibraryView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Beans")
                 .font(.system(size: 40, weight: .black, design: .rounded))
-                .foregroundStyle(.beansCream)
+                .foregroundStyle(Color.beansCream)
             Text("一杯好歌，来自你的网易云")
                 .font(.footnote)
-                .foregroundStyle(.beansMuted)
+                .foregroundStyle(Color.beansMuted)
             if let user = auth.user {
                 HStack(spacing: 6) {
                     Image(systemName: "person.crop.circle.fill")
-                        .foregroundStyle(.beansAmber)
+                        .foregroundStyle(Color.beansAmber)
                     Text(user.nickname)
                         .font(.subheadline)
-                        .foregroundStyle(.beansCream.opacity(0.8))
+                        .foregroundStyle(Color.beansCream.opacity(0.8))
                 }
                 .padding(.top, 2)
             }
@@ -75,15 +75,15 @@ struct LibraryView: View {
                     .background(LinearGradient(colors: [.pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing))
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("我喜欢的音乐").font(.headline).foregroundStyle(.beansCream)
+                    Text("我喜欢的音乐").font(.headline).foregroundStyle(Color.beansCream)
                     Text("\(auth.favoriteTracks.count) 首 · 点按播放")
                         .font(.caption)
-                        .foregroundStyle(.beansMuted)
+                        .foregroundStyle(Color.beansMuted)
                 }
                 Spacer()
                 Image(systemName: "play.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(.beansAmber)
+                    .foregroundStyle(Color.beansAmber)
             }
             .padding(14)
             .glassEffect(.regular)
@@ -98,7 +98,7 @@ struct LibraryView: View {
 
     private var playlistGrid: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("我的歌单").font(.title2.bold()).foregroundStyle(.beansCream)
+            Text("我的歌单").font(.title2.bold()).foregroundStyle(Color.beansCream)
             LazyVGrid(columns: columns, spacing: 16) {
                 ForEach(auth.playlists.filter { $0.id != auth.favoritePlaylistID }) { playlist in
                     Button {
@@ -108,12 +108,12 @@ struct LibraryView: View {
                             cover(playlist)
                             Text(playlist.name)
                                 .font(.subheadline)
-                                .foregroundStyle(.beansCream)
+                                .foregroundStyle(Color.beansCream)
                                 .lineLimit(2, reservesSpace: true)
                                 .multilineTextAlignment(.leading)
                             Text("\(playlist.trackCount) 首")
                                 .font(.caption2)
-                                .foregroundStyle(.beansMuted)
+                                .foregroundStyle(Color.beansMuted)
                         }
                     }
                     .buttonStyle(.plain)

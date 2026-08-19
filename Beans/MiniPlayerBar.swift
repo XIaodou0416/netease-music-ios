@@ -16,8 +16,8 @@ struct MiniPlayerBar: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(song.name).font(.subheadline).foregroundStyle(.beansCream).lineLimit(1)
-                    Text(song.artists).font(.caption2).foregroundStyle(.beansMuted).lineLimit(1)
+                    Text(song.name).font(.subheadline).foregroundStyle(Color.beansCream).lineLimit(1)
+                    Text(song.artists).font(.caption2).foregroundStyle(Color.beansMuted).lineLimit(1)
                 }
                 Spacer()
                 Button {
@@ -25,13 +25,13 @@ struct MiniPlayerBar: View {
                 } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                         .font(.title3)
-                        .foregroundStyle(.beansCream)
+                        .foregroundStyle(Color.beansCream)
                 }
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .glassEffect(.strong)
+            .glassEffect(.regular)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)

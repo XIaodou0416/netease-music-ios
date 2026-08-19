@@ -43,7 +43,7 @@ struct SongRow: View {
             HStack(spacing: 12) {
                 Text("\(index + 1)")
                     .font(.caption.monospacedDigit())
-                    .foregroundStyle(.beansMuted)
+                    .foregroundStyle(Color.beansMuted)
                     .frame(width: 24)
                 AsyncImage(url: song.coverURL) { image in
                     image.resizable().scaledToFill()
@@ -53,13 +53,13 @@ struct SongRow: View {
                 .frame(width: 44, height: 44)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(song.name).font(.body).foregroundStyle(.beansCream).lineLimit(1)
-                    Text(song.artists).font(.caption).foregroundStyle(.beansMuted).lineLimit(1)
+                    Text(song.name).font(.body).foregroundStyle(Color.beansCream).lineLimit(1)
+                    Text(song.artists).font(.caption).foregroundStyle(Color.beansMuted).lineLimit(1)
                 }
                 Spacer()
                 Text(song.formattedDuration)
                     .font(.caption)
-                    .foregroundStyle(.beansMuted)
+                    .foregroundStyle(Color.beansMuted)
             }
             .padding(.vertical, 4)
         }

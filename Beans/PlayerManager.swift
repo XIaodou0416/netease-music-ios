@@ -31,6 +31,7 @@ final class PlayerManager: NSObject, ObservableObject {
     @Published var currentIndex = 0
     @Published var isPlaying = false
     @Published var isBuffering = false
+    @Published var loadFailed = false
     @Published var progress: Double = 0
     @Published var duration: Double = 0
     @Published var playMode: PlayMode = .sequential
@@ -38,6 +39,7 @@ final class PlayerManager: NSObject, ObservableObject {
     @Published var sleepTimerEndsAt: Date?
     @Published var sleepTimerRemaining: Int = 0
     @Published var history: [Song] = []
+    @Published var playCounts: [Int: Int] = [:]
 
     private var player: AVPlayer?
     private var timeObserver: Any?
@@ -47,21 +49,21 @@ final class PlayerManager: NSObject, ObservableObject {
     private var playOrder: [Int] = []
     private var orderPosition = 0
     private var sleepTimer: Timer?
+    private var wasPlayingBeforeInterruption = false
 
     private let historyKey = "beans.history"
+    private let countsKey = "beans.playcounts"
     private let defaults = UserDefaults.standard
 
     var currentSong: Song? {
         queue.indices.contains(currentIndex) ? queue[currentIndex] : nil
     }
 
-    var currentQueueIndex: Int {
-        orderPosition
-    }
-
     override init() {
         super.init()
         loadHistory()
+        loadPlayCounts()
+        observeInterruptions()
         setupRemoteCommands()
     }
 
@@ -76,6 +78,18 @@ final class PlayerManager: NSObject, ObservableObject {
 
     func playSong(_ song: Song, in context: [Song]) {
         play(songs: context, startAt: context.firstIndex(of: song) ?? 0)
+    }
+
+    /// 插队播放：把歌曲放到当前歌曲之后并立即播放
+    func playNext(_ song: Song) {
+        guard !queue.isEmpty else {
+            play(songs: [song], startAt: 0)
+            return
+        }
+        let insertAt = currentIndex + 1
+        queue.insert(song, at: min(insertAt, queue.count))
+        buildPlayOrder()
+        jumpToOrderPosition(min(insertAt, queue.count - 1))
     }
 
     func togglePlayPause() {
@@ -108,6 +122,7 @@ final class PlayerManager: NSObject, ObservableObject {
         }
         if playMode == .shuffle {
             orderPosition = (orderPosition - 1 + playOrder.count) % playOrder.count
+            currentIndex = playOrder[orderPosition]
         } else {
             currentIndex = (currentIndex - 1 + queue.count) % queue.count
         }
@@ -119,6 +134,10 @@ final class PlayerManager: NSObject, ObservableObject {
         player?.seek(to: CMTime(seconds: clamped, preferredTimescale: 600))
         progress = clamped
         updateNowPlaying()
+    }
+
+    func seekBy(_ delta: Double) {
+        seek(to: progress + delta)
     }
 
     func togglePlayMode() {
@@ -154,6 +173,11 @@ final class PlayerManager: NSObject, ObservableObject {
             loadCurrent()
         }
         buildPlayOrder(avoiding: removedID)
+    }
+
+    func retryCurrent() {
+        loadFailed = false
+        loadCurrent()
     }
 
     // MARK: - 睡眠定时
@@ -247,24 +271,19 @@ final class PlayerManager: NSObject, ObservableObject {
         progress = 0
         isPlaying = false
         isBuffering = true
+        loadFailed = false
         pushHistory(song)
+        bumpPlayCount(song)
         Task {
             let urls = try? await NetEaseAPI.shared.songURLs(ids: [song.id])
             guard let urlString = urls?[song.id], let url = URL(string: urlString) else {
                 await MainActor.run {
                     self.isBuffering = false
-                    self.autoSkipOnFailure()
+                    self.loadFailed = true
                 }
                 return
             }
             await MainActor.run { self.setupPlayer(url: url) }
-        }
-    }
-
-    private func autoSkipOnFailure() {
-        if queue.count > 1 {
-            advance()
-            loadCurrent()
         }
     }
 
@@ -278,6 +297,7 @@ final class PlayerManager: NSObject, ObservableObject {
         player.playImmediately(atRate: Float(rate))
         isPlaying = true
         isBuffering = false
+        loadFailed = false
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] time in
             guard let self, let player = self.player else { return }
             self.progress = player.currentTime().seconds
@@ -301,7 +321,8 @@ final class PlayerManager: NSObject, ObservableObject {
             }
         }
         failureObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemFailedToPlayToEndTime, object: item, queue: .main) { [weak self] _ in
-            self?.autoSkipOnFailure()
+            self?.loadFailed = true
+            self?.isBuffering = false
         }
         updateNowPlaying()
     }
@@ -331,7 +352,37 @@ final class PlayerManager: NSObject, ObservableObject {
         } catch {}
     }
 
-    // MARK: - 播放历史
+    // MARK: - 来电/中断处理
+
+    private func observeInterruptions() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleInterruption(_:)),
+            name: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance()
+        )
+    }
+
+    @objc private func handleInterruption(_ notification: Notification) {
+        guard let info = notification.userInfo,
+              let rawType = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: rawType) else { return }
+        switch type {
+        case .began:
+            wasPlayingBeforeInterruption = isPlaying
+            player?.pause()
+            isPlaying = false
+        case .ended:
+            if wasPlayingBeforeInterruption {
+                player?.playImmediately(atRate: Float(rate))
+                isPlaying = true
+            }
+        @unknown default:
+            break
+        }
+    }
+
+    // MARK: - 播放历史与统计
 
     private func pushHistory(_ song: Song) {
         history.removeAll { $0.id == song.id }
@@ -348,6 +399,30 @@ final class PlayerManager: NSObject, ObservableObject {
         guard let data = defaults.data(forKey: historyKey),
               let saved = try? JSONDecoder().decode([Song].self, from: data) else { return }
         history = saved
+    }
+
+    private func bumpPlayCount(_ song: Song) {
+        playCounts[song.id, default: 0] += 1
+        if let data = try? JSONEncoder().encode(playCounts) {
+            defaults.set(data, forKey: countsKey)
+        }
+    }
+
+    private func loadPlayCounts() {
+        guard let data = defaults.data(forKey: countsKey),
+              let saved = try? JSONDecoder().decode([Int: Int].self, from: data) else { return }
+        playCounts = saved
+    }
+
+    /// 听歌排行：按播放次数排序的前几首
+    var topPlayed: [(song: Song, count: Int)] {
+        var result: [(song: Song, count: Int)] = []
+        for (id, count) in playCounts {
+            if let song = history.first(where: { $0.id == id }) {
+                result.append((song, count))
+            }
+        }
+        return result.sorted { $0.count > $1.count }.prefix(8).map { $0 }
     }
 
     // MARK: - 锁屏/控制中心

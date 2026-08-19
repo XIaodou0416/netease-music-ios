@@ -21,30 +21,9 @@ struct HistoryView: View {
             } else {
                 List {
                     ForEach(Array(player.history.enumerated()), id: \.element.id) { index, song in
-                        Button {
+                        SongCell(song: song) {
                             player.play(songs: player.history, startAt: index)
-                        } label: {
-                            HStack(spacing: 12) {
-                                AsyncImage(url: song.coverURL) { image in
-                                    image.resizable().scaledToFill()
-                                } placeholder: {
-                                    Rectangle().fill(Color.beansCard)
-                                }
-                                .frame(width: 44, height: 44)
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(song.name).font(.body).foregroundStyle(Color.beansLabel).lineLimit(1)
-                                    Text(song.artists).font(.caption).foregroundStyle(Color.beansSecondary).lineLimit(1)
-                                }
-                                Spacer()
-                                if song.id == player.currentSong?.id {
-                                    Image(systemName: player.isPlaying ? "waveform" : "pause.circle")
-                                        .foregroundStyle(Color.beansAmber)
-                                }
-                            }
-                            .padding(.vertical, 4)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 .listStyle(.plain)

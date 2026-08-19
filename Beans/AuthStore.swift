@@ -53,7 +53,7 @@ final class AuthStore: ObservableObject {
     }
 
     func logout() {
-        HTTPCookieStorage.shared.removeCookies(since: .distantPast)
+        NetEaseAPI.shared.clearCookies()
         user = nil
         playlists = []
         favoritePlaylistID = nil

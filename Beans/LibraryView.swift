@@ -8,6 +8,8 @@ struct LibraryView: View {
     @State private var loaded = false
     @State private var topLists: [TopList] = []
     @State private var recommended: [Playlist] = []
+    @State private var newSongs: [Song] = []
+    @State private var topPlaylists: [Playlist] = []
     @State private var dailySongs: [Song] = []
     @State private var showSearch = false
     @State private var toast: String?
@@ -35,6 +37,9 @@ struct LibraryView: View {
                 .padding(.bottom, 110)
             }
             .background(Color.beansBackground.ignoresSafeArea())
+            .refreshable {
+                await refreshAll()
+            }
             .navigationDestination(item: $selectedPlaylist) { playlist in
                 PlaylistView(playlist: playlist)
             }
@@ -42,16 +47,22 @@ struct LibraryView: View {
                 SearchView()
             }
             .task {
-                async let tops: Void = loadTopLists()
-                async let recs: Void = loadRecommended()
-                _ = await (tops, recs)
-                if auth.isLoggedIn {
-                    await auth.loadLibrary()
-                }
+                await refreshAll()
                 loaded = true
             }
         }
         .beansToast(message: $toast)
+    }
+
+    private func refreshAll() async {
+        async let tops: Void = loadTopLists()
+        async let recs: Void = loadRecommended()
+        async let news: Void = loadNewSongs()
+        async let tops2: Void = loadTopPlaylists()
+        _ = await (tops, recs, news, tops2)
+        if auth.isLoggedIn {
+            await auth.loadLibrary()
+        }
     }
 
     // MARK: - 头部
@@ -114,7 +125,12 @@ struct LibraryView: View {
                     .foregroundStyle(Color.beansSecondary)
             }
             .padding(16)
-            .background(Color.beansCard, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .glassEffect(.regular)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }
@@ -150,10 +166,11 @@ struct LibraryView: View {
                     .foregroundStyle(Color.beansAmber)
             }
             .padding(14)
-            .background(Color.beansCard, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .glassEffect(.regular)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(.primary.opacity(0.06), lineWidth: 1)
+                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -201,7 +218,7 @@ struct LibraryView: View {
     private func createPlaylist() async {
         let name = "Beans 歌单 \(Int(Date().timeIntervalSince1970) % 10000)"
         do {
-            let id = try await NetEaseAPI.shared.createPlaylist(name: name)
+            _ = try await NetEaseAPI.shared.createPlaylist(name: name)
             toast = "已创建歌单「\(name)」"
             if let user = auth.user {
                 auth.playlists = (try? await NetEaseAPI.shared.userPlaylists(uid: user.uid)) ?? auth.playlists
@@ -218,30 +235,10 @@ struct LibraryView: View {
             Text("发现").font(.title2.bold()).foregroundStyle(Color.beansLabel)
 
             if auth.isLoggedIn {
-                Button {
-                    Task { await playDaily() }
-                } label: {
-                    HStack(spacing: 14) {
-                        Image(systemName: "sparkles")
-                            .font(.title2)
-                            .foregroundStyle(.white)
-                            .frame(width: 50, height: 50)
-                            .background(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("每日推荐").font(.headline).foregroundStyle(Color.beansLabel)
-                            Text("根据你的口味，每天更新 30 首").font(.caption).foregroundStyle(Color.beansSecondary)
-                        }
-                        Spacer()
-                        Image(systemName: "play.fill")
-                            .font(.footnote.bold())
-                            .foregroundStyle(Color.beansLabel)
-                            .frame(width: 32, height: 32)
-                            .background(Color.beansAmber, in: Circle())
-                    }
-                    .padding(14)
-                    .background(Color.beansCard, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                HStack(spacing: 12) {
+                    dailyCard
+                    privateFMButton
                 }
-                .buttonStyle(.plain)
             }
 
             if !topLists.isEmpty {
@@ -261,6 +258,42 @@ struct LibraryView: View {
                                             .foregroundStyle(Color.beansLabel)
                                             .lineLimit(1)
                                         Text(top.updateFrequency)
+                                            .font(.caption2)
+                                            .foregroundStyle(Color.beansSecondary)
+                                            .lineLimit(1)
+                                    }
+                                    .frame(width: 108)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !newSongs.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("新歌速递").font(.headline).foregroundStyle(Color.beansLabel)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 14) {
+                            ForEach(newSongs) { song in
+                                Button {
+                                    player.play(songs: newSongs, startAt: newSongs.firstIndex(of: song) ?? 0)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        cover(song.coverURL)
+                                            .frame(width: 108, height: 108)
+                                            .overlay(alignment: .bottomTrailing) {
+                                                Image(systemName: "play.circle.fill")
+                                                    .font(.title3)
+                                                    .foregroundStyle(Color.beansAmber)
+                                                    .padding(5)
+                                            }
+                                        Text(song.name)
+                                            .font(.caption.weight(.medium))
+                                            .foregroundStyle(Color.beansLabel)
+                                            .lineLimit(1)
+                                        Text(song.artists)
                                             .font(.caption2)
                                             .foregroundStyle(Color.beansSecondary)
                                             .lineLimit(1)
@@ -296,7 +329,87 @@ struct LibraryView: View {
                     }
                 }
             }
+
+            if !topPlaylists.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("精品歌单").font(.headline).foregroundStyle(Color.beansLabel)
+                    LazyVGrid(columns: columns, spacing: 18) {
+                        ForEach(topPlaylists) { playlist in
+                            Button {
+                                selectedPlaylist = playlist
+                            } label: {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    cover(playlist.coverURL)
+                                    Text(playlist.name)
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(Color.beansLabel)
+                                        .lineLimit(2, reservesSpace: true)
+                                        .multilineTextAlignment(.leading)
+                                    Text("\(playlist.trackCount) 首")
+                                        .font(.caption2)
+                                        .foregroundStyle(Color.beansSecondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    private var dailyCard: some View {
+        Button {
+            Task { await playDaily() }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundStyle(.white)
+                    .frame(width: 46, height: 46)
+                    .background(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("每日推荐").font(.subheadline.weight(.semibold)).foregroundStyle(Color.beansLabel)
+                    Text("30 首").font(.caption2).foregroundStyle(Color.beansSecondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .glassEffect(.regular)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var privateFMButton: some View {
+        Button {
+            Task { await playFM() }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "radio")
+                    .font(.title2)
+                    .foregroundStyle(.white)
+                    .frame(width: 46, height: 46)
+                    .background(LinearGradient(colors: [.green, .teal], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("私人 FM").font(.subheadline.weight(.semibold)).foregroundStyle(Color.beansLabel)
+                    Text("猜你喜欢").font(.caption2).foregroundStyle(Color.beansSecondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .glassEffect(.regular)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func playDaily() async {
@@ -312,12 +425,33 @@ struct LibraryView: View {
         }
     }
 
+    private func playFM() async {
+        do {
+            let fmSongs = try await NetEaseAPI.shared.personalFM()
+            guard !fmSongs.isEmpty else {
+                toast = "私人 FM 暂无可播歌曲"
+                return
+            }
+            player.play(songs: fmSongs, startAt: 0)
+        } catch {
+            toast = error.localizedDescription
+        }
+    }
+
     private func loadTopLists() async {
         topLists = (try? await NetEaseAPI.shared.topLists()) ?? []
     }
 
     private func loadRecommended() async {
         recommended = (try? await NetEaseAPI.shared.personalizedPlaylists(limit: 8)) ?? []
+    }
+
+    private func loadNewSongs() async {
+        newSongs = (try? await NetEaseAPI.shared.newSongs(limit: 10)) ?? []
+    }
+
+    private func loadTopPlaylists() async {
+        topPlaylists = (try? await NetEaseAPI.shared.topPlaylists(limit: 8)) ?? []
     }
 
     private func cover(_ url: URL?) -> some View {
@@ -348,7 +482,8 @@ struct BeansToastModifier: ViewModifier {
                     .foregroundStyle(Color.beansLabel)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .glassEffect(.regular)
+                    .clipShape(Capsule())
                     .padding(.bottom, 90)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .onAppear {

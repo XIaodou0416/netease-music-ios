@@ -12,6 +12,7 @@ struct LoginView: View {
     @State private var unikey = ""
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @State private var errorDetail: String?
 
     var body: some View {
         ZStack {
@@ -80,6 +81,22 @@ struct LoginView: View {
     }
 
     private var qrSection: some View {
+        if let errorDetail {
+            VStack(spacing: 10) {
+                Image(systemName: "wifi.exclamationmark")
+                    .font(.largeTitle)
+                    .foregroundStyle(Color.beansAmber)
+                Text(errorDetail)
+                    .font(.footnote)
+                    .foregroundStyle(Color.beansSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+            }
+            .frame(width: 244, height: 200)
+        } else { placeholder }
+    }
+
+    private var placeholder: some View {
         Group {
             if let qrImage {
                 Image(uiImage: qrImage)
@@ -127,6 +144,7 @@ struct LoginView: View {
             alertMessage = error.localizedDescription
             showAlert = true
             statusText = "获取二维码失败，点下方重试"
+            errorDetail = error.localizedDescription
         }
     }
 
@@ -171,6 +189,8 @@ enum QRGenerator {
         guard let output = filter.outputImage else { return nil }
         let scale = size / max(output.extent.width, 1)
         let scaled = output.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-        return UIImage(ciImage: scaled)
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(scaled, from: scaled.extent) else { return nil }
+        return UIImage(cgImage: cgImage)
     }
 }

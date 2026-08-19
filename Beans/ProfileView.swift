@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var player: PlayerManager
     @AppStorage("beans.theme") private var themeRaw = BeansThemeMode.system.rawValue
     @State private var showLogin = false
     @State private var showLogoutConfirm = false
@@ -15,6 +16,9 @@ struct ProfileView: View {
                     if let user = auth.user {
                         accountCard(user)
                         statsCard
+                        if !player.topPlayed.isEmpty {
+                            topPlayedCard
+                        }
                         servicesCard
                         themeCard
                         aboutCard
@@ -99,10 +103,11 @@ struct ProfileView: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity)
-        .background(Color.beansCard, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .glassEffect(.regular)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
+                .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
         )
     }
 
@@ -139,10 +144,11 @@ struct ProfileView: View {
                 .foregroundStyle(Color.beansAmber)
         }
         .padding(20)
-        .background(Color.beansCard, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .glassEffect(.regular)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
+                .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
         )
     }
 
@@ -168,7 +174,56 @@ struct ProfileView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity)
-        .background(Color.beansCard, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .glassEffect(.regular)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+        )
+    }
+
+    private var topPlayedCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("听歌排行").font(.headline).foregroundStyle(Color.beansLabel)
+            ForEach(player.topPlayed.prefix(5), id: \.song.id) { item in
+                Button {
+                    player.play(songs: player.history, startAt: player.history.firstIndex(of: item.song) ?? 0)
+                } label: {
+                    HStack(spacing: 12) {
+                        AsyncImage(url: item.song.coverURL) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            Rectangle().fill(Color.beansCard)
+                        }
+                        .frame(width: 40, height: 40)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.song.name)
+                                .font(.subheadline)
+                                .foregroundStyle(Color.beansLabel)
+                                .lineLimit(1)
+                            Text(item.song.artists)
+                                .font(.caption2)
+                                .foregroundStyle(Color.beansSecondary)
+                                .lineLimit(1)
+                        }
+                        Spacer()
+                        Text("\(item.count) 次")
+                            .font(.caption2)
+                            .foregroundStyle(Color.beansAmber)
+                    }
+                    .padding(.vertical, 2)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(16)
+        .glassEffect(.regular)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+        )
     }
 
     private var servicesCard: some View {
@@ -176,16 +231,21 @@ struct ProfileView: View {
             Button {
                 showHistory = true
             } label: {
-                serviceRow(icon: "clock.arrow.circlepath", tint: Color.beansSage, title: "最近播放", subtitle: "在本地记录的播放足迹")
+                serviceRow(icon: "clock.arrow.circlepath", tint: Color.beansSage, title: "最近播放", subtitle: "本地记录 50 首播放足迹")
             }
             Divider().padding(.leading, 52)
             Button {
                 showHistory = true
             } label: {
-                serviceRow(icon: "list.bullet", tint: .blue, title: "播放历史", subtitle: "50 首以内自动保存")
+                serviceRow(icon: "chart.bar.fill", tint: .blue, title: "播放统计", subtitle: "听歌次数自动累计")
             }
         }
-        .background(Color.beansCard, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .glassEffect(.regular)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+        )
     }
 
     private func serviceRow(icon: String, tint: Color, title: String, subtitle: String) -> some View {
@@ -226,7 +286,12 @@ struct ProfileView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.beansCard, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .glassEffect(.regular)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+        )
     }
 
     private var aboutCard: some View {
@@ -235,7 +300,7 @@ struct ProfileView: View {
             HStack {
                 Text("Beans").foregroundStyle(Color.beansLabel)
                 Spacer()
-                Text("1.1").foregroundStyle(Color.beansSecondary)
+                Text("1.2").foregroundStyle(Color.beansSecondary)
             }
             .font(.subheadline)
             HStack(alignment: .top, spacing: 8) {
@@ -248,7 +313,12 @@ struct ProfileView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.beansCard, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .glassEffect(.regular)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+        )
     }
 
     private var logoutButton: some View {

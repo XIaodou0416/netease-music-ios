@@ -7,58 +7,120 @@ struct SearchView: View {
     @State private var songs: [Song] = []
     @State private var isLoading = false
     @State private var searched = false
-    @State private var showAddSheet = false
-    @State private var selectedSong: Song?
+    @State private var hotKeywords: [String] = []
+    @State private var history: [String] = UserDefaults.standard.stringArray(forKey: "beans.searchhistory") ?? []
 
     var body: some View {
         Group {
-            if songs.isEmpty && !searched {
+            if !searched {
+                initialContent
+            } else {
+                resultsList
+            }
+        }
+        .background(Color.beansBackground.ignoresSafeArea())
+        .navigationTitle("搜索")
+        .navigationBarTitleDisplayMode(.large)
+        .searchable(text: $keyword, prompt: "歌名 / 歌手 / 专辑")
+        .onSubmit(of: .search) { runSearch() }
+        .task {
+            if hotKeywords.isEmpty {
+                hotKeywords = (try? await NetEaseAPI.shared.hotSearch()) ?? []
+            }
+        }
+    }
+
+    // MARK: - 初始页：历史 + 热门
+
+    private var initialContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                if !history.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("搜索历史").font(.headline).foregroundStyle(Color.beansLabel)
+                            Spacer()
+                            Button {
+                                history = []
+                                UserDefaults.standard.set([String](), forKey: "beans.searchhistory")
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.beansSecondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        FlowLayout(spacing: 10) {
+                            ForEach(history, id: \.self) { item in
+                                Button {
+                                    keyword = item
+                                    runSearch()
+                                } label: {
+                                    Text(item)
+                                        .font(.footnote)
+                                        .foregroundStyle(Color.beansLabel)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .background(Color.beansCard, in: Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+
+                if !hotKeywords.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("热门搜索").font(.headline).foregroundStyle(Color.beansLabel)
+                        FlowLayout(spacing: 10) {
+                            ForEach(Array(hotKeywords.enumerated()), id: \.element) { index, item in
+                                Button {
+                                    keyword = item
+                                    runSearch()
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Text("\(index + 1)")
+                                            .font(.caption2.bold())
+                                            .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
+                                        Text(item)
+                                            .font(.footnote)
+                                            .foregroundStyle(Color.beansLabel)
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Color.beansCard, in: Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+        }
+    }
+
+    // MARK: - 结果
+
+    private var resultsList: some View {
+        Group {
+            if songs.isEmpty && !isLoading {
                 VStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 44))
+                    Image(systemName: "music.note")
+                        .font(.system(size: 40))
                         .foregroundStyle(Color.beansSecondary)
-                    Text("搜索网易云曲库")
+                    Text("没有找到相关歌曲")
                         .font(.headline)
                         .foregroundStyle(Color.beansLabel)
-                    Text("输入歌名、歌手或专辑名")
-                        .font(.footnote)
-                        .foregroundStyle(Color.beansSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
                     ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-                        HStack(spacing: 12) {
-                            Button {
-                                player.play(songs: songs, startAt: index)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    AsyncImage(url: song.coverURL) { image in
-                                        image.resizable().scaledToFill()
-                                    } placeholder: {
-                                        Rectangle().fill(Color.beansCard)
-                                    }
-                                    .frame(width: 44, height: 44)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(song.name).font(.body).foregroundStyle(Color.beansLabel).lineLimit(1)
-                                        Text(song.artists).font(.caption).foregroundStyle(Color.beansSecondary).lineLimit(1)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            Spacer()
-                            Button {
-                                selectedSong = song
-                                showAddSheet = true
-                            } label: {
-                                Image(systemName: "plus.circle")
-                                    .font(.title3)
-                                    .foregroundStyle(Color.beansSecondary)
-                            }
-                            .buttonStyle(.plain)
+                        SongCell(song: song) {
+                            player.play(songs: songs, startAt: index)
                         }
-                        .padding(.vertical, 2)
                     }
                 }
                 .listStyle(.plain)
@@ -70,20 +132,12 @@ struct SearchView: View {
                 }
             }
         }
-        .background(Color.beansBackground.ignoresSafeArea())
-        .navigationTitle("搜索")
-        .navigationBarTitleDisplayMode(.large)
-        .searchable(text: $keyword, prompt: "歌名 / 歌手 / 专辑")
-        .onSubmit(of: .search) { runSearch() }
-        .sheet(item: $selectedSong) { song in
-            AddToPlaylistSheet(song: song)
-                .presentationDetents([.medium])
-        }
     }
 
     private func runSearch() {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        saveHistory(trimmed)
         searched = true
         isLoading = true
         Task {
@@ -91,101 +145,53 @@ struct SearchView: View {
             songs = (try? await NetEaseAPI.shared.search(keyword: trimmed)) ?? []
         }
     }
+
+    private func saveHistory(_ item: String) {
+        history.removeAll { $0 == item }
+        history.insert(item, at: 0)
+        if history.count > 12 {
+            history = Array(history.prefix(12))
+        }
+        UserDefaults.standard.set(history, forKey: "beans.searchhistory")
+    }
 }
 
-struct AddToPlaylistSheet: View {
-    @EnvironmentObject private var auth: AuthStore
-    @Environment(\.dismiss) private var dismiss
-    let song: Song
-    @State private var newName = ""
-    @State private var toast: String?
+// 简单流式布局（chips 自动换行）
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
 
-    var body: some View {
-        NavigationStack {
-            Group {
-                if auth.isLoggedIn {
-                    List {
-                        Section("添加到歌单") {
-                            ForEach(auth.playlists.filter { $0.id != auth.favoritePlaylistID }) { playlist in
-                                Button {
-                                    Task { await add(playlistID: playlist.id) }
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        AsyncImage(url: playlist.coverURL) { image in
-                                            image.resizable().scaledToFill()
-                                        } placeholder: {
-                                            Rectangle().fill(Color.beansCard)
-                                        }
-                                        .frame(width: 40, height: 40)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                        Text(playlist.name)
-                                            .font(.subheadline)
-                                            .foregroundStyle(Color.beansLabel)
-                                        Spacer()
-                                    }
-                                }
-                            }
-                        }
-                        Section("新建歌单") {
-                            HStack {
-                                TextField("歌单名称", text: $newName)
-                                Button("创建并添加") {
-                                    Task { await createAndAdd() }
-                                }
-                                .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
-                            }
-                        }
-                    }
-                } else {
-                    VStack(spacing: 12) {
-                        Image(systemName: "person.crop.circle.badge.exclamationmark")
-                            .font(.system(size: 44))
-                            .foregroundStyle(Color.beansSecondary)
-                        Text("登录后才能添加到歌单")
-                            .font(.headline)
-                            .foregroundStyle(Color.beansLabel)
-                        Text("请先在「我的」页扫码登录")
-                            .font(.footnote)
-                            .foregroundStyle(Color.beansSecondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth, x > 0 {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
             }
-            .background(Color.beansBackground.ignoresSafeArea())
-            .navigationTitle("\(song.name)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") { dismiss() }
-                }
-            }
-            .beansToast(message: $toast)
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
         }
+        return CGSize(width: maxWidth, height: y + rowHeight)
     }
 
-    private func add(playlistID: Int) async {
-        let ok = (try? await NetEaseAPI.shared.addToPlaylist(playlistID: playlistID, songIDs: [song.id])) ?? false
-        toast = ok ? "已添加到歌单" : "添加失败"
-        if ok {
-            try? await Task.sleep(nanoseconds: 1_200_000_000)
-            dismiss()
-        }
-    }
-
-    private func createAndAdd() async {
-        let name = newName.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return }
-        do {
-            let id = try await NetEaseAPI.shared.createPlaylist(name: name)
-            if let user = auth.user {
-                auth.playlists = (try? await NetEaseAPI.shared.userPlaylists(uid: user.uid)) ?? auth.playlists
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x + size.width > bounds.maxX, x > bounds.minX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
             }
-            _ = try await NetEaseAPI.shared.addToPlaylist(playlistID: id, songIDs: [song.id])
-            toast = "已创建并添加"
-            try? await Task.sleep(nanoseconds: 1_200_000_000)
-            dismiss()
-        } catch {
-            toast = error.localizedDescription
+            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
         }
     }
 }

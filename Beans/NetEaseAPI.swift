@@ -16,11 +16,12 @@ final class NetEaseAPI {
     private let nuid: String
     private let deviceId: String
     private let wnMcid: String
+    private var storedCookies: [String: String] = [:]
 
     init() {
         let config = URLSessionConfiguration.default
-        config.httpCookieAcceptPolicy = .always
-        config.httpShouldSetCookies = true
+        config.httpCookieAcceptPolicy = .never
+        config.httpShouldSetCookies = false
         config.timeoutIntervalForRequest = 20
         session = URLSession(configuration: config)
 
@@ -65,6 +66,7 @@ final class NetEaseAPI {
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw NetEaseError.network }
+        storeCookies(from: http)
         guard http.statusCode == 200 else {
             let snippet = String(data: data, encoding: .utf8)?.prefix(120) ?? ""
             throw NetEaseError.httpStatus(http.statusCode, String(snippet))
@@ -94,6 +96,23 @@ final class NetEaseAPI {
 
     private func cookieValue(named name: String) -> String {
         (HTTPCookieStorage.shared.cookies ?? []).first { $0.name == name }?.value ?? ""
+    }
+
+    func clearCookies() {
+        storedCookies.removeAll()
+    }
+
+    private func storeCookies(from response: HTTPURLResponse) {
+        guard let header = response.value(forHTTPHeaderField: "Set-Cookie") else { return }
+        for part in header.components(separatedBy: ";") {
+            let kv = part.split(separator: "=", maxSplits: 1).map(String.init)
+            guard kv.count == 2 else { continue }
+            let name = kv[0].trimmingCharacters(in: .whitespaces)
+            let value = kv[1].trimmingCharacters(in: .whitespaces)
+            let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_"))
+            guard name.rangeOfCharacter(from: allowed.inverted) == nil, !value.isEmpty else { continue }
+            storedCookies[name] = value
+        }
     }
 
     private func weapiCookieHeader() -> String {
@@ -270,6 +289,47 @@ final class NetEaseAPI {
         let json = try await request("/api/personalized/playlist", payload: ["limit": limit, "n": limit], crypto: "weapi")
         let list = json["result"] as? [[String: Any]] ?? []
         return list.compactMap(Playlist.init(personalizedJSON:))
+    }
+
+    // MARK: - 更多发现
+
+    func hotSearch() async throws -> [String] {
+        let json = try await request("/api/search/hot", payload: ["type": 1111], crypto: "weapi")
+        let hots = json["result"] as? [String: Any] ?? [:]
+        let list = hots["hots"] as? [[String: Any]] ?? []
+        return list.compactMap { ["first"] as? String }.prefix(10).map {  }
+    }
+
+    func newSongs(limit: Int = 10) async throws -> [Song] {
+        let json = try await request("/api/personalized/newsong", payload: ["type": 0, "limit": limit], crypto: "weapi")
+        let list = json["result"] as? [[String: Any]] ?? []
+        var songs: [Song] = []
+        for item in list {
+            if let songJSON = item["song"] as? [String: Any], let song = Song(json: songJSON) {
+                songs.append(song)
+            } else if let song = Song(json: item) {
+                songs.append(song)
+            }
+        }
+        return songs
+    }
+
+    func topPlaylists(limit: Int = 10) async throws -> [Playlist] {
+        let json = try await request("/api/top/playlist", payload: ["limit": limit, "order": "hot", "cat": "全部", "total": true], crypto: "weapi")
+        let list = json["playlists"] as? [[String: Any]] ?? []
+        return list.compactMap(Playlist.init(json:))
+    }
+
+    func simiSongs(id: Int) async throws -> [Song] {
+        let json = try await request("/api/simi/song", payload: ["songid": id], crypto: "weapi")
+        let list = json["songs"] as? [[String: Any]] ?? []
+        return list.compactMap(Song.init(json:))
+    }
+
+    func personalFM() async throws -> [Song] {
+        let json = try await request("/api/v1/radio/get", payload: [:], crypto: "weapi")
+        let list = json["data"] as? [[String: Any]] ?? []
+        return list.compactMap(Song.init(json:))
     }
 
     // MARK: - 歌单编辑

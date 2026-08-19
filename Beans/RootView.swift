@@ -47,7 +47,8 @@ struct BeansTabBar: View {
             tabButton(.profile, title: "我的", icon: "person.crop.circle", selectedIcon: "person.crop.circle.fill")
         }
         .padding(5)
-        .background(.ultraThinMaterial, in: Capsule())
+        .glassEffect(.regular)
+        .clipShape(Capsule())
         .overlay(Capsule().strokeBorder(.primary.opacity(0.12), lineWidth: 1))
         .shadow(color: .black.opacity(0.22), radius: 14, y: 5)
         .padding(.horizontal, 44)

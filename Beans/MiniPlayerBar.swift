@@ -50,7 +50,7 @@ struct MiniPlayerBar: View {
                 .frame(height: 2)
                 .offset(y: 21)
             )
-            .background(.ultraThinMaterial)
+            .glassEffect(.regular)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)

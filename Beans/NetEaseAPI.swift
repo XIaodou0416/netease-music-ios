@@ -114,9 +114,9 @@ final class NetEaseAPI {
         for (key, value) in response.allHeaderFields {
             guard let key = key as? String, key.lowercased() == "set-cookie",
                   let value = value as? String, !value.isEmpty,
-                  let url = response.url,
-                  let cookies = HTTPCookie.cookies(withResponseHeaderFields: ["Set-Cookie": value], for: url)
+                  let url = response.url
             else { continue }
+            let cookies = HTTPCookie.cookies(withResponseHeaderFields: ["Set-Cookie": value], for: url)
             for cookie in cookies where !cookie.value.isEmpty {
                 if storedCookies[cookie.name] != cookie.value {
                     storedCookies[cookie.name] = cookie.value

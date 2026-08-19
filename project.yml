@@ -1,30 +1,37 @@
-name: TodoDemo
+name: Beans
 
 options:
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "26.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
 
 targets:
-  TodoDemo:
+  Beans:
     type: application
     platform: iOS
-    sources: [TodoDemo]
+    sources: [Beans]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.tododemo
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_CFBundleDisplayName: 待办清单
+        PRODUCT_BUNDLE_IDENTIFIER: com.beans.app
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
-        SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_OBJC_BRIDGING_HEADER: Beans/Beans-Bridging-Header.h
+    info:
+      path: Beans/Info.plist
+      properties:
+        CFBundleDisplayName: Beans
+        UIBackgroundModes: [audio]
+        UILaunchScreen: {}
 
 schemes:
-  TodoDemo:
+  Beans:
     build:
       targets:
-        TodoDemo: all
+        Beans: all
     run:
       config: Debug
     archive:

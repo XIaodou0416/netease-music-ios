@@ -1,0 +1,139 @@
+import SwiftUI
+
+struct LibraryView: View {
+    @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var player: PlayerManager
+    @State private var selectedPlaylist: Playlist?
+    @State private var loaded = false
+
+    private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    header
+                    if auth.playlists.isEmpty && !loaded {
+                        ProgressView().frame(maxWidth: .infinity).padding(.top, 60)
+                    } else if auth.playlists.isEmpty {
+                        Text("还没有加载到歌单，下拉重试")
+                            .font(.footnote)
+                            .foregroundStyle(.beansMuted)
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        favoriteCard
+                        playlistGrid
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+            .background(Color.beansBackground.ignoresSafeArea())
+            .navigationDestination(item: $selectedPlaylist) { playlist in
+                PlaylistView(playlist: playlist)
+            }
+            .task {
+                guard !loaded else { return }
+                await auth.loadLibrary()
+                loaded = true
+            }
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Beans")
+                .font(.system(size: 40, weight: .black, design: .rounded))
+                .foregroundStyle(.beansCream)
+            Text("一杯好歌，来自你的网易云")
+                .font(.footnote)
+                .foregroundStyle(.beansMuted)
+            if let user = auth.user {
+                HStack(spacing: 6) {
+                    Image(systemName: "person.crop.circle.fill")
+                        .foregroundStyle(.beansAmber)
+                    Text(user.nickname)
+                        .font(.subheadline)
+                        .foregroundStyle(.beansCream.opacity(0.8))
+                }
+                .padding(.top, 2)
+            }
+        }
+        .padding(.top, 10)
+    }
+
+    private var favoriteCard: some View {
+        Button {
+            if !auth.favoriteTracks.isEmpty {
+                player.play(songs: auth.favoriteTracks, startAt: 0)
+            }
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "heart.fill")
+                    .font(.title2)
+                    .foregroundStyle(.white)
+                    .frame(width: 56, height: 56)
+                    .background(LinearGradient(colors: [.pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("我喜欢的音乐").font(.headline).foregroundStyle(.beansCream)
+                    Text("\(auth.favoriteTracks.count) 首 · 点按播放")
+                        .font(.caption)
+                        .foregroundStyle(.beansMuted)
+                }
+                Spacer()
+                Image(systemName: "play.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.beansAmber)
+            }
+            .padding(14)
+            .glassEffect(.regular)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(.white.opacity(0.14), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var playlistGrid: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("我的歌单").font(.title2.bold()).foregroundStyle(.beansCream)
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(auth.playlists.filter { $0.id != auth.favoritePlaylistID }) { playlist in
+                    Button {
+                        selectedPlaylist = playlist
+                    } label: {
+                        VStack(alignment: .leading, spacing: 8) {
+                            cover(playlist)
+                            Text(playlist.name)
+                                .font(.subheadline)
+                                .foregroundStyle(.beansCream)
+                                .lineLimit(2, reservesSpace: true)
+                                .multilineTextAlignment(.leading)
+                            Text("\(playlist.trackCount) 首")
+                                .font(.caption2)
+                                .foregroundStyle(.beansMuted)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func cover(_ playlist: Playlist) -> some View {
+        AsyncImage(url: playlist.coverURL) { image in
+            image.resizable().scaledToFill()
+        } placeholder: {
+            Rectangle().fill(.white.opacity(0.07))
+        }
+        .frame(maxWidth: .infinity)
+        .aspectRatio(1, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+        )
+    }
+}

@@ -65,9 +65,13 @@ final class NetEaseAPI {
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw NetEaseError.network }
-        guard http.statusCode == 200 else { throw NetEaseError.httpStatus(http.statusCode) }
+        guard http.statusCode == 200 else {
+            let snippet = String(data: data, encoding: .utf8)?.prefix(120) ?? ""
+            throw NetEaseError.httpStatus(http.statusCode, snippet: String(snippet))
+        }
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw NetEaseError.decoding
+            let snippet = String(data: data, encoding: .utf8)?.prefix(120) ?? ""
+            throw NetEaseError.decoding(String(snippet))
         }
         return json
     }
@@ -147,10 +151,25 @@ final class NetEaseAPI {
         return String((0..<count).compactMap { _ in chars.randomElement() })
     }
 
-    // MARK: - 登录（eapi 二维码新流程）
+    // MARK: - 登录（二维码，eapi 优先、weapi 降级）
 
     func qrKey() async throws -> String {
+        do {
+            return try await qrKeyEAPI()
+        } catch {
+            return try await qrKeyWEAPI()
+        }
+    }
+
+    private func qrKeyEAPI() async throws -> String {
         let json = try await request("/api/login/qrcode/unikey", payload: ["type": 3], crypto: "eapi")
+        if let key = json["unikey"] as? String, !key.isEmpty { return key }
+        if let data = json["data"] as? [String: Any], let key = data["unikey"] as? String, !key.isEmpty { return key }
+        throw NetEaseError.unknown("获取二维码密钥失败")
+    }
+
+    private func qrKeyWEAPI() async throws -> String {
+        let json = try await request("/api/login/qrcode/unikey", payload: ["type": 3], crypto: "weapi")
         if let key = json["unikey"] as? String, !key.isEmpty { return key }
         if let data = json["data"] as? [String: Any], let key = data["unikey"] as? String, !key.isEmpty { return key }
         throw NetEaseError.unknown("获取二维码密钥失败")
@@ -161,7 +180,12 @@ final class NetEaseAPI {
     }
 
     func qrCheck(key: String) async throws -> Int {
-        let json = try await request("/api/login/qrcode/client/login", payload: ["key": key, "type": 3], crypto: "eapi")
+        do {
+            let json = try await request("/api/login/qrcode/client/login", payload: ["key": key, "type": 3], crypto: "eapi")
+            let code = json["code"] as? Int ?? -1
+            if code != -1 { return code }
+        } catch {}
+        let json = try await request("/api/login/qrcode/client/login", payload: ["key": key, "type": 3], crypto: "weapi")
         return json["code"] as? Int ?? -1
     }
 
@@ -200,19 +224,84 @@ final class NetEaseAPI {
         }
         return result
     }
+
+    // MARK: - 歌词
+
+    func lyric(id: Int) async throws -> String? {
+        let json = try await request("/api/song/lyric", payload: ["id": id, "lv": -1, "kv": -1, "tv": -1], crypto: "weapi")
+        guard let lrc = json["lrc"] as? [String: Any], let text = lrc["lyric"] as? String, !text.isEmpty else {
+            return nil
+        }
+        return text
+    }
+
+    // MARK: - 搜索
+
+    func search(keyword: String, limit: Int = 30, offset: Int = 0) async throws -> [Song] {
+        let json = try await request("/api/cloudsearch/pc", payload: ["s": keyword, "type": 1, "limit": limit, "offset": offset, "total": true], crypto: "weapi")
+        let result = json["result"] as? [String: Any] ?? [:]
+        let songs = result["songs"] as? [[String: Any]] ?? []
+        return songs.compactMap(Song.init(json:))
+    }
+
+    // MARK: - 收藏
+
+    func like(id: Int, liked: Bool) async throws -> Bool {
+        let json = try await request("/api/song/like", payload: ["like": liked, "id": id], crypto: "weapi")
+        return (json["code"] as? Int) == 200
+    }
+
+    // MARK: - 发现
+
+    func topLists() async throws -> [TopList] {
+        let json = try await request("/api/toplist/detail", payload: [:], crypto: "weapi")
+        let list = json["list"] as? [[String: Any]] ?? []
+        return list.prefix(12).compactMap(TopList.init(json:))
+    }
+
+    func dailyRecommend() async throws -> [Song] {
+        let json = try await request("/api/v3/discovery/recommend/songs", payload: [:], crypto: "weapi")
+        let data = json["data"] as? [String: Any] ?? [:]
+        let songs = data["dailySongs"] as? [[String: Any]] ?? []
+        return songs.compactMap(Song.init(json:))
+    }
+
+    func personalizedPlaylists(limit: Int = 20) async throws -> [Playlist] {
+        let json = try await request("/api/personalized/playlist", payload: ["limit": limit, "n": limit], crypto: "weapi")
+        let list = json["result"] as? [[String: Any]] ?? []
+        return list.compactMap(Playlist.init(personalizedJSON:))
+    }
+
+    // MARK: - 歌单编辑
+
+    func createPlaylist(name: String) async throws -> Int {
+        let json = try await request("/api/playlist/create", payload: ["name": name, "privacy": 0], crypto: "weapi")
+        guard let id = json["id"] as? Int else {
+            throw NetEaseError.unknown("创建歌单失败")
+        }
+        return id
+    }
+
+    func addToPlaylist(playlistID: Int, songIDs: [Int]) async throws -> Bool {
+        let tracks = "[" + songIDs.map(String.init).joined(separator: ",") + "]"
+        let json = try await request("/api/playlist/manipulate/tracks", payload: ["op": "add", "pid": playlistID, "tracks": tracks], crypto: "weapi")
+        return (json["code"] as? Int) == 200
+    }
 }
 
 enum NetEaseError: LocalizedError {
     case network
-    case httpStatus(Int)
-    case decoding
+    case httpStatus(Int, String)
+    case decoding(String)
     case unknown(String)
 
     var errorDescription: String? {
         switch self {
         case .network: return "网络连接失败，请检查网络"
-        case .httpStatus(let code): return "服务器响应异常（\(code)）"
-        case .decoding: return "数据解析失败"
+        case .httpStatus(let code, let snippet):
+            return snippet.isEmpty ? "服务器响应异常（\(code)）" : "服务器响应异常（\(code)）\(snippet)"
+        case .decoding(let snippet):
+            return snippet.isEmpty ? "数据解析失败" : "数据解析失败：\(snippet)"
         case .unknown(let message): return message
         }
     }

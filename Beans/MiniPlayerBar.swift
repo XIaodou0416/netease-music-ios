@@ -10,34 +10,54 @@ struct MiniPlayerBar: View {
                 AsyncImage(url: song.coverURL) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
-                    Color.white.opacity(0.08)
+                    Color.beansCard
                 }
-                .frame(width: 40, height: 40)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .frame(width: 42, height: 42)
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(song.name).font(.subheadline).foregroundStyle(Color.beansCream).lineLimit(1)
-                    Text(song.artists).font(.caption2).foregroundStyle(Color.beansMuted).lineLimit(1)
+                    Text(song.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.beansLabel)
+                        .lineLimit(1)
+                    Text(song.artists)
+                        .font(.caption2)
+                        .foregroundStyle(Color.beansSecondary)
+                        .lineLimit(1)
                 }
                 Spacer()
                 Button {
                     player.togglePlayPause()
                 } label: {
-                    Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                    Image(systemName: player.isBuffering ? "hourglass" : (player.isPlaying ? "pause.fill" : "play.fill"))
                         .font(.title3)
-                        .foregroundStyle(Color.beansCream)
+                        .foregroundStyle(Color.beansLabel)
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .glassEffect(.regular)
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
+            .background(
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Rectangle().fill(.clear)
+                        Rectangle()
+                            .fill(Color.beansAmber)
+                            .frame(width: max(0, geo.size.width * (player.duration > 0 ? player.progress / player.duration : 0)))
+                    }
+                }
+                .frame(height: 2)
+                .offset(y: 21)
+            )
+            .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(.white.opacity(0.16), lineWidth: 1)
+                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
             )
             .padding(.horizontal, 10)
+            .contentShape(Rectangle())
             .onTapGesture { showPlayer = true }
             .sheet(isPresented: $showPlayer) { PlayerView() }
         }

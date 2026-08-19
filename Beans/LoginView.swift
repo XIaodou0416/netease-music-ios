@@ -25,7 +25,7 @@ struct LoginView: View {
                 qrSection
                 Text(statusText)
                     .font(.footnote)
-                    .foregroundStyle(Color.beansMuted)
+                    .foregroundStyle(Color.beansSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
                 if isLoading {
@@ -61,10 +61,10 @@ struct LoginView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("登录网易云")
                     .font(.title2.bold())
-                    .foregroundStyle(Color.beansCream)
+                    .foregroundStyle(Color.beansLabel)
                 Text("扫码登录，同步你的收藏与歌单")
                     .font(.footnote)
-                    .foregroundStyle(Color.beansMuted)
+                    .foregroundStyle(Color.beansSecondary)
             }
             Spacer()
             Button {
@@ -72,7 +72,7 @@ struct LoginView: View {
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(Color.beansMuted)
+                    .foregroundStyle(Color.beansSecondary)
             }
             .buttonStyle(.plain)
         }
@@ -105,7 +105,7 @@ struct LoginView: View {
                                 .foregroundStyle(Color.beansAmber)
                             Text("二维码会出现在这里")
                                 .font(.footnote)
-                                .foregroundStyle(Color.beansMuted)
+                                .foregroundStyle(Color.beansSecondary)
                         }
                     )
             }

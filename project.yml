@@ -27,6 +27,8 @@ targets:
         CFBundleDisplayName: Beans
         UIBackgroundModes: [audio]
         UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
 
 schemes:
   Beans:

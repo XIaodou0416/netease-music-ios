@@ -342,7 +342,7 @@ struct BeansToastModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .bottom) {
-            if let text = message.wrappedValue {
+            if let text = message {
                 Text(text)
                     .font(.footnote)
                     .foregroundStyle(Color.beansLabel)

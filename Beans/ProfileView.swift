@@ -333,7 +333,12 @@ struct ProfileView: View {
                 Spacer()
             }
             .padding(.vertical, 13)
-            .background(Color.beansCard, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .glassEffect(.regular)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }

@@ -61,7 +61,8 @@ struct SearchView: View {
                                         .foregroundStyle(Color.beansLabel)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
-                                        .background(Color.beansCard, in: Capsule())
+                                        .glassEffect(.regular)
+                                        .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -88,7 +89,8 @@ struct SearchView: View {
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
-                                    .background(Color.beansCard, in: Capsule())
+                                    .glassEffect(.regular)
+                                    .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -125,6 +127,9 @@ struct SearchView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 .overlay {
                     if isLoading {
                         ProgressView()

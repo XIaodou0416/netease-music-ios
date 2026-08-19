@@ -61,13 +61,24 @@ struct QueueView: View {
                                         .buttonStyle(.plain)
                                     }
                                 }
-                                .padding(.vertical, 2)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .glassEffect(.regular)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+                                )
                             }
                         } header: {
                             Text("\(player.queue.count) 首 · \(player.playMode.title)")
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 }
             }
             .background(Color.beansBackground.ignoresSafeArea())

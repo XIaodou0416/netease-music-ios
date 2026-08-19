@@ -81,7 +81,8 @@ struct LoginView: View {
     }
 
     private var qrSection: some View {
-        if let errorDetail {
+        Group {
+            if let errorDetail {
             VStack(spacing: 10) {
                 Image(systemName: "wifi.exclamationmark")
                     .font(.largeTitle)
@@ -93,7 +94,10 @@ struct LoginView: View {
                     .padding(.horizontal, 20)
             }
             .frame(width: 244, height: 200)
-        } else { placeholder }
+            } else {
+                placeholder
+            }
+        }
     }
 
     private var placeholder: some View {
@@ -112,19 +116,21 @@ struct LoginView: View {
                             .strokeBorder(.white.opacity(0.18), lineWidth: 1)
                     )
             } else {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(.white.opacity(0.06))
-                    .frame(width: 244, height: 244)
-                    .overlay(
-                        VStack(spacing: 10) {
-                            Image(systemName: "qrcode")
-                                .font(.largeTitle)
-                                .foregroundStyle(Color.beansAmber)
-                            Text("二维码会出现在这里")
-                                .font(.footnote)
-                                .foregroundStyle(Color.beansSecondary)
-                        }
-                    )
+                VStack(spacing: 10) {
+                    Image(systemName: "qrcode")
+                        .font(.largeTitle)
+                        .foregroundStyle(Color.beansAmber)
+                    Text("二维码会出现在这里")
+                        .font(.footnote)
+                        .foregroundStyle(Color.beansSecondary)
+                }
+                .frame(width: 244, height: 244)
+                .glassEffect(.regular)
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+                )
             }
         }
     }

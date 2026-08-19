@@ -39,7 +39,14 @@ struct PlaylistView: View {
                                         .foregroundStyle(Color.beansSecondary)
                                 }
                             }
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .glassEffect(.regular)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+                            )
                         }
                     }
                     ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
@@ -50,6 +57,9 @@ struct PlaylistView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
             }
         }
         .background(Color.beansBackground.ignoresSafeArea())

@@ -33,6 +33,11 @@ struct SleepTimerSheet: View {
                                         .foregroundStyle(Color.beansAmber)
                                 }
                             }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity)
+                            .glassEffect(.regular)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
                     }
                 }
@@ -47,6 +52,10 @@ struct SleepTimerSheet: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
             .background(Color.beansBackground.ignoresSafeArea())
             .navigationTitle("睡眠定时")
             .navigationBarTitleDisplayMode(.inline)

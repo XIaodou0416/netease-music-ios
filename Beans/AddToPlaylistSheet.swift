@@ -30,6 +30,10 @@ struct AddToPlaylistSheet: View {
                                             .foregroundStyle(Color.beansLabel)
                                         Spacer()
                                     }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .glassEffect(.regular)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 }
                             }
                         }
@@ -58,6 +62,9 @@ struct AddToPlaylistSheet: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
             .background(Color.beansBackground.ignoresSafeArea())
             .navigationTitle("\(song.name)")
             .navigationBarTitleDisplayMode(.inline)

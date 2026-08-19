@@ -297,7 +297,7 @@ final class NetEaseAPI {
         let json = try await request("/api/search/hot", payload: ["type": 1111], crypto: "weapi")
         let hots = json["result"] as? [String: Any] ?? [:]
         let list = hots["hots"] as? [[String: Any]] ?? []
-        return list.compactMap { ["first"] as? String }.prefix(10).map {  }
+        return list.compactMap { $0["first"] as? String }.prefix(10).map { $0 }
     }
 
     func newSongs(limit: Int = 10) async throws -> [Song] {

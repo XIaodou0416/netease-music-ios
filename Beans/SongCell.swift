@@ -55,7 +55,14 @@ struct SongCell: View {
                         .foregroundStyle(Color.beansSecondary)
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .glassEffect(.regular)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
         .contextMenu {

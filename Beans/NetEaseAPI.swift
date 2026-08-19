@@ -16,6 +16,7 @@ final class NetEaseAPI {
     private let nuid: String
     private let deviceId: String
     private let wnMcid: String
+    private let cookiesKey = "beans.netease.cookies"
     private var storedCookies: [String: String] = [:]
 
     init() {
@@ -28,6 +29,11 @@ final class NetEaseAPI {
         nuid = Self.randomHex(length: 32)      // 64 位 hex
         deviceId = Self.randomHex(length: 26)  // 52 位 hex
         wnMcid = "\(Self.randomLowercase(6)).\(Int(Date().timeIntervalSince1970 * 1000)).01.0"
+
+        if let data = UserDefaults.standard.data(forKey: cookiesKey),
+           let saved = try? JSONDecoder().decode([String: String].self, from: data) {
+            storedCookies = saved
+        }
     }
 
     // MARK: - 请求
@@ -95,23 +101,33 @@ final class NetEaseAPI {
     }
 
     private func cookieValue(named name: String) -> String {
-        (HTTPCookieStorage.shared.cookies ?? []).first { $0.name == name }?.value ?? ""
+        storedCookies[name] ?? ""
     }
 
     func clearCookies() {
         storedCookies.removeAll()
+        UserDefaults.standard.removeObject(forKey: cookiesKey)
     }
 
     private func storeCookies(from response: HTTPURLResponse) {
-        guard let header = response.value(forHTTPHeaderField: "Set-Cookie") else { return }
-        for part in header.components(separatedBy: ";") {
-            let kv = part.split(separator: "=", maxSplits: 1).map(String.init)
-            guard kv.count == 2 else { continue }
-            let name = kv[0].trimmingCharacters(in: .whitespaces)
-            let value = kv[1].trimmingCharacters(in: .whitespaces)
-            let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_"))
-            guard name.rangeOfCharacter(from: allowed.inverted) == nil, !value.isEmpty else { continue }
-            storedCookies[name] = value
+        var changed = false
+        for (key, value) in response.allHeaderFields {
+            guard let key = key as? String, key.lowercased() == "set-cookie",
+                  let value = value as? String, !value.isEmpty,
+                  let url = response.url,
+                  let cookies = HTTPCookie.cookies(withResponseHeaderFields: ["Set-Cookie": value], for: url)
+            else { continue }
+            for cookie in cookies where !cookie.value.isEmpty {
+                if storedCookies[cookie.name] != cookie.value {
+                    storedCookies[cookie.name] = cookie.value
+                    changed = true
+                }
+            }
+        }
+        if changed {
+            if let data = try? JSONEncoder().encode(storedCookies) {
+                UserDefaults.standard.set(data, forKey: cookiesKey)
+            }
         }
     }
 

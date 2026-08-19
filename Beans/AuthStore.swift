@@ -20,7 +20,17 @@ final class AuthStore: ObservableObject {
 
     @MainActor
     func finishLogin() async throws {
-        let account = try await NetEaseAPI.shared.account()
+        var account: NetEaseUser?
+        for attempt in 0..<3 {
+            do {
+                account = try await NetEaseAPI.shared.account()
+                break
+            } catch {
+                if attempt == 2 { throw error }
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+            }
+        }
+        guard let account else { throw NetEaseError.unknown("获取账号信息失败") }
         let playlists = (try? await NetEaseAPI.shared.userPlaylists(uid: account.uid)) ?? []
         let favorite = playlists.first { $0.name == "我喜欢的音乐" }
         let tracks: [Song]

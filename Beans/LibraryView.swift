@@ -34,9 +34,12 @@ struct LibraryView: View {
                     discoverSection
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 110)
+                .padding(.bottom, 16)
             }
             .background(Color.beansBackground.ignoresSafeArea())
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                BeansBottomBar(selected: $tab)
+            }
             .refreshable {
                 await refreshAll()
             }
@@ -484,7 +487,7 @@ struct BeansToastModifier: ViewModifier {
                     .padding(.vertical, 10)
                     .glassEffect(.regular)
                     .clipShape(Capsule())
-                    .padding(.bottom, 90)
+                    .padding(.bottom, 100)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .onAppear {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {

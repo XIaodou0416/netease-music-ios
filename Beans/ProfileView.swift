@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @Binding var tab: BeansTab
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
     @AppStorage("beans.theme") private var themeRaw = BeansThemeMode.system.rawValue
@@ -30,9 +31,12 @@ struct ProfileView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 110)
+                .padding(.bottom, 16)
             }
             .background(Color.beansBackground.ignoresSafeArea())
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                BeansBottomBar(selected: $tab)
+            }
             .navigationDestination(isPresented: $showHistory) {
                 HistoryView()
             }
@@ -64,30 +68,37 @@ struct ProfileView: View {
     // MARK: - 未登录
 
     private var loginCard: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.beansAmber.opacity(0.35), Color.beansSage.opacity(0.25)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+        VStack(spacing: 18) {
+            HStack(spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.beansAmber.opacity(0.38), Color.beansSage.opacity(0.26)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    .frame(width: 92, height: 92)
-                Image(systemName: "person.crop.circle")
-                    .font(.system(size: 44))
-                    .foregroundStyle(Color.beansLabel)
-            }
-            .padding(.top, 6)
-            VStack(spacing: 6) {
-                Text("登录网易云账号")
-                    .font(.title3.bold())
-                    .foregroundStyle(Color.beansLabel)
-                Text("扫码登录后，自动同步收藏、歌单与每日推荐")
-                    .font(.footnote)
-                    .foregroundStyle(Color.beansSecondary)
-                    .multilineTextAlignment(.center)
+                        .frame(width: 62, height: 62)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .strokeBorder(.white.opacity(0.28), lineWidth: 1)
+                        )
+                        .glassEffect(.regular)
+                    Image(systemName: "person.crop.circle.badge.plus")
+                        .font(.system(size: 27, weight: .semibold))
+                        .foregroundStyle(Color.beansLabel)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("登录网易云账号")
+                        .font(.title3.bold())
+                        .foregroundStyle(Color.beansLabel)
+                    Text("扫码登录，同步收藏、歌单与每日推荐")
+                        .font(.footnote)
+                        .foregroundStyle(Color.beansSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
             }
             Button {
                 showLogin = true
@@ -101,7 +112,7 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(22)
+        .padding(20)
         .frame(maxWidth: .infinity)
         .glassEffect(.regular)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -132,10 +143,12 @@ struct ProfileView: View {
                     .foregroundStyle(Color.beansLabel)
                     .lineLimit(1)
                 HStack(spacing: 6) {
-                    Circle().fill(Color.beansSage).frame(width: 7, height: 7)
                     Text("已连接网易云")
-                        .font(.caption)
-                        .foregroundStyle(Color.beansSecondary)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.beansSage)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(Color.beansSage.opacity(0.14), in: Capsule())
                 }
             }
             Spacer()

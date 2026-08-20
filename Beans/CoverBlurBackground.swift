@@ -76,9 +76,15 @@ final class CoverBlurView: UIView {
         tintView.frame = bounds
     }
 
-    /// 背景动态效果：模糊封面缓慢呼吸缩放 + 主色渐变端点缓慢摆动。
-    /// 纯 CALayer 变换动画（GPU 合成、长周期低频），不触发 SwiftUI 布局，也几乎不增加耗电。
+    /// 背景动态效果：模糊封面缓慢呼吸缩放（UIView 循环动画，可靠运行）+ 主色渐变端点缓慢摆动。
+    /// 长周期低频 + GPU 合成，不触发 SwiftUI 布局，也几乎不增加耗电。
     private func startBackgroundAnimations() {
+        // 重新触发时先取消旧动画，避免堆叠
+        imageView.layer.removeAnimation(forKey: "beansBgBreathe")
+        gradientLayer.removeAnimation(forKey: "beansGradStart")
+        gradientLayer.removeAnimation(forKey: "beansGradEnd")
+        imageView.transform = .identity
+
         let scale = CABasicAnimation(keyPath: "transform.scale")
         scale.fromValue = 1.0
         scale.toValue = 1.10
@@ -90,7 +96,7 @@ final class CoverBlurView: UIView {
 
         let start = CABasicAnimation(keyPath: "startPoint")
         start.fromValue = NSValue(cgPoint: CGPoint(x: 0.5, y: 0))
-        start.toValue = NSValue(cgPoint: CGPoint(x: 0.66, y: 0))
+        start.toValue = NSValue(cgPoint: CGPoint(x: 0.68, y: 0))
         start.duration = 12
         start.autoreverses = true
         start.repeatCount = .infinity
@@ -99,7 +105,7 @@ final class CoverBlurView: UIView {
 
         let end = CABasicAnimation(keyPath: "endPoint")
         end.fromValue = NSValue(cgPoint: CGPoint(x: 0.5, y: 1))
-        end.toValue = NSValue(cgPoint: CGPoint(x: 0.34, y: 1))
+        end.toValue = NSValue(cgPoint: CGPoint(x: 0.32, y: 1))
         end.duration = 12
         end.autoreverses = true
         end.repeatCount = .infinity
@@ -225,6 +231,7 @@ final class CoverBlurView: UIView {
     private func setImage(_ image: UIImage, animated: Bool) {
         guard animated, imageView.image != nil else {
             imageView.image = image
+            startBackgroundAnimations()
             return
         }
         UIView.transition(
@@ -233,6 +240,9 @@ final class CoverBlurView: UIView {
             options: [.transitionCrossDissolve, .beginFromCurrentState]
         ) {
             self.imageView.image = image
+        } completion: { _ in
+            // 切歌过渡结束后重新确保背景动画持续运行
+            self.startBackgroundAnimations()
         }
     }
 }

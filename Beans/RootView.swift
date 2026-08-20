@@ -127,9 +127,36 @@ struct AppStoreTabBar: View {
     }
 
     private var barCapsule: some View {
-        HStack(spacing: 4) {
-            ForEach(RootTab.allCases) { tab in
-                tabButton(tab)
+        ZStack {
+            // 液态玻璃选中指示器：放在按钮层之下，半透明清透，不遮挡图标；跟随选中项弹簧滑动
+            GeometryReader { geo in
+                let count = CGFloat(max(RootTab.allCases.count, 1))
+                let tabWidth = max((geo.size.width - 10 - 4 * (count - 1)) / count, 0)
+                let index = CGFloat(RootTab.allCases.firstIndex(of: selection) ?? 0)
+                GlassEffectContainer {
+                    Capsule()
+                        .fill(.clear)
+                        .glassEffect(.thin, in: Capsule())
+                }
+                .overlay {
+                    Capsule()
+                        .fill(Color.beansAmber.opacity(0.16))
+                }
+                .overlay {
+                    Capsule()
+                        .strokeBorder(Color.beansAmber.opacity(0.32), lineWidth: 0.7)
+                }
+                .shadow(color: .black.opacity(0.10), radius: 5, y: 2)
+                .frame(width: tabWidth, height: geo.size.height - 10)
+                .offset(x: 5 + index * (tabWidth + 4))
+                .animation(.spring(response: 0.38, dampingFraction: 0.72), value: selection)
+                .allowsHitTesting(false)
+            }
+
+            HStack(spacing: 4) {
+                ForEach(RootTab.allCases) { tab in
+                    tabButton(tab)
+                }
             }
         }
         .padding(5)
@@ -158,43 +185,6 @@ struct AppStoreTabBar: View {
                             startPoint: .top, endPoint: .center
                         )
                     )
-            }
-        }
-        .overlay(alignment: .leading) {
-            // 原生液态玻璃选中指示器：跟随选中项平滑移动，玻璃厚度 + 高光 + 阴影（iOS 26 原生 Tab 选中态风格）
-            GeometryReader { geo in
-                let count = CGFloat(max(RootTab.allCases.count, 1))
-                let tabWidth = max((geo.size.width - 10 - 4 * (count - 1)) / count, 0)
-                let index = CGFloat(RootTab.allCases.firstIndex(of: selection) ?? 0)
-                GlassEffectContainer {
-                    Capsule()
-                        .fill(.clear)
-                        .glassEffect(.regular, in: Capsule())
-                }
-                .overlay {
-                    Capsule()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [.white.opacity(0.55), .white.opacity(0.12)],
-                                startPoint: .top, endPoint: .bottom
-                            ),
-                            lineWidth: 0.8
-                        )
-                }
-                .overlay {
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [.white.opacity(0.18), .clear],
-                                startPoint: .top, endPoint: .center
-                            )
-                        )
-                }
-                .shadow(color: .black.opacity(0.16), radius: 6, y: 2.5)
-                .frame(width: tabWidth, height: geo.size.height - 10)
-                .offset(x: 5 + index * (tabWidth + 4))
-                .animation(.spring(response: 0.38, dampingFraction: 0.72), value: selection)
-                .allowsHitTesting(false)
             }
         }
         .clipShape(Capsule())

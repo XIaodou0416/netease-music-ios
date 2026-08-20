@@ -23,6 +23,7 @@ struct PlayerView: View {
     @State private var showSimi = false
     @State private var showAddToPlaylist = false
     @State private var showComments = false
+    @AppStorage("beans.lyricFontSize") private var lyricFontSize = 17
 
     private var song: Song? { player.currentSong }
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
@@ -253,6 +254,15 @@ struct PlayerView: View {
 
                 Spacer(minLength: 0)
 
+                HStack(spacing: 6) {
+                    lyricSizeButton("textformat.size.smaller") {
+                        lyricFontSize = max(12, lyricFontSize - 2)
+                    }
+                    lyricSizeButton("textformat.size.larger") {
+                        lyricFontSize = min(28, lyricFontSize + 2)
+                    }
+                }
+
                 Button {
                     toggleLyrics()
                 } label: {
@@ -278,7 +288,7 @@ struct PlayerView: View {
             if lyrics.isEmpty {
                 emptyLyricsView
             } else {
-                LyricsSection(lyrics: lyrics, accent: palette.accent, secondary: palette.secondary) { line in
+                LyricsSection(lyrics: lyrics, accent: palette.accent, secondary: palette.secondary, baseFontSize: CGFloat(lyricFontSize)) { line in
                     BeansHaptics.tap()
                     player.seek(to: line.time)
                 }
@@ -594,6 +604,27 @@ struct PlayerView: View {
 
     // MARK: - 动作
 
+    private func lyricSizeButton(_ icon: String, action: @escaping () -> Void) -> some View {
+        Button {
+            BeansHaptics.tap()
+            action()
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(palette.secondary)
+                .frame(width: 32, height: 32)
+                .background {
+                    GlassEffectContainer {
+                        Circle()
+                            .fill(.clear)
+                            .glassEffect(.clear, in: Circle())
+                    }
+                }
+                .clipShape(Circle())
+        }
+        .buttonStyle(GlassPressButtonStyle())
+    }
+
     private func toggleLyrics() {
         BeansHaptics.tap()
         withAnimation(.easeInOut(duration: 0.22)) {
@@ -679,6 +710,7 @@ struct LyricsSection: View {
     let lyrics: [LyricLine]
     let accent: Color
     let secondary: Color
+    var baseFontSize: CGFloat = 17
     let onTapLine: (LyricLine) -> Void
 
     private var currentIndex: Int? {
@@ -691,16 +723,7 @@ struct LyricsSection: View {
             ScrollView(showsIndicators: false) {
                 LazyVStack(spacing: 24) {
                     ForEach(Array(lyrics.enumerated()), id: \.element.id) { index, line in
-                        Text(line.text.isEmpty ? "♪" : line.text)
-                            .font(.system(size: index == currentIndex ? 18 : 14.5,
-                                          weight: index == currentIndex ? .bold : .regular))
-                            .foregroundStyle(index == currentIndex ? accent : secondary)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(nil)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.horizontal, 36)
-                            .scaleEffect(index == currentIndex ? 1.04 : 1)
+                        lyricRow(index: index, line: line)
                             .contentShape(Rectangle())
                             .onTapGesture { onTapLine(line) }
                             .id(index)
@@ -721,6 +744,33 @@ struct LyricsSection: View {
                 }
             }
         }
+    }
+
+    /// Apple Music 风格渐隐：当前行最大最亮，已播放行与未播放行按距离逐层变暗变淡
+    private func lyricRow(index: Int, line: LyricLine) -> some View {
+        let isCurrent = index == currentIndex
+        let isPlayed = (currentIndex ?? -1) >= 0 && index < (currentIndex ?? 0)
+        let distance = abs(index - (currentIndex ?? 0))
+        let opacity: Double = isCurrent
+            ? 1.0
+            : (isPlayed ? 0.38 : 0.72) - min(distance, 4) * 0.05
+        let size = isCurrent ? baseFontSize + 4 : baseFontSize - min(distance, 2) * 1.5
+
+        return Text(line.text.isEmpty ? "♪" : line.text)
+            .font(.system(
+                size: size,
+                weight: isCurrent ? .bold : .regular,
+                design: .rounded
+            ))
+            .foregroundStyle(isCurrent ? accent : secondary)
+            .opacity(max(opacity, 0.15))
+            .scaleEffect(isCurrent ? 1.05 : 1)
+            .multilineTextAlignment(.center)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 36)
+            .animation(.easeInOut(duration: 0.25), value: currentIndex)
     }
 
     private func scrollToCurrent(_ proxy: ScrollViewProxy) {

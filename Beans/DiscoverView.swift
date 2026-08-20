@@ -51,6 +51,7 @@ struct DiscoverView: View {
         .scrollIndicators(.hidden)
         .refreshable { await load() }
         .task { await load() }
+        .overlay(alignment: .top) { TopFade() }
         .sheet(item: $selectedTopList) { topList in
             TopListDetailView(topList: topList)
                 .environmentObject(player)
@@ -298,6 +299,7 @@ struct TopListDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .task { await load() }
+        .overlay(alignment: .top) { TopFade() }
     }
 
     private var header: some View {

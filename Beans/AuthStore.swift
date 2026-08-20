@@ -6,9 +6,16 @@ final class AuthStore: ObservableObject {
     @Published var playlists: [Playlist] = []
     @Published var favoritePlaylistID: Int?
     @Published var favoriteTracks: [Song] = []
+    /// 网易云「我喜欢的音乐」同步数量（likelist 接口）
+    @Published var likedCount = 0
 
     private let defaults = UserDefaults.standard
     private let userKey = "beans.user"
+
+    /// 界面展示的收藏数量：优先用云端同步数，缺失时退回本地列表数
+    var displayedFavoriteCount: Int {
+        likedCount > 0 ? likedCount : favoriteTracks.count
+    }
 
     init() {
         if let data = defaults.data(forKey: userKey),
@@ -33,11 +40,21 @@ final class AuthStore: ObservableObject {
         guard let account else { throw NetEaseError.unknown("获取账号信息失败") }
         let playlists = (try? await NetEaseAPI.shared.userPlaylists(uid: account.uid)) ?? []
         let favorite = playlists.first { $0.name == "我喜欢的音乐" }
-        let tracks: [Song]
+        var tracks: [Song]
         if let favorite {
             tracks = (try? await NetEaseAPI.shared.playlistTracks(id: favorite.id)) ?? []
         } else {
             tracks = []
+        }
+        // 同步云端收藏数量；歌单未找到或为空时，用收藏列表兜底
+        if let liked = try? await NetEaseAPI.shared.likedSongIDs(uid: account.uid) {
+            likedCount = liked.count
+            if tracks.isEmpty {
+                let ids = Array(liked.ids.prefix(200))
+                tracks = (try? await NetEaseAPI.shared.songDetails(ids: ids)) ?? []
+            }
+        } else {
+            likedCount = tracks.count
         }
         user = account
         self.playlists = playlists
@@ -59,10 +76,20 @@ final class AuthStore: ObservableObject {
             if let favorite {
                 favoriteTracks = (try? await NetEaseAPI.shared.playlistTracks(id: favorite.id)) ?? favoriteTracks
             }
+            // 同步收藏数量
+            if let liked = try? await NetEaseAPI.shared.likedSongIDs(uid: user.uid) {
+                likedCount = liked.count
+                if favorite == nil && favoriteTracks.isEmpty {
+                    let ids = Array(liked.ids.prefix(200))
+                    favoriteTracks = (try? await NetEaseAPI.shared.songDetails(ids: ids)) ?? favoriteTracks
+                }
+            } else {
+                likedCount = favoriteTracks.count
+            }
         }
     }
 
-    /// 收藏/取消收藏：成功后同步更新「我喜欢的音乐」列表
+    /// 收藏/取消收藏：成功后同步更新「我喜欢的音乐」列表与计数
     @MainActor
     func toggleLike(_ song: Song) async throws -> Bool {
         let isLiked = favoriteTracks.contains(song)
@@ -70,8 +97,10 @@ final class AuthStore: ObservableObject {
         guard ok else { return false }
         if isLiked {
             favoriteTracks.removeAll { $0.id == song.id }
+            likedCount = max(0, likedCount - 1)
         } else {
             favoriteTracks.insert(song, at: 0)
+            likedCount += 1
         }
         return true
     }
@@ -82,6 +111,7 @@ final class AuthStore: ObservableObject {
         playlists = []
         favoritePlaylistID = nil
         favoriteTracks = []
+        likedCount = 0
         isLoggedIn = false
         defaults.removeObject(forKey: userKey)
     }

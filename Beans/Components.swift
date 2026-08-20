@@ -8,6 +8,27 @@ func beansTimeString(_ seconds: Double) -> String {
     return String(format: "%d:%02d", total / 60, total % 60)
 }
 
+// MARK: - 触感反馈
+
+enum BeansHaptics {
+    static func tap() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+    static func medium() { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
+    static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+    static func select() { UISelectionFeedbackGenerator().selectionChanged() }
+}
+
+// MARK: - 按压动效
+
+struct GlassPressButtonStyle: ButtonStyle {
+    var scale: CGFloat = 0.94
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
 // MARK: - 背景氛围（液态玻璃需要有可采样的动态内容）
 
 struct GlassBackdrop: View {
@@ -15,12 +36,12 @@ struct GlassBackdrop: View {
         ZStack {
             LinearGradient.beansBackdrop
             Circle()
-                .fill(Color.beansAmber.opacity(0.16))
+                .fill(Color.beansAmber.opacity(0.14))
                 .frame(width: 340, height: 340)
                 .blur(radius: 100)
                 .offset(x: 150, y: -300)
             Circle()
-                .fill(Color.beansSage.opacity(0.14))
+                .fill(Color.beansSage.opacity(0.12))
                 .frame(width: 300, height: 300)
                 .blur(radius: 110)
                 .offset(x: -160, y: 340)
@@ -29,7 +50,28 @@ struct GlassBackdrop: View {
     }
 }
 
-// MARK: - 玻璃卡片
+// MARK: - 顶部渐隐（每个页面顶部内容淡出）
+
+struct TopFade: View {
+    var height: CGFloat = 72
+    var color: Color = .beansBackground
+
+    var body: some View {
+        LinearGradient(
+            stops: [
+                .init(color: color.opacity(0.95), location: 0),
+                .init(color: color.opacity(0), location: 1),
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .frame(height: height)
+        .frame(maxWidth: .infinity)
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - 玻璃卡片（清透版）
 
 struct GlassCard<Content: View>: View {
     var cornerRadius: CGFloat = 24
@@ -39,7 +81,7 @@ struct GlassCard<Content: View>: View {
         GlassEffectContainer {
             content()
                 .padding(16)
-                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+                .glassEffect(.thin, in: .rect(cornerRadius: cornerRadius))
         }
     }
 }
@@ -83,7 +125,7 @@ struct CoverImage: View {
     }
 }
 
-// MARK: - 玻璃图标按钮
+// MARK: - 玻璃图标按钮（清透 + 按压动效）
 
 struct GlassIconButton: View {
     let systemName: String
@@ -97,14 +139,14 @@ struct GlassIconButton: View {
                 .font(.system(size: size * 0.38, weight: .semibold))
                 .foregroundStyle(active ? Color.beansAmber : Color.beansLabel)
                 .frame(width: size, height: size)
-                .glassEffect(.regular, in: .circle)
+                .glassEffect(.thin, in: .circle)
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(GlassPressButtonStyle())
     }
 }
 
-// MARK: - 玻璃按钮
+// MARK: - 玻璃按钮（清透 + 按压动效）
 
 struct GlassButton: View {
     let title: String
@@ -127,11 +169,11 @@ struct GlassButton: View {
             .background(
                 prominent
                     ? AnyShapeStyle(LinearGradient.beansAccent)
-                    : AnyShapeStyle(.regularMaterial)
+                    : AnyShapeStyle(.thinMaterial)
             )
             .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(GlassPressButtonStyle())
     }
 }
 
@@ -176,6 +218,7 @@ struct EmptyStateView: View {
             Text(text)
                 .font(.system(size: 14))
                 .foregroundStyle(Color.beansSecondary)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)

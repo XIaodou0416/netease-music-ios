@@ -26,6 +26,7 @@ struct ProfileView: View {
             .padding(.bottom, 190)
         }
         .scrollIndicators(.hidden)
+        .overlay(alignment: .top) { TopFade() }
         .sheet(isPresented: $showHistory) {
             HistoryView()
                 .environmentObject(player)
@@ -71,7 +72,7 @@ struct ProfileView: View {
 
     private var statsRow: some View {
         HStack(spacing: 10) {
-            statCard(title: "收藏", value: "\(auth.favoriteTracks.count)", icon: "heart.fill")
+            statCard(title: "收藏", value: "\(auth.displayedFavoriteCount)", icon: "heart.fill")
             statCard(title: "歌单", value: "\(auth.playlists.count)", icon: "music.note.list")
             statCard(title: "历史", value: "\(player.history.count)", icon: "clock.fill")
         }

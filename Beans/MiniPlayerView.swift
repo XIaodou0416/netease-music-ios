@@ -6,6 +6,7 @@ struct MiniPlayerView: View {
 
     var body: some View {
         Button {
+            BeansHaptics.tap()
             showPlayer = true
         } label: {
             HStack(spacing: 12) {
@@ -22,6 +23,7 @@ struct MiniPlayerView: View {
                 }
                 Spacer(minLength: 8)
                 Button {
+                    BeansHaptics.tap()
                     player.togglePlayPause()
                 } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
@@ -30,8 +32,9 @@ struct MiniPlayerView: View {
                         .frame(width: 38, height: 38)
                         .contentShape(Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(GlassPressButtonStyle())
                 Button {
+                    BeansHaptics.tap()
                     player.next()
                 } label: {
                     Image(systemName: "forward.fill")
@@ -40,21 +43,34 @@ struct MiniPlayerView: View {
                         .frame(width: 38, height: 38)
                         .contentShape(Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(GlassPressButtonStyle())
             }
             .padding(.leading, 10)
             .padding(.trailing, 6)
             .padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [.white.opacity(0.3), .white.opacity(0.06)],
+                                    startPoint: .top, endPoint: .bottom
+                                ),
+                                lineWidth: 0.8
+                            )
+                    }
+            }
             .overlay(alignment: .bottom) {
                 ProgressLine(progress: player.progress, duration: player.duration)
                     .frame(height: 2.5)
                     .padding(.horizontal, 12)
             }
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .shadow(color: .black.opacity(0.18), radius: 12, y: 6)
+            .shadow(color: .black.opacity(0.16), radius: 12, y: 6)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(GlassPressButtonStyle(scale: 0.97))
         .padding(.horizontal, 12)
     }
 }

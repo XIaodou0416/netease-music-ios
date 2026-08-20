@@ -24,6 +24,7 @@ struct LibraryView: View {
         .scrollIndicators(.hidden)
         .refreshable { await auth.loadLibrary() }
         .task { await auth.loadLibrary() }
+        .overlay(alignment: .top) { TopFade() }
         .sheet(isPresented: $showFavorites) {
             FavoritesView()
                 .environmentObject(auth)
@@ -47,7 +48,7 @@ struct LibraryView: View {
                 Text("音乐库")
                     .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(Color.beansLabel)
-                Text("\(auth.playlists.count) 个歌单 · \(auth.favoriteTracks.count) 首收藏")
+                Text("\(auth.playlists.count) 个歌单 · \(auth.displayedFavoriteCount) 首收藏")
                     .font(.system(size: 13))
                     .foregroundStyle(Color.beansSecondary)
             }
@@ -77,7 +78,7 @@ struct LibraryView: View {
                     Text("我喜欢的音乐")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color.beansLabel)
-                    Text("\(auth.favoriteTracks.count) 首")
+                    Text("\(auth.displayedFavoriteCount) 首")
                         .font(.system(size: 12))
                         .foregroundStyle(Color.beansSecondary)
                 }

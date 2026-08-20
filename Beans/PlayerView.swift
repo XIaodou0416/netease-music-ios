@@ -6,12 +6,14 @@ struct PlayerView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var lyrics: [LyricLine] = []
+    @State private var showLyrics = false
     @State private var showQueue = false
     @State private var showSleepTimer = false
     @State private var showSimi = false
     @State private var showAddToPlaylist = false
     @State private var scrubbing = false
     @State private var scrubValue: Double = 0
+    @State private var dragOffset: CGFloat = 0
 
     private var song: Song? { player.currentSong }
 
@@ -29,25 +31,31 @@ struct PlayerView: View {
             background
             VStack(spacing: 0) {
                 topBar
-                Spacer(minLength: 8)
-                RotatingCover(isPlaying: player.isPlaying, url: song?.coverURL, size: 260)
-                    .padding(.vertical, 20)
-                songInfo
-                    .padding(.horizontal, 24)
-                lyricsArea
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 128)
-                    .padding(.vertical, 10)
+                if showLyrics {
+                    lyricsPane
+                } else {
+                    Spacer(minLength: 4)
+                    coverButton
+                    songInfo
+                        .padding(.horizontal, 24)
+                        .padding(.top, 4)
+                }
                 progressArea
                     .padding(.horizontal, 24)
+                    .padding(.top, showLyrics ? 4 : 14)
                 controlsRow
-                    .padding(.top, 18)
-                bottomRow
                     .padding(.top, 16)
-                    .padding(.bottom, 24)
+                bottomRow
+                    .padding(.top, 14)
+                    .padding(.bottom, 22)
             }
+            .offset(y: dragOffset)
+            .opacity(1 - min(dragOffset / 480, 0.6))
         }
         .foregroundStyle(Color.beansLabel)
+        .overlay(alignment: .top) {
+            TopFade(height: 64, color: .black)
+        }
         .task(id: song?.id) {
             await loadLyrics()
         }
@@ -61,6 +69,8 @@ struct PlayerView: View {
         }
     }
 
+    // MARK: - 背景（低发热：减小模糊半径与亮度）
+
     private var background: some View {
         ZStack {
             GlassBackdrop()
@@ -69,17 +79,35 @@ struct PlayerView: View {
                     image
                         .resizable()
                         .scaledToFill()
-                        .blur(radius: 70)
-                        .opacity(0.45)
+                        .blur(radius: 40)
+                        .opacity(0.35)
                 }
             }
             .ignoresSafeArea()
             LinearGradient(
-                colors: [.black.opacity(0.25), .clear, .black.opacity(0.45)],
+                colors: [.black.opacity(0.28), .clear, .black.opacity(0.42)],
                 startPoint: .top, endPoint: .bottom
             )
             .ignoresSafeArea()
         }
+    }
+
+    // MARK: - 下滑手势退出
+
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onChanged { value in
+                guard value.translation.height > 0 else { return }
+                dragOffset = value.translation.height
+            }
+            .onEnded { value in
+                if value.translation.height > 150 || value.predictedEndTranslation.height > 320 {
+                    BeansHaptics.medium()
+                    dismiss()
+                } else {
+                    withAnimation(.spring(duration: 0.35)) { dragOffset = 0 }
+                }
+            }
     }
 
     private var topBar: some View {
@@ -91,9 +119,9 @@ struct PlayerView: View {
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 40, height: 40)
-                    .glassEffect(.regular, in: .circle)
+                    .glassEffect(.thin, in: .circle)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GlassPressButtonStyle())
             Spacer()
             VStack(spacing: 2) {
                 Text(player.isBuffering ? "加载中…" : (player.isPlaying ? "正在播放" : "已暂停"))
@@ -112,12 +140,40 @@ struct PlayerView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 40, height: 40)
-                    .glassEffect(.regular, in: .circle)
+                    .glassEffect(.thin, in: .circle)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GlassPressButtonStyle())
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
+        .contentShape(Rectangle())
+        .gesture(dragGesture)
+    }
+
+    // MARK: - 封面（不旋转，点击切换歌词）
+
+    private var coverButton: some View {
+        Button {
+            toggleLyrics()
+        } label: {
+            CoverImage(url: song?.coverURL, size: 238, cornerRadius: 26)
+                .overlay(alignment: .bottomTrailing) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "quote.bubble.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("歌词")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundStyle(Color.beansLabel)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .clipShape(Capsule())
+                    .padding(10)
+                }
+                .shadow(color: .black.opacity(0.3), radius: 22, y: 10)
+        }
+        .buttonStyle(GlassPressButtonStyle(scale: 0.96))
     }
 
     private var songInfo: some View {
@@ -135,31 +191,60 @@ struct PlayerView: View {
             Spacer()
             if auth.isLoggedIn, let song {
                 Button {
+                    BeansHaptics.tap()
                     Task { _ = try? await auth.toggleLike(song) }
                 } label: {
                     Image(systemName: isLiked(song) ? "heart.fill" : "heart")
-                        .font(.system(size: 22))
+                        .font(.system(size: 21))
                         .foregroundStyle(isLiked(song) ? Color.beansAmber : Color.beansLabel)
                         .frame(width: 44, height: 44)
-                        .glassEffect(.regular, in: .circle)
+                        .glassEffect(.thin, in: .circle)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(GlassPressButtonStyle())
             }
         }
     }
 
-    private var lyricsArea: some View {
-        Group {
+    // MARK: - 歌词（点击封面显示，点行跳转播放）
+
+    private var lyricsPane: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("歌词")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.beansSecondary)
+                Spacer()
+                Button {
+                    withAnimation(.spring(duration: 0.35)) { showLyrics = false }
+                } label: {
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.beansSecondary)
+                        .frame(width: 34, height: 34)
+                        .glassEffect(.thin, in: .circle)
+                }
+                .buttonStyle(GlassPressButtonStyle())
+            }
+            .padding(.horizontal, 24)
+
             if lyrics.isEmpty {
                 Text("暂无歌词")
                     .font(.system(size: 13))
                     .foregroundStyle(Color.beansSecondary)
-                    .frame(maxHeight: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                LyricsSection(lyrics: lyrics)
+                LyricsSection(lyrics: lyrics) { line in
+                    BeansHaptics.tap()
+                    player.seek(to: line.time)
+                }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+        .padding(.top, 6)
     }
+
+    // MARK: - 进度
 
     private var progressArea: some View {
         VStack(spacing: 6) {
@@ -197,31 +282,36 @@ struct PlayerView: View {
         }
     }
 
+    // MARK: - 主控制
+
     private var controlsRow: some View {
         HStack(spacing: 26) {
             Button {
                 player.togglePlayMode()
+                BeansHaptics.select()
             } label: {
                 Image(systemName: player.playMode.icon)
                     .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 44, height: 44)
-                    .glassEffect(.regular, in: .circle)
+                    .glassEffect(.thin, in: .circle)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GlassPressButtonStyle())
 
             Button {
+                BeansHaptics.tap()
                 player.previous()
             } label: {
                 Image(systemName: "backward.fill")
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 52, height: 52)
-                    .glassEffect(.regular, in: .circle)
+                    .glassEffect(.thin, in: .circle)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GlassPressButtonStyle())
 
             Button {
+                BeansHaptics.tap()
                 player.togglePlayPause()
             } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
@@ -231,18 +321,19 @@ struct PlayerView: View {
                     .glassEffect(.regular, in: .circle)
                     .shadow(color: .black.opacity(0.25), radius: 16, y: 8)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GlassPressButtonStyle(scale: 0.92))
 
             Button {
+                BeansHaptics.tap()
                 player.next()
             } label: {
                 Image(systemName: "forward.fill")
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 52, height: 52)
-                    .glassEffect(.regular, in: .circle)
+                    .glassEffect(.thin, in: .circle)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GlassPressButtonStyle())
 
             Button {
                 showQueue = true
@@ -251,11 +342,13 @@ struct PlayerView: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(Color.beansSecondary)
                     .frame(width: 44, height: 44)
-                    .glassEffect(.regular, in: .circle)
+                    .glassEffect(.thin, in: .circle)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GlassPressButtonStyle())
         }
     }
+
+    // MARK: - 底部功能行
 
     private var bottomRow: some View {
         HStack {
@@ -263,6 +356,7 @@ struct PlayerView: View {
                 ForEach(rateOptions, id: \.self) { option in
                     Button {
                         player.setRate(option)
+                        BeansHaptics.select()
                     } label: {
                         if abs(player.rate - option) < 0.01 {
                             Label(String(format: "%.2gx", option), systemImage: "checkmark")
@@ -280,7 +374,7 @@ struct PlayerView: View {
                 .foregroundStyle(Color.beansSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .glassEffect(.regular, in: .capsule)
+                .glassEffect(.thin, in: .capsule)
             }
 
             Spacer()
@@ -298,9 +392,21 @@ struct PlayerView: View {
                 .foregroundStyle(player.sleepTimerRemaining > 0 ? Color.beansAmber : Color.beansSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .glassEffect(.regular, in: .capsule)
+                .glassEffect(.thin, in: .capsule)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GlassPressButtonStyle())
+
+            Button {
+                BeansHaptics.tap()
+                toggleLyrics()
+            } label: {
+                Image(systemName: showLyrics ? "quote.bubble.fill" : "quote.bubble")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(showLyrics ? Color.beansAmber : Color.beansSecondary)
+                    .frame(width: 40, height: 40)
+                    .glassEffect(.thin, in: .circle)
+            }
+            .buttonStyle(GlassPressButtonStyle())
 
             Button {
                 showSimi = true
@@ -309,9 +415,9 @@ struct PlayerView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color.beansSecondary)
                     .frame(width: 40, height: 40)
-                    .glassEffect(.regular, in: .circle)
+                    .glassEffect(.thin, in: .circle)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GlassPressButtonStyle())
 
             Button {
                 showAddToPlaylist = true
@@ -320,11 +426,17 @@ struct PlayerView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color.beansSecondary)
                     .frame(width: 40, height: 40)
-                    .glassEffect(.regular, in: .circle)
+                    .glassEffect(.thin, in: .circle)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(GlassPressButtonStyle())
         }
         .padding(.horizontal, 20)
+    }
+
+    private func toggleLyrics() {
+        withAnimation(.spring(duration: 0.4)) {
+            showLyrics.toggle()
+        }
     }
 
     private func isLiked(_ song: Song) -> Bool {
@@ -339,30 +451,12 @@ struct PlayerView: View {
     }
 }
 
-// MARK: - 旋转封面
-
-struct RotatingCover: View {
-    let isPlaying: Bool
-    let url: URL?
-    var size: CGFloat
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: !isPlaying)) { context in
-            let angle = isPlaying
-                ? (context.date.timeIntervalSinceReferenceDate * 6).truncatingRemainder(dividingBy: 360)
-                : 0
-            CoverImage(url: url, size: size, cornerRadius: 28)
-                .rotationEffect(.degrees(angle))
-        }
-        .shadow(color: .black.opacity(0.35), radius: 24, y: 12)
-    }
-}
-
-// MARK: - 歌词（逐行高亮 + 自动滚动）
+// MARK: - 歌词（逐行高亮 + 自动滚动 + 点击跳转）
 
 struct LyricsSection: View {
     @EnvironmentObject private var player: PlayerManager
     let lyrics: [LyricLine]
+    let onTapLine: (LyricLine) -> Void
 
     private var currentIndex: Int? {
         guard !lyrics.isEmpty else { return nil }
@@ -380,6 +474,11 @@ struct LyricsSection: View {
                             .foregroundStyle(index == currentIndex ? Color.beansAmber : Color.beansSecondary)
                             .multilineTextAlignment(.center)
                             .id(index)
+                            .padding(.vertical, 2)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                onTapLine(line)
+                            }
                     }
                 }
                 .frame(maxWidth: .infinity)

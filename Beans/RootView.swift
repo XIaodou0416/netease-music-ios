@@ -45,6 +45,8 @@ struct RootView: View {
 
             if auth.isLoggedIn {
                 tabContent
+                    .id(selection)
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
             } else {
                 LoginView()
             }
@@ -57,7 +59,7 @@ struct RootView: View {
                             .padding(.bottom, 10)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
-                    GlassTabBar(selection: $selection)
+                    AppStoreTabBar(selection: $selection)
                 }
             }
         }
@@ -81,59 +83,60 @@ struct RootView: View {
     }
 }
 
-// MARK: - 液态玻璃标签栏
+// MARK: - App Store 风格液态底栏
 
-struct GlassTabBar: View {
+struct AppStoreTabBar: View {
     @Binding var selection: RootTab
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             ForEach(RootTab.allCases) { tab in
                 Button {
-                    withAnimation(.spring(duration: 0.3)) {
-                        selection = tab
+                    if selection != tab {
+                        BeansHaptics.select()
+                        withAnimation(.spring(duration: 0.35)) {
+                            selection = tab
+                        }
                     }
                 } label: {
-                    tabLabel(tab)
+                    VStack(spacing: 3) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 16, weight: .medium))
+                        Text(tab.title)
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background {
+                        if selection == tab {
+                            Capsule()
+                                .fill(Color.beansAmber.opacity(0.16))
+                        }
+                    }
+                    .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(5)
-        .background(.ultraThinMaterial, in: Capsule())
+        .padding(6)
+        .background {
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    Capsule()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [.white.opacity(0.35), .white.opacity(0.08)],
+                                startPoint: .top, endPoint: .bottom
+                            ),
+                            lineWidth: 0.8
+                        )
+                }
+        }
         .clipShape(Capsule())
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 14)
         .padding(.bottom, 4)
-        .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
-    }
-
-    @ViewBuilder
-    private func tabLabel(_ tab: RootTab) -> some View {
-        let selected = selection == tab
-        VStack(spacing: 3) {
-            Image(systemName: tab.icon)
-                .font(.system(size: 17, weight: .medium))
-            Text(tab.title)
-                .font(.system(size: 10, weight: .medium))
-        }
-        .foregroundStyle(selected ? Color.beansAmber : Color.beansSecondary)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .modifier(SelectionGlassModifier(selected: selected))
-    }
-}
-
-private struct SelectionGlassModifier: ViewModifier {
-    let selected: Bool
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if selected {
-            content
-                .glassEffect(.regular, in: .capsule)
-                .clipShape(Capsule())
-        } else {
-            content
-        }
+        .shadow(color: .black.opacity(0.14), radius: 18, y: 8)
     }
 }

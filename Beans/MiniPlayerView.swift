@@ -51,25 +51,28 @@ struct MiniPlayerView: View {
             .padding(.trailing, 6)
             .padding(.vertical, 8)
             .background {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(.ultraThinMaterial.opacity(0.78))
-                    .overlay {
-                        // 液态高光：左上到右下清透玻璃质感
-                        LinearGradient(
-                            colors: [.white.opacity(0.22), .clear, .white.opacity(0.04)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
+                // iOS 26 原生液态玻璃：背景 + 高光 + 描边三层
+                GlassEffectContainer {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.clear, in: .rect(cornerRadius: 22))
+                }
+                .overlay {
+                    LinearGradient(
+                        colors: [.white.opacity(0.25), .clear, .white.opacity(0.05)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [.white.opacity(0.45), .white.opacity(0.08)],
+                                startPoint: .top, endPoint: .bottom
+                            ),
+                            lineWidth: 0.8
                         )
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [.white.opacity(0.45), .white.opacity(0.08)],
-                                    startPoint: .top, endPoint: .bottom
-                                ),
-                                lineWidth: 0.8
-                            )
-                    }
+                }
             }
             .overlay(alignment: .bottom) {
                 ProgressLine(progress: player.progress, duration: player.duration)

@@ -359,7 +359,7 @@ final class NetEaseAPI {
     // MARK: - 收藏
 
     func like(id: Int, liked: Bool) async throws -> Bool {
-        let json = try await request("/api/song/like", payload: ["like": liked, "id": id], crypto: "weapi")
+        let json = try await request("/api/song/like", payload: ["alg": "itembased", "time": 3, "id": "\(id)", "like": liked], crypto: "weapi")
         return (json["code"] as? Int) == 200
     }
 

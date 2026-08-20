@@ -15,41 +15,54 @@ struct PlayerView: View {
     @State private var dragOffset: CGFloat = 0
 
     private var song: Song? { player.currentSong }
-
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
 
     var body: some View {
-        ZStack {
-            background
-            VStack(spacing: 0) {
-                topBar
-                if showLyrics {
-                    lyricsPane
-                } else {
-                    Spacer(minLength: 2)
-                    coverButton
-                    songInfo
-                        .padding(.horizontal, 26)
-                        .padding(.top, 16)
+        GeometryReader { geo in
+            let coverSize = min(248, max(188, geo.size.height * 0.29))
+            ZStack {
+                background
+                    .ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    topBar
+
+                    if showLyrics {
+                        lyricsPane
+                    } else {
+                        Spacer(minLength: 0)
+                        coverButton(size: coverSize)
+                        songInfo
+                            .padding(.horizontal, 30)
+                            .padding(.top, 16)
+                        Spacer(minLength: 0)
+                    }
+
+                    SeekBar()
+                        .padding(.horizontal, 30)
+
+                    timeRow
+                        .padding(.horizontal, 30)
+                        .padding(.top, 8)
+
+                    controlsRow
+                        .padding(.top, 12)
+
+                    bottomRow
+                        .padding(.top, 10)
+                        .padding(.bottom, 12)
                 }
-                Spacer(minLength: 8)
-                SeekBar()
-                    .padding(.horizontal, 26)
-                timeRow
-                    .padding(.horizontal, 26)
-                    .padding(.top, 8)
-                controlsRow
-                    .padding(.top, 12)
-                bottomRow
-                    .padding(.top, 14)
-                    .padding(.bottom, 26)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .offset(y: dragOffset)
+                .opacity(1 - min(max(dragOffset, 0) / 480, 0.6))
             }
-            .offset(y: dragOffset)
-            .opacity(1 - min(dragOffset / 480, 0.6))
+            .foregroundStyle(Color.beansLabel)
         }
-        .foregroundStyle(Color.beansLabel)
         .task(id: song?.id) {
             await loadLyrics()
+        }
+        .onAppear {
+            dragOffset = 0
         }
         .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
         .sheet(isPresented: $showSleepTimer) { SleepTimerSheet().environmentObject(player) }
@@ -66,29 +79,41 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - 背景
+    // MARK: - 背景（轻量氛围：渐变 + 光斑 + 低强度封面模糊，控制发热）
 
     private var background: some View {
         ZStack {
             LinearGradient(
                 colors: [
                     Color.beansBackground,
-                    Color(uiColor: .beansBackground).opacity(0.9),
+                    Color(uiColor: .beansBackground).opacity(0.88),
                 ],
                 startPoint: .top, endPoint: .bottom
             )
-            AsyncImage(url: song?.coverURL) { phase in
-                if case .success(let image) = phase {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .blur(radius: 40)
-                        .opacity(0.35)
+            Circle()
+                .fill(Color.beansAmber.opacity(0.12))
+                .frame(width: 340, height: 340)
+                .blur(radius: 90)
+                .offset(x: 150, y: -320)
+            Circle()
+                .fill(Color.beansSage.opacity(0.10))
+                .frame(width: 300, height: 300)
+                .blur(radius: 100)
+                .offset(x: -160, y: 360)
+            if let coverURL = song?.coverURL {
+                AsyncImage(url: coverURL) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .blur(radius: 26)
+                            .opacity(0.15)
+                    }
                 }
+                .ignoresSafeArea()
             }
-            .ignoresSafeArea()
             LinearGradient(
-                colors: [.black.opacity(0.25), .clear, .black.opacity(0.4)],
+                colors: [.black.opacity(0.20), .clear, .black.opacity(0.30)],
                 startPoint: .top, endPoint: .bottom
             )
             .ignoresSafeArea()
@@ -116,12 +141,12 @@ struct PlayerView: View {
     // MARK: - 顶栏
 
     private var topBar: some View {
-        HStack {
+        HStack(spacing: 12) {
             Button {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 40, height: 40)
                     .background {
@@ -131,14 +156,13 @@ struct PlayerView: View {
             }
             .buttonStyle(GlassPressButtonStyle())
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            VStack(spacing: 2) {
+            VStack(spacing: 3) {
                 Text(player.isBuffering ? "加载中…" : (player.isPlaying ? "正在播放" : "已暂停"))
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.beansSecondary)
                     .lineLimit(1)
-                    .truncationMode(.tail)
                 Text(song?.album ?? "")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.beansSecondary)
@@ -147,7 +171,7 @@ struct PlayerView: View {
             }
             .frame(maxWidth: .infinity)
 
-            Spacer()
+            Spacer(minLength: 0)
 
             Button {
                 showQueue = true
@@ -163,24 +187,24 @@ struct PlayerView: View {
             }
             .buttonStyle(GlassPressButtonStyle())
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 20)
         .padding(.top, 8)
         .contentShape(Rectangle())
         .gesture(dragGesture)
     }
 
-    // MARK: - 封面（点击切换歌词）
+    // MARK: - 封面（静态展示，点击切换歌词）
 
-    private var coverButton: some View {
+    private func coverButton(size: CGFloat) -> some View {
         Button {
             toggleLyrics()
         } label: {
-            CoverImage(url: song?.coverURL, size: 244, cornerRadius: 28)
+            CoverImage(url: song?.coverURL, size: size, cornerRadius: min(28, size * 0.115))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    RoundedRectangle(cornerRadius: min(28, size * 0.115), style: .continuous)
                         .strokeBorder(.white.opacity(0.18), lineWidth: 1)
                 }
-                .shadow(color: .black.opacity(0.35), radius: 26, y: 12)
+                .shadow(color: .black.opacity(0.35), radius: 24, y: 12)
                 .overlay(alignment: .bottomTrailing) {
                     HStack(spacing: 4) {
                         Image(systemName: "quote.bubble.fill")
@@ -199,36 +223,43 @@ struct PlayerView: View {
         .buttonStyle(GlassPressButtonStyle(scale: 0.95))
     }
 
+    // MARK: - 歌曲信息（歌名最多两行 + 自动缩字，不再截断丢字）
+
     private var songInfo: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 5) {
+        ZStack {
+            VStack(spacing: 5) {
                 Text(song?.name ?? "")
-                    .font(.system(size: 23, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Color.beansLabel)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(song?.artists ?? "")
                     .font(.system(size: 14))
                     .foregroundStyle(Color.beansSecondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 56)
+
             if auth.isLoggedIn, let song {
                 Button {
                     BeansHaptics.tap()
                     Task { _ = try? await auth.toggleLike(song) }
                 } label: {
                     Image(systemName: isLiked(song) ? "heart.fill" : "heart")
-                        .font(.system(size: 20))
+                        .font(.system(size: 19))
                         .foregroundStyle(isLiked(song) ? Color.beansAmber : Color.beansLabel)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 42, height: 42)
                         .background {
                             Circle().fill(.ultraThinMaterial)
                         }
                         .clipShape(Circle())
                 }
                 .buttonStyle(GlassPressButtonStyle())
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
     }
@@ -275,20 +306,20 @@ struct PlayerView: View {
         .padding(.top, 6)
     }
 
-    // MARK: - 时间行
+    // MARK: - 时间行（±15 秒在两端，时间贴近进度条）
 
     private var timeRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             seekPillButton("gobackward.15") { player.seekBy(-15) }
-            Spacer()
             Text(beansTimeString(player.progress))
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(Color.beansSecondary)
-            Spacer()
+                .frame(minWidth: 38, alignment: .leading)
+            Spacer(minLength: 0)
             Text(beansTimeString(player.duration))
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(Color.beansSecondary)
-            Spacer()
+                .frame(minWidth: 38, alignment: .trailing)
             seekPillButton("goforward.15") { player.seekBy(15) }
         }
     }
@@ -312,7 +343,7 @@ struct PlayerView: View {
     // MARK: - 主控制
 
     private var controlsRow: some View {
-        HStack(spacing: 28) {
+        HStack(spacing: 26) {
             Button {
                 player.togglePlayMode()
                 BeansHaptics.select()
@@ -525,21 +556,25 @@ struct SeekBar: View {
             let width = geo.size.width
             let total = max(player.duration, 1)
             let ratio = min(max(progress / total, 0), 1)
+            let thumbX = min(max(width * ratio, 8), max(width - 8, 8))
 
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.beansSecondary.opacity(0.25))
+                    .fill(Color.beansSecondary.opacity(0.28))
                     .frame(height: 5)
                 Capsule()
                     .fill(LinearGradient.beansAccent)
-                    .frame(width: max(width * ratio, 6), height: 5)
+                    .frame(width: thumbX, height: 5)
                 Circle()
                     .fill(Color.beansAmber)
                     .frame(width: 15, height: 15)
+                    .overlay {
+                        Circle().strokeBorder(.white.opacity(0.5), lineWidth: 1)
+                    }
                     .shadow(color: .black.opacity(0.3), radius: 3, y: 1)
-                    .offset(x: max(width * ratio - 7.5, -7.5))
+                    .offset(x: thumbX - 7.5)
             }
-            .frame(width: width, height: 28)
+            .frame(width: width, height: 32)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
@@ -554,7 +589,7 @@ struct SeekBar: View {
                     }
             )
         }
-        .frame(height: 28)
+        .frame(height: 32)
     }
 }
 

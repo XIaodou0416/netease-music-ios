@@ -83,39 +83,45 @@ struct RootView: View {
     }
 }
 
-// MARK: - 液态玻璃底栏（玻璃效果仅作背景装饰，不包裹按钮，保证可交互）
+// MARK: - 液态玻璃底栏（玻璃效果仅作背景装饰，不包裹按钮，保证可交互；长按触发液态涟漪 + 播放快捷菜单）
 
 struct AppStoreTabBar: View {
     @Binding var selection: RootTab
+    @EnvironmentObject private var player: PlayerManager
+
+    @State private var menuTab: RootTab?
+    @State private var rippleTab: RootTab?
+    @State private var anchors: [RootTab: CGFloat] = [:]
+    @State private var showQueue = false
+
+    private let menuWidth: CGFloat = 176
 
     var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .bottom) {
+                if let menuTab, player.currentSong != nil {
+                    quickMenu(for: menuTab)
+                        .frame(width: menuWidth)
+                        .padding(.bottom, 82)
+                        .offset(x: menuOffset(for: menuTab, width: geo.size.width))
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .zIndex(10)
+                }
+                barCapsule
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .coordinateSpace(name: "beansTabBar")
+        }
+        .frame(height: 64)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 6)
+        .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
+    }
+
+    private var barCapsule: some View {
         HStack(spacing: 4) {
             ForEach(RootTab.allCases) { tab in
-                Button {
-                    if selection != tab {
-                        BeansHaptics.select()
-                        withAnimation(.spring(duration: 0.3)) {
-                            selection = tab
-                        }
-                    }
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 17, weight: .medium))
-                        Text(tab.title)
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 9)
-                    .background {
-                        if selection == tab {
-                            Capsule().fill(Color.beansAmber.opacity(0.18))
-                        }
-                    }
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
+                tabButton(tab)
             }
         }
         .padding(5)
@@ -134,8 +140,176 @@ struct AppStoreTabBar: View {
                 }
         }
         .clipShape(Capsule())
-        .padding(.horizontal, 16)
-        .padding(.bottom, 4)
         .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
+    }
+
+    private func tabButton(_ tab: RootTab) -> some View {
+        Button {
+            tap(tab)
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 17, weight: .medium))
+                Text(tab.title)
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 9)
+            .scaleEffect(rippleTab == tab ? 1.12 : 1)
+            .animation(.spring(response: 0.4, dampingFraction: 0.55), value: rippleTab)
+            .background {
+                if selection == tab {
+                    Capsule().fill(Color.beansAmber.opacity(0.18))
+                }
+                if rippleTab == tab {
+                    LiquidRippleEffect()
+                }
+            }
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 14) {
+            longPress(tab)
+        }
+        .background(anchorReader(tab))
+    }
+
+    private func anchorReader(_ tab: RootTab) -> some View {
+        GeometryReader { geo in
+            Color.clear
+                .onAppear { anchors[tab] = geo.frame(in: .named("beansTabBar")).midX }
+        }
+    }
+
+    private func menuOffset(for tab: RootTab, width: CGFloat) -> CGFloat {
+        let anchor = anchors[tab] ?? width / 2
+        let half = menuWidth / 2
+        let clamped = min(max(anchor, half), max(width - half, half))
+        return clamped - width / 2
+    }
+
+    private func quickMenu(for tab: RootTab) -> some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 11, weight: .semibold))
+                Text(tab.title)
+                    .font(.system(size: 12, weight: .bold))
+            }
+            .foregroundStyle(Color.beansSecondary)
+            .padding(.bottom, 3)
+
+            menuAction(icon: player.isPlaying ? "pause.fill" : "play.fill",
+                       title: player.isPlaying ? "暂停" : "播放") {
+                player.togglePlayPause()
+                dismissMenu()
+            }
+            menuAction(icon: "backward.fill", title: "上一首") {
+                player.previous()
+                dismissMenu()
+            }
+            menuAction(icon: "forward.fill", title: "下一首") {
+                player.next()
+                dismissMenu()
+            }
+            menuAction(icon: "list.bullet", title: "播放队列") {
+                dismissMenu()
+                showQueue = true
+            }
+        }
+        .padding(8)
+        .background {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [.white.opacity(0.4), .white.opacity(0.08)],
+                                startPoint: .top, endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
+                }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .shadow(color: .black.opacity(0.22), radius: 20, y: 10)
+    }
+
+    private func menuAction(icon: String, title: String, action: @escaping () -> Void) -> some View {
+        Button {
+            BeansHaptics.tap()
+            action()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 14, weight: .medium))
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(Color.beansLabel)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func tap(_ tab: RootTab) {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            if menuTab != nil { menuTab = nil }
+        }
+        if selection != tab {
+            BeansHaptics.select()
+            withAnimation(.spring(response: 0.3)) {
+                selection = tab
+            }
+        }
+    }
+
+    private func longPress(_ tab: RootTab) {
+        BeansHaptics.medium()
+        rippleTab = tab
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+            if rippleTab == tab {
+                withAnimation(.easeOut(duration: 0.25)) { rippleTab = nil }
+            }
+        }
+        guard player.currentSong != nil else { return }
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+            menuTab = tab
+        }
+    }
+
+    private func dismissMenu() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            menuTab = nil
+        }
+    }
+}
+
+// MARK: - 液态涟漪（长按扩散的玻璃波纹）
+
+struct LiquidRippleEffect: View {
+    @State private var active = false
+
+    var body: some View {
+        ZStack {
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .scaleEffect(active ? 1.28 : 0.35)
+                .opacity(active ? 0 : 0.9)
+            Capsule()
+                .strokeBorder(.white.opacity(0.45), lineWidth: 1)
+                .scaleEffect(active ? 1.55 : 0.3)
+                .opacity(active ? 0 : 0.85)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.6)) {
+                active = true
+            }
+        }
     }
 }

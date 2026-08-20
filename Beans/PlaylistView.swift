@@ -23,7 +23,7 @@ struct PlaylistView: View {
                         header
                         Section {
                             ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
-                                SongCell(song: song, showLike: auth.isLoggedIn) {
+                                SongCell(song: song) {
                                     player.play(songs: tracks, startAt: index)
                                 }
                             }

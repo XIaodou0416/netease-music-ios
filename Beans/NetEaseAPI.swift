@@ -272,23 +272,6 @@ final class NetEaseAPI {
         return text
     }
 
-    /// 收藏歌曲 ID 列表（likelist，用于同步收藏数量与列表兜底）
-    func likedSongIDs(uid: Int) async throws -> (ids: [Int], count: Int) {
-        let json = try await request("/api/song/like/get", payload: ["uid": uid, "limit": 1000, "offset": 0, "total": true], crypto: "weapi")
-        let ids = json["ids"] as? [Int] ?? []
-        let count = json["count"] as? Int ?? ids.count
-        return (ids, count)
-    }
-
-    /// 批量获取歌曲详情（收藏列表兜底展示用）
-    func songDetails(ids: [Int]) async throws -> [Song] {
-        guard !ids.isEmpty else { return [] }
-        let idsString = "[" + ids.map(String.init).joined(separator: ",") + "]"
-        let c = "[" + ids.map { "{\"id\":\($0)}" }.joined(separator: ",") + "]"
-        let json = try await request("/api/v3/song/detail", payload: ["c": c, "ids": idsString], crypto: "weapi")
-        let songs = json["songs"] as? [[String: Any]] ?? []
-        return songs.compactMap(Song.init(json:))
-    }
     // MARK: - 评论
 
     struct SongCommentPage {

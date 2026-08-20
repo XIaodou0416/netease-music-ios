@@ -5,7 +5,6 @@ struct LibraryView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
 
-    @State private var showFavorites = false
     @State private var showHistory = false
     @State private var selectedPlaylist: Playlist?
     @State private var showCreatePlaylist = false
@@ -18,7 +17,6 @@ struct LibraryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header
-                favoritesCard
                 playlistsSection
                 historySection
                 topPlayedSection
@@ -30,11 +28,6 @@ struct LibraryView: View {
         .scrollIndicators(.hidden)
         .refreshable { await auth.loadLibrary() }
         .task { await auth.loadLibrary() }
-        .sheet(isPresented: $showFavorites) {
-            FavoritesView()
-                .environmentObject(auth)
-                .environmentObject(player)
-        }
         .sheet(isPresented: $showHistory) {
             HistoryView()
                 .environmentObject(player)
@@ -64,7 +57,7 @@ struct LibraryView: View {
                 Text("音乐库")
                     .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(Color.beansLabel)
-                Text("\(auth.playlists.count) 个歌单 · \(auth.displayedFavoriteCount) 首收藏")
+                Text("\(auth.playlists.count) 个歌单")
                     .font(.system(size: 13))
                     .foregroundStyle(Color.beansSecondary)
             }
@@ -74,46 +67,6 @@ struct LibraryView: View {
             }
         }
         .padding(.top, 8)
-    }
-
-    private var favoritesCard: some View {
-        Button {
-            showFavorites = true
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(LinearGradient.beansAccent)
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 22))
-                        .foregroundStyle(Color.black.opacity(0.6))
-                }
-                .frame(width: 58, height: 58)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("我喜欢的音乐")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.beansLabel)
-                    Text("\(auth.displayedFavoriteCount) 首")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.beansSecondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.beansSecondary)
-            }
-            .padding(14)
-            .background {
-            GlassEffectContainer {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            }
-        }
-            .beansCardShadow(radius: 8, y: 3)
-        }
-        .buttonStyle(.plain)
     }
 
     private var playlistsSection: some View {
@@ -194,7 +147,7 @@ struct LibraryView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(player.history.prefix(5)) { song in
-                        SongCell(song: song, showLike: false) {
+                        SongCell(song: song) {
                             playFromHistory(song)
                         }
                         Divider().overlay(Color.beansSecondary.opacity(0.15))
@@ -267,10 +220,6 @@ struct LibraryView: View {
     }
 
     private func requestDelete(_ playlist: Playlist) {
-        guard playlist.name != "我喜欢的音乐" else {
-            ToastCenter.shared.show("「我喜欢的音乐」为系统歌单，不可删除")
-            return
-        }
         pendingDelete = playlist
         showDeleteConfirm = true
     }
@@ -295,47 +244,6 @@ struct LibraryView: View {
     private func playFromHistory(_ song: Song) {
         if let index = player.history.firstIndex(of: song) {
             player.play(songs: player.history, startAt: index)
-        }
-    }
-}
-
-// MARK: - 我喜欢的音乐
-
-struct FavoritesView: View {
-    @EnvironmentObject private var auth: AuthStore
-    @EnvironmentObject private var player: PlayerManager
-    @EnvironmentObject private var theme: ThemeStore
-
-    var body: some View {
-        NavigationStack {
-            Group {
-                if auth.favoriteTracks.isEmpty {
-                    EmptyStateView(icon: "heart", text: "还没有收藏的歌曲")
-                } else {
-                    List {
-                        HStack(spacing: 12) {
-                            GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
-                                player.play(songs: auth.favoriteTracks, startAt: 0)
-                            }
-                            GlassButton(title: "随机播放", systemName: "shuffle") {
-                                player.play(songs: auth.favoriteTracks, startAt: Int.random(in: 0..<auth.favoriteTracks.count))
-                            }
-                        }
-                        .listRowBackground(Color.clear)
-                        .padding(.vertical, 8)
-
-                        Section {
-                            ForEach(Array(auth.favoriteTracks.enumerated()), id: \.element.id) { index, song in
-                                SongCell(song: song) {
-                                    player.play(songs: auth.favoriteTracks, startAt: index)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .navigationTitle("我喜欢的音乐")
-            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

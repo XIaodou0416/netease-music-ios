@@ -23,7 +23,7 @@ struct SimiSongsSheet: View {
                     List {
                         Section("根据《\(player.currentSong?.name ?? "")》推荐") {
                             ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-                                SongCell(song: song, showLike: auth.isLoggedIn) {
+                                SongCell(song: song) {
                                     player.play(songs: songs, startAt: index)
                                 }
                             }

@@ -24,13 +24,15 @@ struct PlayerView: View {
     @State private var showSimi = false
     @State private var showAddToPlaylist = false
     @State private var showComments = false
+    /// 封面主色：无封面或加载中为 nil → 回退全局主题色（一次性非动画更新，不影响布局）
+    @State private var dominant: RGBColor?
 
     private var song: Song? { player.currentSong }
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
 
-    /// 固定调色板：跟随全局主题与深浅模式（不依赖封面取色，杜绝封面加载触发布局刷新）
+    /// 动态调色板：跟随封面主色，无封面时回退全局主题
     private var palette: CoverPalette {
-        CoverPalette.fallback(colorScheme: colorScheme)
+        CoverPalette.make(dominant: dominant, colorScheme: colorScheme)
     }
 
     var body: some View {
@@ -50,6 +52,7 @@ struct PlayerView: View {
         }
         .task(id: song?.identityKey) {
             await loadLyrics()
+            await loadDominant()
         }
         .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
         .sheet(isPresented: $showSleepTimer) { SleepTimerSheet().environmentObject(player) }
@@ -69,7 +72,7 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - 背景（全局主题渐变 + 材质遮罩；不使用封面大图，封面加载零布局影响）
+    // MARK: - 背景（封面取色渐变 + 封面毛玻璃模糊 + 深浅遮罩）
 
     private var background: some View {
         ZStack {
@@ -77,6 +80,21 @@ struct PlayerView: View {
                 colors: [palette.backgroundTop, palette.backgroundBottom],
                 startPoint: .top, endPoint: .bottom
             )
+            // 封面毛玻璃：AsyncImage 在背景层独立渲染，封面加载不影响主布局
+            if let coverURL = song?.coverURL {
+                AsyncImage(url: coverURL) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .blur(radius: 46)
+                            .saturation(1.15)
+                            .opacity(colorScheme == .dark ? 0.40 : 0.50)
+                            .clipped()
+                    }
+                }
+                .ignoresSafeArea()
+            }
             LinearGradient(
                 colors: colorScheme == .dark
                     ? [.black.opacity(0.5), .black.opacity(0.12), .black.opacity(0.55)]
@@ -118,21 +136,6 @@ struct PlayerView: View {
             }
 
             Spacer(minLength: 0)
-
-            if auth.isLoggedIn, let song {
-                Button {
-                    BeansHaptics.tap()
-                    likeTapped(song)
-                } label: {
-                    Image(systemName: isLiked(song) ? "heart.fill" : "heart")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(isLiked(song) ? palette.accent : palette.text)
-                        .frame(width: 38, height: 38)
-                        .background { Circle().fill(.ultraThinMaterial) }
-                        .clipShape(Circle())
-                }
-                .buttonStyle(GlassPressButtonStyle())
-            }
 
             Button {
                 BeansHaptics.tap()
@@ -333,26 +336,29 @@ struct PlayerView: View {
     // MARK: - 底部控制栏（普通材质圆角面板：进度 / 主控制 / 工具行）
 
     private var controlDeck: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 6) {
             Capsule()
                 .fill(palette.secondary.opacity(0.4))
                 .frame(width: 34, height: 4)
-                .padding(.top, 10)
+                .padding(.top, 6)
 
             progressBlock
             mainControls
             utilityRow
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 12)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
         .frame(maxWidth: .infinity)
         .background {
+            // 毛玻璃面板延伸到底部安全区，底部不留空白；内容由安全区自动顶起，不被小黑条裁切
             UnevenRoundedRectangle(
                 topLeadingRadius: 30, bottomLeadingRadius: 0,
                 bottomTrailingRadius: 0, topTrailingRadius: 30,
                 style: .continuous
             )
             .fill(.ultraThinMaterial)
+            .ignoresSafeArea(edges: .bottom)
             .overlay(alignment: .top) {
                 LinearGradient(colors: [.white.opacity(0.30), .clear], startPoint: .top, endPoint: .bottom)
                     .frame(height: 1)
@@ -363,7 +369,6 @@ struct PlayerView: View {
             bottomTrailingRadius: 0, topTrailingRadius: 30,
             style: .continuous
         ))
-        .ignoresSafeArea(edges: .bottom)
         .shadow(color: .black.opacity(0.16), radius: 20, y: -5)
     }
 
@@ -558,28 +563,6 @@ struct PlayerView: View {
         }
     }
 
-    private func isLiked(_ song: Song) -> Bool {
-        auth.favoriteTracks.contains { $0.identityKey == song.identityKey }
-    }
-
-    private func likeTapped(_ song: Song) {
-        guard auth.isLoggedIn else {
-            ToastCenter.shared.show("请先登录后再收藏")
-            return
-        }
-        let willLike = !auth.isLiked(song)
-        Task {
-            do {
-                let ok = try await auth.toggleLike(song)
-                ToastCenter.shared.show(ok
-                    ? (willLike ? "已收藏到「我喜欢的音乐」" : "已取消收藏")
-                    : "收藏失败，请稍后再试")
-            } catch {
-                ToastCenter.shared.show("收藏失败：\(error.localizedDescription)")
-            }
-        }
-    }
-
     private func loadLyrics() async {
         lyrics = []
         guard let song else { return }
@@ -593,6 +576,29 @@ struct PlayerView: View {
         lyrics = LyricParser.parse(raw)
     }
 
+    // MARK: - 封面主色提取（一次性非动画更新，仅影响配色，不影响布局）
+
+    private func loadDominant() async {
+        guard let coverURL = song?.coverURL else {
+            dominant = nil
+            return
+        }
+        guard let data = try? await fetchCover(coverURL),
+              !Task.isCancelled,
+              let img = UIImage(data: data) else { return }
+        let rgb = PaletteExtractor.dominantColor(in: img)
+        guard !Task.isCancelled, let rgb else { return }
+        dominant = rgb
+    }
+
+    private func fetchCover(_ url: URL) async throws -> Data {
+        let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)
+        if let cached = URLCache.shared.cachedResponse(for: request)?.data {
+            return cached
+        }
+        let (data, _) = try await URLSession.shared.data(for: request)
+        return data
+    }
 }
 
 // MARK: - 自定义进度条（点击 / 拖动均可跳转，配色跟随封面主色）

@@ -7,35 +7,12 @@ struct SongCell: View {
 
     let song: Song
     var showCover = true
-    var showLike = true
     var onTap: (() -> Void)?
 
     @State private var showAddToPlaylist = false
 
     private var isCurrent: Bool {
         player.currentSong?.identityKey == song.identityKey
-    }
-
-    private var isLiked: Bool {
-        auth.favoriteTracks.contains { $0.identityKey == song.identityKey }
-    }
-
-    private func likeTapped() {
-        guard auth.isLoggedIn else {
-            ToastCenter.shared.show("请先登录后再收藏")
-            return
-        }
-        let willLike = !auth.isLiked(song)
-        Task {
-            do {
-                let ok = try await auth.toggleLike(song)
-                ToastCenter.shared.show(ok
-                    ? (willLike ? "已收藏到「我喜欢的音乐」" : "已取消收藏")
-                    : "收藏失败，请稍后再试")
-            } catch {
-                ToastCenter.shared.show("收藏失败：\(error.localizedDescription)")
-            }
-        }
     }
 
     var body: some View {
@@ -62,19 +39,6 @@ struct SongCell: View {
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundStyle(Color.beansSecondary)
             }
-            if showLike {
-                Button {
-                    BeansHaptics.tap()
-                    likeTapped()
-                } label: {
-                    Image(systemName: isLiked ? "heart.fill" : "heart")
-                        .font(.system(size: 15))
-                        .foregroundStyle(isLiked ? Color.beansAmber : Color.beansSecondary)
-                        .frame(width: 30, height: 30)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
         }
         .padding(.vertical, 6)
         .contentShape(Rectangle())
@@ -82,12 +46,6 @@ struct SongCell: View {
             onTap?()
         }
         .contextMenu {
-            Button {
-                BeansHaptics.tap()
-                likeTapped()
-            } label: {
-                Label(isLiked ? "取消收藏" : "收藏", systemImage: isLiked ? "heart.slash" : "heart")
-            }
             Button {
                 player.playNext(song)
             } label: {

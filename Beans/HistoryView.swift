@@ -11,7 +11,7 @@ struct HistoryView: View {
                 } else {
                     List {
                         ForEach(Array(player.history.enumerated()), id: \.element.id) { index, song in
-                            SongCell(song: song, showLike: false) {
+                            SongCell(song: song) {
                                 player.play(songs: player.history, startAt: index)
                             }
                         }

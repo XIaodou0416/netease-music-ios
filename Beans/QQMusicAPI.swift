@@ -239,13 +239,25 @@ final class QQMusicAPI {
 
     // MARK: - 播放 / 歌词
 
-    /// 通过 vkey 获取 QQ 音乐播放地址（登录后携带 uin/loginKey/Cookie，免费与 VIP 试听均可播放）
+    /// 通过 vkey 获取 QQ 音乐播放地址（对齐 wp_MusicApi：GET + data JSON + filename + CDN 分发）
+    /// 登录后携带 uin/loginKey/Cookie；先试 320kbps(M800)，拿不到再退 128kbps(M500)
     func songURL(songmid: String) async throws -> String? {
         let qqAuth = QQMusicAuth.shared
         let uin = qqAuth.isLoggedIn ? qqAuth.uin : "0"
         let loginKey = qqAuth.isLoggedIn ? qqAuth.loginKey : ""
+        let guid = Self.deviceGuid
+        if let url = try await vkeyURL(songmid: songmid, br: "M800", uin: uin, loginKey: loginKey, guid: guid, qqAuth: qqAuth) {
+            return url
+        }
+        return try await vkeyURL(songmid: songmid, br: "M500", uin: uin, loginKey: loginKey, guid: guid, qqAuth: qqAuth)
+    }
+
+    /// 单次 vkey 请求（GET musicu.fcg，data 参数格式与 wp_MusicApi 完全一致）
+    private func vkeyURL(songmid: String, br: String, uin: String, loginKey: String, guid: String, qqAuth: QQMusicAuth) async throws -> String? {
+        let filename = "\(br)\(songmid)\(songmid).mp3"
         var param: [String: Any] = [
-            "guid": "\(Int.random(in: 10000...99999999))",
+            "filename": [filename],
+            "guid": guid,
             "songmid": [songmid],
             "songtype": [0],
             "uin": uin,
@@ -259,19 +271,49 @@ final class QQMusicAPI {
         let payload: [String: Any] = [
             "comm": ["uin": Int(uin) ?? 0, "format": "json", "ct": 24, "cv": 0],
             "req": [
+                "module": "CDN.SrfCdnDispatchServer",
+                "method": "GetCdnDispatch",
+                "param": ["guid": guid, "calltype": 0, "userip": ""],
+            ],
+            "req_0": [
                 "module": "vkey.GetVkeyServer",
                 "method": "CgiGetVkey",
                 "param": param,
             ],
         ]
-        let json = try await musicu(payload, cookie: qqAuth.isLoggedIn ? qqAuth.cookieHeader : "")
-        guard let req = json["req"] as? [String: Any],
-              let data = req["data"] as? [String: Any],
-              let infos = data["midurlinfo"] as? [[String: Any]],
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let dataString = String(data: data, encoding: .utf8),
+              var comps = URLComponents(string: "https://u.y.qq.com/cgi-bin/musicu.fcg") else { return nil }
+        comps.queryItems = [
+            URLQueryItem(name: "format", value: "json"),
+            URLQueryItem(name: "data", value: dataString),
+        ]
+        guard let url = comps.url else { return nil }
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20100101 Firefox/80.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("https://y.qq.com/", forHTTPHeaderField: "Referer")
+        request.setValue(qqAuth.isLoggedIn ? qqAuth.cookieHeader : "uin=0; qqmusic_fromtag=66", forHTTPHeaderField: "Cookie")
+        let (responseData, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200,
+              let json = parseJSON(responseData),
+              let req = json["req_0"] as? [String: Any],
+              let reqData = req["data"] as? [String: Any],
+              let infos = reqData["midurlinfo"] as? [[String: Any]],
               let info = infos.first,
               let purl = info["purl"] as? String, !purl.isEmpty else { return nil }
         if purl.hasPrefix("http") { return purl }
         return "https://isure.stream.qqmusic.qq.com/" + purl
+    }
+
+    /// 固定设备 GUID（持久化）：vkey 与 guid 强相关，随机 guid 会导致播放地址失效
+    private static var deviceGuid: String {
+        let key = "beans.qqmusic.guid.v1"
+        if let saved = UserDefaults.standard.string(forKey: key), !saved.isEmpty {
+            return saved
+        }
+        let guid = String(format: "%09d", Int.random(in: 100000000...999999999))
+        UserDefaults.standard.set(guid, forKey: key)
+        return guid
     }
 
     /// QQ 音乐歌词（LRC 文本）

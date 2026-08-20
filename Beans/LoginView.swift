@@ -29,7 +29,7 @@ struct LoginView: View {
                 Text("Beans")
                     .font(.system(size: 34, weight: .bold))
                     .foregroundStyle(Color.beansLabel)
-                Text("登录网易云音乐，同步你的收藏与歌单")
+                Text("登录网易云音乐，同步你的歌单")
                     .font(.system(size: 14))
                     .foregroundStyle(Color.beansSecondary)
 

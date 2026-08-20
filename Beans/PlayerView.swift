@@ -84,8 +84,8 @@ struct PlayerView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             LinearGradient(
                 colors: colorScheme == .dark
-                    ? [.black.opacity(0.34), .black.opacity(0.08), .black.opacity(0.50)]
-                    : [.white.opacity(0.16), .clear, .black.opacity(0.20)],
+                    ? [.black.opacity(0.28), .clear, .black.opacity(0.42)]
+                    : [.white.opacity(0.10), .clear, .black.opacity(0.16)],
                 startPoint: .top, endPoint: .bottom
             )
         }
@@ -335,16 +335,23 @@ struct PlayerView: View {
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity)
         .background {
-            // 毛玻璃面板延伸到底部安全区，底部不留空白；内容由安全区自动顶起，不被小黑条裁切
-            UnevenRoundedRectangle(
-                topLeadingRadius: 30, bottomLeadingRadius: 0,
-                bottomTrailingRadius: 0, topTrailingRadius: 30,
-                style: .continuous
-            )
-            .fill(.ultraThinMaterial)
+            // iOS 原生液态玻璃面板，延伸到底部安全区贴满屏幕底部，不留空白
+            GlassEffectContainer {
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 30, bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0, topTrailingRadius: 30,
+                    style: .continuous
+                )
+                .fill(.clear)
+                .glassEffect(.clear, in: UnevenRoundedRectangle(
+                    topLeadingRadius: 30, bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0, topTrailingRadius: 30,
+                    style: .continuous
+                ))
+            }
             .ignoresSafeArea(edges: .bottom)
             .overlay(alignment: .top) {
-                LinearGradient(colors: [.white.opacity(0.30), .clear], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [.white.opacity(0.35), .clear], startPoint: .top, endPoint: .bottom)
                     .frame(height: 1)
             }
         }
@@ -353,7 +360,7 @@ struct PlayerView: View {
             bottomTrailingRadius: 0, topTrailingRadius: 30,
             style: .continuous
         ))
-        .shadow(color: .black.opacity(0.16), radius: 20, y: -5)
+        .shadow(color: .black.opacity(0.18), radius: 20, y: -5)
     }
 
     private var subtitle: String {

@@ -102,6 +102,10 @@ struct SearchView: View {
                 .submitLabel(.search)
                 .onSubmit {
                     submitSearch()
+                    // 键盘搜索键按下时输入法文本已被系统提交，安全收起键盘
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        focused = false
+                    }
                 }
             if searching {
                 ProgressView()
@@ -270,7 +274,7 @@ struct SearchView: View {
             .padding(.top, 8)
         }
         .scrollIndicators(.hidden)
-        .scrollDismissesKeyboard(.immediately)
+        .scrollDismissesKeyboard(.interactively)
     }
 
     // MARK: - 结果区
@@ -315,7 +319,7 @@ struct SearchView: View {
                     .padding(.bottom, 180)
                 }
                 .scrollIndicators(.hidden)
-                .scrollDismissesKeyboard(.immediately)
+                .scrollDismissesKeyboard(.interactively)
                 .overlay(alignment: .top) {
                     if searching {
                         ProgressView()
@@ -371,7 +375,7 @@ struct SearchView: View {
                     .padding(.bottom, 180)
                 }
                 .scrollIndicators(.hidden)
-                .scrollDismissesKeyboard(.immediately)
+                .scrollDismissesKeyboard(.interactively)
                 .overlay(alignment: .top) {
                     if searching {
                         ProgressView()
@@ -434,7 +438,7 @@ struct SearchView: View {
                     .padding(.bottom, 180)
                 }
                 .scrollIndicators(.hidden)
-                .scrollDismissesKeyboard(.immediately)
+                .scrollDismissesKeyboard(.interactively)
                 .overlay(alignment: .top) {
                     if searching {
                         ProgressView()
@@ -450,7 +454,8 @@ struct SearchView: View {
     // MARK: - 动作
 
     private func submitSearch() {
-        focused = false
+        // 注意：这里不能设置 focused = false。中文输入法正在拼音组合时立即失焦，
+        // SwiftUI 会丢弃未提交的文本导致输入框被清空；失焦统一交给用户（点结果/滑动列表）。
         debounceTask?.cancel()
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }

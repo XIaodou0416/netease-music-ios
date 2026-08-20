@@ -175,7 +175,7 @@ struct ProfileView: View {
                     Spacer()
                     Toggle("", isOn: $layoutDebuggerEnabled)
                         .labelsHidden()
-                        .tint(Color.beansAccent)
+                        .tint(Color.beansHighlight)
                         .onChange(of: layoutDebuggerEnabled) { _, newValue in
                             LayoutDebugger.onStateChanged(enabled: newValue)
                         }

@@ -60,7 +60,7 @@ enum LayoutDebugger {
     static func reportHardcodedColor(_ viewName: String, color: UIColor?) {
         guard isEnabled else { return }
         guard let color else { return }
-        let desc = color.cgColor.description
+        let desc = String(describing: color)
         let isDynamic = desc.contains("UIDynamic")
         if !isDynamic {
             log("🎨 [硬编码颜色提示] \(viewName) backgroundColor=\(color)（静态色，建议改用 Color.beans* 动态主题色）")

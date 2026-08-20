@@ -19,7 +19,7 @@ struct SearchView: View {
                 resultsList
             }
         }
-        .background(Color.beansBackground.ignoresSafeArea())
+        .beansPageBackground()
         .navigationTitle("搜索")
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $keyword, prompt: "歌名 / 歌手 / 专辑")
@@ -48,6 +48,8 @@ struct SearchView: View {
                                 Image(systemName: "trash")
                                     .font(.caption)
                                     .foregroundStyle(Color.beansSecondary)
+                                    .frame(width: 32, height: 32)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
@@ -62,9 +64,7 @@ struct SearchView: View {
                                         .foregroundStyle(Color.beansLabel)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
-                                        .background(Color.beansGlassFill)
-                                        .glassEffect(.regular)
-                                        .clipShape(Capsule())
+                                        .beansRowCard(cornerRadius: 18)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -91,9 +91,7 @@ struct SearchView: View {
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
-                                    .background(Color.beansGlassFill)
-                                    .glassEffect(.regular)
-                                    .clipShape(Capsule())
+                                    .beansRowCard(cornerRadius: 18)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -110,40 +108,12 @@ struct SearchView: View {
 
     private var resultsList: some View {
         Group {
-            // 修复：接口失败时展示错误+重试，与"真的没有结果"区分开
             if songs.isEmpty && !isLoading && searchFailed {
-                VStack(spacing: 12) {
-                    Image(systemName: "wifi.exclamationmark")
-                        .font(.system(size: 40))
-                        .foregroundStyle(Color.beansSecondary)
-                    Text("搜索失败")
-                        .font(.headline)
-                        .foregroundStyle(Color.beansLabel)
-                    Button {
-                        runSearch()
-                    } label: {
-                        Label("重新搜索", systemImage: "arrow.clockwise")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.beansLabel)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(Color.beansGlassFill)
-                            .glassEffect(.regular)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
+                BeansErrorState(title: "搜索失败") {
+                    runSearch()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if songs.isEmpty && !isLoading {
-                VStack(spacing: 12) {
-                    Image(systemName: "music.note")
-                        .font(.system(size: 40))
-                        .foregroundStyle(Color.beansSecondary)
-                    Text("没有找到相关歌曲")
-                        .font(.headline)
-                        .foregroundStyle(Color.beansLabel)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                BeansEmptyState(icon: "music.note", title: "没有找到相关歌曲", subtitle: "换个关键词试试")
             } else {
                 List {
                     ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
@@ -152,11 +122,7 @@ struct SearchView: View {
                         }
                     }
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .beansListStyle()
                 .overlay {
                     if isLoading {
                         ProgressView()

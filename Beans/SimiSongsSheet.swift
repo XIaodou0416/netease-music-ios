@@ -5,41 +5,21 @@ struct SimiSongsSheet: View {
     @Environment(\.dismiss) private var dismiss
     let songID: Int
     @State private var songs: [Song] = []
+    @State private var isLoading = true
     @State private var loadFailed = false
 
     var body: some View {
-        // 修复：sheet 内需要独立玻璃采样容器，避免玻璃组件空白
         GlassEffectContainer {
             NavigationStack {
                 Group {
-                    if songs.isEmpty && !loadFailed {
-                        // 修复：原先失败/空数据时一直转圈卡死；拆分为加载中与失败两种状态
+                    if isLoading {
                         ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if loadFailed {
-                        VStack(spacing: 12) {
-                            Image(systemName: "wifi.exclamationmark")
-                                .font(.system(size: 44))
-                                .foregroundStyle(Color.beansSecondary)
-                            Text("相似歌曲加载失败")
-                                .font(.headline)
-                                .foregroundStyle(Color.beansLabel)
-                            Button("重新加载") {
-                                Task { await load() }
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(Color.beansAmber)
+                        BeansErrorState(title: "相似歌曲加载失败") {
+                            Task { await load() }
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if songs.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 44))
-                                .foregroundStyle(Color.beansSecondary)
-                            Text("暂无相似歌曲")
-                                .font(.headline)
-                                .foregroundStyle(Color.beansLabel)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        BeansEmptyState(icon: "sparkles", title: "暂无相似歌曲", subtitle: "试试其它歌曲吧")
                     } else {
                         List {
                             ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
@@ -48,14 +28,10 @@ struct SimiSongsSheet: View {
                                 }
                             }
                         }
-                        .listStyle(.plain)
-                        .scrollContentBackground(.hidden)
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        .beansListStyle()
                     }
                 }
-                .background(Color.beansBackground.ignoresSafeArea())
+                .beansPageBackground()
                 .navigationTitle("相似歌曲")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -73,11 +49,13 @@ struct SimiSongsSheet: View {
     }
 
     private func load() async {
+        isLoading = true
         loadFailed = false
         do {
             songs = try await NetEaseAPI.shared.simiSongs(id: songID)
         } catch {
             loadFailed = true
         }
+        isLoading = false
     }
 }

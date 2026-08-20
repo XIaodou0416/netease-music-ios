@@ -12,42 +12,11 @@ struct PlaylistView: View {
             if isLoading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if loadFailed {
-                // 修复：接口异常时展示错误 + 重试，而不是显示"歌单里还没有歌曲"误导
-                VStack(spacing: 12) {
-                    Image(systemName: "wifi.exclamationmark")
-                        .font(.system(size: 44))
-                        .foregroundStyle(Color.beansSecondary)
-                    Text("歌单加载失败")
-                        .font(.headline)
-                        .foregroundStyle(Color.beansLabel)
-                    Text("请检查网络后重试")
-                        .font(.footnote)
-                        .foregroundStyle(Color.beansSecondary)
-                    Button {
-                        Task { await load() }
-                    } label: {
-                        Label("重新加载", systemImage: "arrow.clockwise")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.beansLabel)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(Color.beansGlassFill)
-                            .glassEffect(.regular)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
+                BeansErrorState(title: "歌单加载失败") {
+                    Task { await load() }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if songs.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "music.note.list")
-                        .font(.system(size: 44))
-                        .foregroundStyle(Color.beansSecondary)
-                    Text("歌单里还没有歌曲")
-                        .font(.headline)
-                        .foregroundStyle(Color.beansLabel)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                BeansEmptyState(icon: "music.note.list", title: "歌单里还没有歌曲", subtitle: "换个歌单试试吧")
             } else {
                 List {
                     Section {
@@ -66,17 +35,13 @@ struct PlaylistView: View {
                                         .font(.caption)
                                         .foregroundStyle(Color.beansSecondary)
                                 }
+                                Spacer(minLength: 8)
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .background(Color.beansGlassFill)
-                            .glassEffect(.regular)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
-                            )
+                            .beansRowCard(cornerRadius: 16)
                         }
+                        .buttonStyle(.plain)
                     }
                     ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
                         SongCell(song: song, index: index, showIndex: true) {
@@ -84,14 +49,10 @@ struct PlaylistView: View {
                         }
                     }
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .beansListStyle()
             }
         }
-        .background(Color.beansBackground.ignoresSafeArea())
+        .beansPageBackground()
         .navigationTitle(playlist.name)
         .navigationBarTitleDisplayMode(.large)
         .task {

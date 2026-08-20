@@ -19,7 +19,7 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 26) {
+                VStack(alignment: .leading, spacing: 24) {
                     header
                     if auth.isLoggedIn {
                         if auth.playlists.isEmpty && !loaded {
@@ -36,7 +36,7 @@ struct LibraryView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
             }
-            .background(Color.beansBackground.ignoresSafeArea())
+            .beansPageBackground()
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 BeansBottomBar(selected: $tab)
             }
@@ -80,6 +80,7 @@ struct LibraryView: View {
                     Text(user.nickname)
                         .font(.footnote)
                         .foregroundStyle(Color.beansSecondary)
+                        .lineLimit(1)
                 } else {
                     Text("发现好歌，登录同步收藏")
                         .font(.footnote)
@@ -101,7 +102,7 @@ struct LibraryView: View {
         .padding(.top, 14)
     }
 
-    // MARK: - 登录提示
+    // MARK: - 登录提示（未登录）
 
     private var loginPromptCard: some View {
         Button {
@@ -122,20 +123,14 @@ struct LibraryView: View {
                         .foregroundStyle(Color.beansSecondary)
                         .multilineTextAlignment(.leading)
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
                     .font(.footnote.bold())
                     .foregroundStyle(Color.beansSecondary)
             }
-            .padding(16)
-            .glassEffect(.regular)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
-            )
         }
         .buttonStyle(.plain)
+        .beansGlassCard(cornerRadius: 20)
     }
 
     // MARK: - 我喜欢的音乐
@@ -163,20 +158,14 @@ struct LibraryView: View {
                         .font(.caption)
                         .foregroundStyle(Color.beansSecondary)
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 Image(systemName: "play.circle.fill")
                     .font(.system(size: 34))
                     .foregroundStyle(Color.beansAmber)
             }
-            .padding(14)
-            .glassEffect(.regular)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
-            )
         }
         .buttonStyle(.plain)
+        .beansGlassCard(cornerRadius: 20)
     }
 
     // MARK: - 我的歌单
@@ -192,6 +181,8 @@ struct LibraryView: View {
                     Image(systemName: "plus.circle.fill")
                         .font(.title3)
                         .foregroundStyle(Color.beansAmber)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -201,7 +192,7 @@ struct LibraryView: View {
                         selectedPlaylist = playlist
                     } label: {
                         VStack(alignment: .leading, spacing: 8) {
-                            cover(playlist.coverURL)
+                            BeansCover(url: playlist.coverURL)
                             Text(playlist.name)
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(Color.beansLabel)
@@ -237,10 +228,9 @@ struct LibraryView: View {
         VStack(alignment: .leading, spacing: 20) {
             Text("发现").font(.title2.bold()).foregroundStyle(Color.beansLabel)
 
-            // 修复：所有发现数据为空（网络失败/接口空数据）时展示兜底提示与重试，
-            // 避免页面加载完成后一片空白
             if topLists.isEmpty && newSongs.isEmpty && recommended.isEmpty && topPlaylists.isEmpty {
-                discoveryEmptyCard
+                BeansEmptyState(icon: "music.note", title: "发现内容加载失败", subtitle: "请下拉刷新或检查网络")
+                    .frame(minHeight: 220)
             }
 
             if auth.isLoggedIn {
@@ -251,157 +241,121 @@ struct LibraryView: View {
             }
 
             if !topLists.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("排行榜").font(.headline).foregroundStyle(Color.beansLabel)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 14) {
-                            ForEach(topLists) { top in
-                                Button {
-                                    selectedPlaylist = Playlist(id: top.id, name: top.name, coverURL: top.coverURL)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        cover(top.coverURL)
-                                            .frame(width: 108, height: 108)
-                                        Text(top.name)
-                                            .font(.caption.weight(.medium))
-                                            .foregroundStyle(Color.beansLabel)
-                                            .lineLimit(1)
-                                        Text(top.updateFrequency)
-                                            .font(.caption2)
-                                            .foregroundStyle(Color.beansSecondary)
-                                            .lineLimit(1)
-                                    }
-                                    .frame(width: 108)
+                sectionHeader("排行榜")
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 14) {
+                        ForEach(topLists) { top in
+                            Button {
+                                selectedPlaylist = Playlist(id: top.id, name: top.name, coverURL: top.coverURL)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    BeansCover(url: top.coverURL)
+                                        .frame(width: 112, height: 112)
+                                    Text(top.name)
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(Color.beansLabel)
+                                        .lineLimit(1)
+                                    Text(top.updateFrequency)
+                                        .font(.caption2)
+                                        .foregroundStyle(Color.beansSecondary)
+                                        .lineLimit(1)
                                 }
-                                .buttonStyle(.plain)
+                                .frame(width: 112)
                             }
+                            .buttonStyle(.plain)
                         }
                     }
+                    .padding(.vertical, 2)
                 }
             }
 
             if !newSongs.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("新歌速递").font(.headline).foregroundStyle(Color.beansLabel)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 14) {
-                            ForEach(newSongs) { song in
-                                Button {
-                                    player.play(songs: newSongs, startAt: newSongs.firstIndex(of: song) ?? 0)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        cover(song.coverURL)
-                                            .frame(width: 108, height: 108)
-                                            .overlay(alignment: .bottomTrailing) {
-                                                Image(systemName: "play.circle.fill")
-                                                    .font(.title3)
-                                                    .foregroundStyle(Color.beansAmber)
-                                                    .padding(5)
-                                            }
-                                        Text(song.name)
-                                            .font(.caption.weight(.medium))
-                                            .foregroundStyle(Color.beansLabel)
-                                            .lineLimit(1)
-                                        Text(song.artists)
-                                            .font(.caption2)
-                                            .foregroundStyle(Color.beansSecondary)
-                                            .lineLimit(1)
-                                    }
-                                    .frame(width: 108)
+                sectionHeader("新歌速递")
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 14) {
+                        ForEach(newSongs) { song in
+                            Button {
+                                player.play(songs: newSongs, startAt: newSongs.firstIndex(of: song) ?? 0)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    BeansCover(url: song.coverURL)
+                                        .frame(width: 112, height: 112)
+                                        .overlay(alignment: .bottomTrailing) {
+                                            Image(systemName: "play.circle.fill")
+                                                .font(.title3)
+                                                .foregroundStyle(Color.beansAmber)
+                                                .padding(5)
+                                        }
+                                    Text(song.name)
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(Color.beansLabel)
+                                        .lineLimit(1)
+                                    Text(song.artists)
+                                        .font(.caption2)
+                                        .foregroundStyle(Color.beansSecondary)
+                                        .lineLimit(1)
                                 }
-                                .buttonStyle(.plain)
+                                .frame(width: 112)
                             }
+                            .buttonStyle(.plain)
                         }
                     }
+                    .padding(.vertical, 2)
                 }
             }
 
             if !recommended.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("推荐歌单").font(.headline).foregroundStyle(Color.beansLabel)
-                    LazyVGrid(columns: columns, spacing: 18) {
-                        ForEach(recommended) { playlist in
-                            Button {
-                                selectedPlaylist = playlist
-                            } label: {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    cover(playlist.coverURL)
-                                    Text(playlist.name)
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundStyle(Color.beansLabel)
-                                        .lineLimit(2, reservesSpace: true)
-                                        .multilineTextAlignment(.leading)
-                                }
+                sectionHeader("推荐歌单")
+                LazyVGrid(columns: columns, spacing: 18) {
+                    ForEach(recommended) { playlist in
+                        Button {
+                            selectedPlaylist = playlist
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                BeansCover(url: playlist.coverURL)
+                                Text(playlist.name)
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(Color.beansLabel)
+                                    .lineLimit(2, reservesSpace: true)
+                                    .multilineTextAlignment(.leading)
                             }
-                            .buttonStyle(.plain)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
 
             if !topPlaylists.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("精品歌单").font(.headline).foregroundStyle(Color.beansLabel)
-                    LazyVGrid(columns: columns, spacing: 18) {
-                        ForEach(topPlaylists) { playlist in
-                            Button {
-                                selectedPlaylist = playlist
-                            } label: {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    cover(playlist.coverURL)
-                                    Text(playlist.name)
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundStyle(Color.beansLabel)
-                                        .lineLimit(2, reservesSpace: true)
-                                        .multilineTextAlignment(.leading)
-                                    Text("\(playlist.trackCount) 首")
-                                        .font(.caption2)
-                                        .foregroundStyle(Color.beansSecondary)
-                                }
+                sectionHeader("精品歌单")
+                LazyVGrid(columns: columns, spacing: 18) {
+                    ForEach(topPlaylists) { playlist in
+                        Button {
+                            selectedPlaylist = playlist
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                BeansCover(url: playlist.coverURL)
+                                Text(playlist.name)
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(Color.beansLabel)
+                                    .lineLimit(2, reservesSpace: true)
+                                    .multilineTextAlignment(.leading)
+                                Text("\(playlist.trackCount) 首")
+                                    .font(.caption2)
+                                    .foregroundStyle(Color.beansSecondary)
                             }
-                            .buttonStyle(.plain)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
         }
     }
 
-    private var discoveryEmptyCard: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "wifi.exclamationmark")
-                .font(.system(size: 36))
-                .foregroundStyle(Color.beansSecondary)
-            Text("发现内容加载失败")
-                .font(.headline)
-                .foregroundStyle(Color.beansLabel)
-            Text("请检查网络后重试")
-                .font(.footnote)
-                .foregroundStyle(Color.beansSecondary)
-            Button {
-                Task { await refreshAll() }
-            } label: {
-                Label("重新加载", systemImage: "arrow.clockwise")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.beansLabel)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(Color.beansGlassFill)
-                    .glassEffect(.regular)
-                    .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity)
-        .background(Color.beansGlassFill)
-        .glassEffect(.regular)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
-        )
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title).font(.headline).foregroundStyle(Color.beansLabel)
     }
+
+    // MARK: - 每日推荐 / 私人FM（大玻璃卡片）
 
     private var dailyCard: some View {
         Button {
@@ -417,17 +371,11 @@ struct LibraryView: View {
                     Text("每日推荐").font(.subheadline.weight(.semibold)).foregroundStyle(Color.beansLabel)
                     Text("30 首").font(.caption2).foregroundStyle(Color.beansSecondary)
                 }
-                Spacer()
+                Spacer(minLength: 4)
             }
-            .padding(12)
-            .glassEffect(.regular)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
-            )
         }
         .buttonStyle(.plain)
+        .beansGlassCard(cornerRadius: 18, padding: 12)
     }
 
     private var privateFMButton: some View {
@@ -444,17 +392,11 @@ struct LibraryView: View {
                     Text("私人 FM").font(.subheadline.weight(.semibold)).foregroundStyle(Color.beansLabel)
                     Text("猜你喜欢").font(.caption2).foregroundStyle(Color.beansSecondary)
                 }
-                Spacer()
+                Spacer(minLength: 4)
             }
-            .padding(12)
-            .glassEffect(.regular)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
-            )
         }
         .buttonStyle(.plain)
+        .beansGlassCard(cornerRadius: 18, padding: 12)
     }
 
     private func playDaily() async {
@@ -498,27 +440,6 @@ struct LibraryView: View {
     private func loadTopPlaylists() async {
         topPlaylists = (try? await NetEaseAPI.shared.topPlaylists(limit: 8)) ?? []
     }
-
-    private func cover(_ url: URL?) -> some View {
-        AsyncImage(url: url) { image in
-            image.resizable().scaledToFill()
-        } placeholder: {
-            // 修复：封面加载失败/为空时显示图标兜底，避免空白占位框
-            ZStack {
-                Rectangle().fill(Color.beansCard)
-                Image(systemName: "music.note")
-                    .font(.title2)
-                    .foregroundStyle(Color.beansSecondary.opacity(0.5))
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(.primary.opacity(0.06), lineWidth: 1)
-        )
-    }
 }
 
 // 轻量 toast 提示
@@ -533,6 +454,7 @@ struct BeansToastModifier: ViewModifier {
                     .foregroundStyle(Color.beansLabel)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
+                    .background(Color.beansGlassFill)
                     .glassEffect(.regular)
                     .clipShape(Capsule())
                     .padding(.bottom, 100)

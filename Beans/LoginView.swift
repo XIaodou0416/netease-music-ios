@@ -16,11 +16,10 @@ struct LoginView: View {
     @State private var qrCreatedAt = Date()
     @State private var didAutoRefresh = false
 
-    /// 二维码密钥有效期约 60~120 秒，超时后自动刷新一次（再超时则提示手动刷新）
+    /// 二维码密钥有效期约 60~120 秒，超时后自动刷新一次（再超时提示手动刷新）
     private let qrTTL: TimeInterval = 75
 
     var body: some View {
-        // 修复：登录页以 sheet 弹出，需要独立玻璃采样容器，否则内部玻璃组件空白/糊块
         GlassEffectContainer {
             ZStack {
                 Color.beansBackground.ignoresSafeArea()
@@ -61,7 +60,7 @@ struct LoginView: View {
         } message: {
             Text(alertMessage)
         }
-        // 关闭/取消登录时取消轮询，避免后台继续请求（用户取消扫码的回调）
+        // 关闭/取消登录时取消轮询（用户取消扫码的回调）
         .onDisappear { pollTask?.cancel() }
         .task { await startLogin() }
     }
@@ -83,6 +82,8 @@ struct LoginView: View {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title2)
                     .foregroundStyle(Color.beansSecondary)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
@@ -102,23 +103,20 @@ struct LoginView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
                 }
-                // 修复：固定高度占位改为自适应，避免小屏/大字号下溢出错位
-                .frame(maxWidth: 280, minHeight: 200, maxHeight: 240)
-            } else {
-                placeholder
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var placeholder: some View {
-        Group {
-            if let qrImage {
+                .frame(maxWidth: 300, minHeight: 200, maxHeight: 240)
+                .background(Color.beansGlassFill)
+                .glassEffect(.regular)
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+                )
+            } else if let qrImage {
                 Image(uiImage: qrImage)
                     .interpolation(.none)
                     .resizable()
                     .scaledToFit()
-                    .frame(maxWidth: 220, maxHeight: 220)
+                    .frame(maxWidth: 230, maxHeight: 230)
                     .padding(14)
                     .background(Color.beansGlassFill)
                     .glassEffect(.regular)
@@ -136,7 +134,7 @@ struct LoginView: View {
                         .font(.footnote)
                         .foregroundStyle(Color.beansSecondary)
                 }
-                .frame(maxWidth: 244, minHeight: 244, maxHeight: 250)
+                .frame(maxWidth: 260, minHeight: 250, maxHeight: 260)
                 .frame(maxWidth: .infinity)
                 .background(Color.beansGlassFill)
                 .glassEffect(.regular)
@@ -147,12 +145,12 @@ struct LoginView: View {
                 )
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func startLogin(auto: Bool = false) async {
         isLoading = true
         defer { isLoading = false }
-        // 手动刷新才重置自动刷新标记；自动刷新保留标记，避免无限自刷
         if !auto { didAutoRefresh = false }
         do {
             let key = try await NetEaseAPI.shared.qrKey()
@@ -173,7 +171,6 @@ struct LoginView: View {
 
     private func pollLogin() async {
         while !Task.isCancelled {
-            // 超时兜底：轮询期间二维码超时未确认，自动刷新二维码（只自动一次）
             if !didAutoRefresh && Date().timeIntervalSince(qrCreatedAt) > qrTTL {
                 await MainActor.run { statusText = "二维码已过期，正在自动刷新…" }
                 didAutoRefresh = true
@@ -184,7 +181,6 @@ struct LoginView: View {
                 let code = try await NetEaseAPI.shared.qrCheck(key: unikey)
                 switch code {
                 case 800:
-                    // 服务端判定二维码过期：自动刷新一次，之后提示手动刷新
                     if !didAutoRefresh {
                         await MainActor.run { statusText = "二维码已过期，正在自动刷新…" }
                         didAutoRefresh = true

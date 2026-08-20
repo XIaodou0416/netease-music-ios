@@ -11,7 +11,6 @@ struct RootView: View {
     var body: some View {
         ZStack {
             Color.beansBackground.ignoresSafeArea()
-
             Group {
                 switch selectedTab {
                 case .library:
@@ -22,10 +21,11 @@ struct RootView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // 不做交叉淡入淡出：两个页面各自带底部栏，过渡期会同时渲染导致底栏重叠闪烁
     }
 }
 
-// MARK: - 底部液态玻璃栏（迷你播放器 + 可长按滑动的标签栏）
+// MARK: - 底部玻璃栏（迷你播放器 + 长按滑动标签栏）
 
 struct BeansBottomBar: View {
     @Binding var selected: BeansTab
@@ -70,8 +70,7 @@ struct BeansTabBar: View {
     private var barBackground: some View {
         GeometryReader { geo in
             Capsule()
-                // 修复：原实现 fill(Color.clear) + glassEffect 导致玻璃无内容可采样，
-                // 表现为模糊失效/渲染糊块。改用半透明动态基底色，玻璃效果可正常采样背景。
+                // 玻璃必须配非透明基底，否则采样为空 → 模糊失效/糊块
                 .fill(Color.beansGlassFill)
                 .glassEffect(.regular)
                 .clipShape(Capsule())

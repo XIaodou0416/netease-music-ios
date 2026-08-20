@@ -2,6 +2,8 @@ import SwiftUI
 import UIKit
 
 /// 通用歌曲行：点击播放，长按弹出操作菜单
+/// 说明：列表行内不使用 .glassEffect（滚动内容中玻璃采样异常是渲染错乱主因），
+/// 统一使用普通圆角卡片背景，保证稳定。
 struct SongCell: View {
     let song: Song
     var index: Int? = nil
@@ -27,13 +29,8 @@ struct SongCell: View {
                         .foregroundStyle(Color.beansSecondary)
                         .frame(width: 24)
                 }
-                AsyncImage(url: song.coverURL) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Rectangle().fill(Color.beansCard)
-                }
-                .frame(width: 44, height: 44)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                BeansCover(url: song.coverURL, cornerRadius: 8)
+                    .frame(width: 44, height: 44)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(song.name)
@@ -45,7 +42,7 @@ struct SongCell: View {
                         .foregroundStyle(Color.beansSecondary)
                         .lineLimit(1)
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 if isCurrent {
                     Image(systemName: player.isPlaying ? "waveform" : "pause.circle")
                         .foregroundStyle(Color.beansAmber)
@@ -57,12 +54,7 @@ struct SongCell: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .glassEffect(.regular)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
-            )
+            .beansRowCard()
         }
         .buttonStyle(.plain)
         .contextMenu {

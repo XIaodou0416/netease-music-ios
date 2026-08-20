@@ -7,19 +7,8 @@ struct MiniPlayerBar: View {
     var body: some View {
         if let song = player.currentSong {
             HStack(spacing: 12) {
-                AsyncImage(url: song.coverURL) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    // 占位不再使用纯色块：避免封面加载失败时出现"空白占位框"
-                    ZStack {
-                        Color.beansCard
-                        Image(systemName: "music.note")
-                            .font(.footnote)
-                            .foregroundStyle(Color.beansSecondary.opacity(0.6))
-                    }
-                }
-                .frame(width: 42, height: 42)
-                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                BeansCover(url: song.coverURL, cornerRadius: 9)
+                    .frame(width: 42, height: 42)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(song.name)
@@ -31,26 +20,26 @@ struct MiniPlayerBar: View {
                         .foregroundStyle(Color.beansSecondary)
                         .lineLimit(1)
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 Button {
                     player.togglePlayPause()
                 } label: {
                     Image(systemName: player.isBuffering ? "hourglass" : (player.isPlaying ? "pause.fill" : "play.fill"))
                         .font(.title3)
                         .foregroundStyle(Color.beansLabel)
+                        .frame(width: 40, height: 40)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 12)
             .padding(.top, 10)
-            .padding(.bottom, 8)
-            // 修复：玻璃效果需要非透明基底采样，否则毛玻璃失效/糊块
-            .background(Color.beansGlassFill)
+            .padding(.bottom, 9)
+            .background(Color.beansGlassFill)   // 玻璃非透明基底，避免糊块
             .glassEffect(.regular)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(alignment: .bottom) {
-                // 修复：进度条原先用固定 offset(y:21) 悬浮在文本区，位置随字体/尺寸错乱；
-                // 改为贴底布局，随底栏高度自动对齐，不再错位。
+                // 进度条贴底自动对齐（原固定 offset 会在不同字体/尺寸下错位）
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule().fill(.white.opacity(0.12))

@@ -6,18 +6,7 @@ struct HistoryView: View {
     var body: some View {
         Group {
             if player.history.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 44))
-                        .foregroundStyle(Color.beansSecondary)
-                    Text("还没有播放记录")
-                        .font(.headline)
-                        .foregroundStyle(Color.beansLabel)
-                    Text("播放过的歌曲会出现在这里")
-                        .font(.footnote)
-                        .foregroundStyle(Color.beansSecondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                BeansEmptyState(icon: "clock.arrow.circlepath", title: "还没有播放记录", subtitle: "播放过的歌曲会出现在这里")
             } else {
                 List {
                     ForEach(Array(player.history.enumerated()), id: \.element.id) { index, song in
@@ -26,14 +15,10 @@ struct HistoryView: View {
                         }
                     }
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .beansListStyle()
             }
         }
-        .background(Color.beansBackground.ignoresSafeArea())
+        .beansPageBackground()
         .navigationTitle("最近播放")
         .navigationBarTitleDisplayMode(.large)
     }

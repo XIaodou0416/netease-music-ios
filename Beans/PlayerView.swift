@@ -15,16 +15,11 @@ struct PlayerView: View {
     private let rates: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 
     var body: some View {
-        // 修复：播放器以 sheet 弹出，脱离了根视图的 GlassEffectContainer 采样区域，
-        // 页内所有 .glassEffect 组件无法采样背景，表现为整页空白/灰糊块。
-        // 在 sheet 内部重新声明容器，让液态玻璃有独立的采样区域。
+        // sheet 内部独立玻璃采样容器：否则页内 glassEffect 无法采样 → 空白/灰块
         GlassEffectContainer {
             ZStack {
                 backgroundBlur
                 Color.beansBackground.opacity(0.3).ignoresSafeArea()
-
-                // 兜底：currentSong 为空（例如播放失败后清空队列）时展示占位，
-                // 避免整个播放器页面渲染空白。
                 if player.currentSong == nil {
                     emptyFallback
                 } else {
@@ -48,7 +43,7 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - 主内容（小屏可滚动，修复固定 280 封面+超长控制面板在小屏溢出裁切/空白）
+    // MARK: - 主内容（小屏可滚动，避免溢出裁切/空白）
 
     private var content: some View {
         GeometryReader { geo in
@@ -58,8 +53,7 @@ struct PlayerView: View {
                     songHeader
                     Spacer(minLength: 8)
                     if showLyrics {
-                        lyricsView
-                            .frame(height: max(200, min(320, geo.size.height * 0.30)))
+                        lyricsView.frame(height: max(200, min(320, geo.size.height * 0.30)))
                     } else {
                         coverArt(side: min(280, max(180, geo.size.width - 96)))
                     }
@@ -74,7 +68,7 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - 兜底视图
+    // MARK: - 兜底视图（无歌曲时不白屏）
 
     private var emptyFallback: some View {
         VStack(spacing: 14) {
@@ -166,20 +160,10 @@ struct PlayerView: View {
         } label: {
             TimelineView(.animation(minimumInterval: 1 / 30, paused: !player.isPlaying)) { timeline in
                 let angle = timeline.date.timeIntervalSinceReferenceDate * 15
-                AsyncImage(url: player.currentSong?.coverURL) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    ZStack {
-                        Color.beansCard
-                        Image(systemName: "music.note")
-                            .font(.system(size: 40))
-                            .foregroundStyle(Color.beansSecondary.opacity(0.5))
-                    }
-                }
-                .frame(width: side, height: side)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .rotationEffect(.degrees(angle.truncatingRemainder(dividingBy: 360)))
-                .shadow(color: .black.opacity(0.4), radius: 30, y: 12)
+                BeansCover(url: player.currentSong?.coverURL, cornerRadius: 24)
+                    .frame(width: side, height: side)
+                    .rotationEffect(.degrees(angle.truncatingRemainder(dividingBy: 360)))
+                    .shadow(color: .black.opacity(0.4), radius: 30, y: 12)
             }
         }
         .buttonStyle(.plain)
@@ -245,25 +229,20 @@ struct PlayerView: View {
         return index
     }
 
-    // MARK: - 控制面板（液态玻璃）
+    // MARK: - 控制面板（玻璃容器）
 
     private var controlPanel: some View {
         VStack(spacing: 12) {
             progressBar
 
             HStack(spacing: 40) {
-                Button {
-                    player.previous()
-                } label: {
-                    Image(systemName: "backward.fill")
-                        .font(.title2)
-                        .foregroundStyle(Color.beansLabel)
+                Button { player.previous() } label: {
+                    Image(systemName: "backward.fill").font(.title2).foregroundStyle(Color.beansLabel)
                 }
                 .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
 
-                Button {
-                    player.togglePlayPause()
-                } label: {
+                Button { player.togglePlayPause() } label: {
                     ZStack {
                         Circle().fill(Color.beansAmber)
                         Image(systemName: player.isBuffering ? "hourglass" : (player.isPlaying ? "pause.fill" : "play.fill"))
@@ -275,154 +254,33 @@ struct PlayerView: View {
                 }
                 .buttonStyle(.plain)
 
-                Button {
-                    player.next()
-                } label: {
-                    Image(systemName: "forward.fill")
-                        .font(.title2)
-                        .foregroundStyle(Color.beansLabel)
+                Button { player.next() } label: {
+                    Image(systemName: "forward.fill").font(.title2).foregroundStyle(Color.beansLabel)
                 }
                 .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
             }
 
-            HStack(spacing: 34) {
-                Button {
-                    player.seekBy(-15)
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "gobackward.15")
-                            .font(.system(size: 18, weight: .semibold))
-                        Text("-15")
-                            .font(.system(size: 9))
-                    }
-                    .foregroundStyle(Color.beansLabel)
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    player.togglePlayMode()
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: player.playMode.icon)
-                            .font(.system(size: 16, weight: .semibold))
-                        Text(player.playMode.title)
-                            .font(.system(size: 9))
-                    }
-                    .foregroundStyle(Color.beansLabel)
-                }
-                .buttonStyle(.plain)
-
-                Menu {
-                    ForEach(rates, id: \.self) { rate in
-                        Button {
-                            player.setRate(rate)
-                        } label: {
-                            if rate == player.rate {
-                                Label("\(rate, specifier: "%.2g")x", systemImage: "checkmark")
-                            } else {
-                                Text("\(rate, specifier: "%.2g")x")
-                            }
-                        }
-                    }
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "speedometer")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("\(player.rate, specifier: "%.2g")x")
-                            .font(.system(size: 9))
-                    }
-                    .foregroundStyle(Color.beansLabel)
-                }
-
-                Button {
-                    showQueue = true
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "list.bullet")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("队列")
-                            .font(.system(size: 9))
-                    }
-                    .foregroundStyle(Color.beansLabel)
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    showSleep = true
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "moon.zzz")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text(player.sleepTimerFormatted ?? "定时")
-                            .font(.system(size: 9))
-                    }
-                    .foregroundStyle(player.sleepTimerEndsAt != nil ? Color.beansAmber : Color.beansLabel)
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    player.seekBy(15)
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "goforward.15")
-                            .font(.system(size: 18, weight: .semibold))
-                        Text("+15")
-                            .font(.system(size: 9))
-                    }
-                    .foregroundStyle(Color.beansLabel)
-                }
-                .buttonStyle(.plain)
+            HStack(spacing: 18) {
+                controlButton(icon: "gobackward.15", caption: "-15") { player.seekBy(-15) }
+                controlButton(icon: player.playMode.icon, caption: player.playMode.title) { player.togglePlayMode() }
+                rateMenu
+                controlButton(icon: "list.bullet", caption: "队列") { showQueue = true }
+                controlButton(icon: "moon.zzz", caption: player.sleepTimerFormatted ?? "定时", tint: player.sleepTimerEndsAt != nil ? Color.beansAmber : nil) { showSleep = true }
+                controlButton(icon: "goforward.15", caption: "+15") { player.seekBy(15) }
             }
 
-            HStack(spacing: 34) {
-                Button {
-                    toggleLike()
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: isLiked ? "heart.fill" : "heart")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("喜欢")
-                            .font(.system(size: 9))
-                    }
-                    .foregroundStyle(isLiked ? Color.pink : Color.beansLabel)
-                }
-                .buttonStyle(.plain)
-
+            HStack(spacing: 18) {
+                controlButton(icon: isLiked ? "heart.fill" : "heart", caption: "喜欢", tint: isLiked ? .pink : nil) { toggleLike() }
                 if let count = player.playCounts[player.currentSong?.id ?? -1], count > 1 {
                     HStack(spacing: 4) {
-                        Image(systemName: "play.circle")
-                            .font(.system(size: 14))
-                        Text("已听 \(count) 次")
-                            .font(.system(size: 10))
+                        Image(systemName: "play.circle").font(.system(size: 14))
+                        Text("已听 \(count) 次").font(.system(size: 10))
                     }
                     .foregroundStyle(Color.beansSecondary)
                 }
-
-                Button {
-                    showSimi = true
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("相似")
-                            .font(.system(size: 9))
-                    }
-                    .foregroundStyle(Color.beansLabel)
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    shareCurrentSong()
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("分享")
-                            .font(.system(size: 9))
-                    }
-                    .foregroundStyle(Color.beansLabel)
-                }
-                .buttonStyle(.plain)
+                controlButton(icon: "sparkles", caption: "相似") { showSimi = true }
+                controlButton(icon: "square.and.arrow.up", caption: "分享") { shareCurrentSong() }
             }
 
             if player.loadFailed {
@@ -453,6 +311,46 @@ struct PlayerView: View {
         .shadow(color: .black.opacity(0.25), radius: 24, y: 8)
     }
 
+    private func controlButton(icon: String, caption: String, tint: Color? = nil, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                Text(caption)
+                    .font(.system(size: 9))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .foregroundStyle(tint ?? Color.beansLabel)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var rateMenu: some View {
+        Menu {
+            ForEach(rates, id: \.self) { rate in
+                Button {
+                    player.setRate(rate)
+                } label: {
+                    if rate == player.rate {
+                        Label("\(rate, specifier: "%.2g")x", systemImage: "checkmark")
+                    } else {
+                        Text("\(rate, specifier: "%.2g")x")
+                    }
+                }
+            }
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: "speedometer")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("\(player.rate, specifier: "%.2g")x")
+                    .font(.system(size: 9))
+            }
+            .frame(maxWidth: .infinity)
+            .foregroundStyle(Color.beansLabel)
+        }
+    }
+
     private var progressBar: some View {
         VStack(spacing: 4) {
             Slider(
@@ -467,13 +365,9 @@ struct PlayerView: View {
             )
             .tint(Color.beansAmber)
             HStack {
-                Text(formatTime(player.progress))
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(Color.beansSecondary)
+                Text(formatTime(player.progress)).font(.caption2.monospacedDigit()).foregroundStyle(Color.beansSecondary)
                 Spacer()
-                Text(formatTime(player.duration))
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(Color.beansSecondary)
+                Text(formatTime(player.duration)).font(.caption2.monospacedDigit()).foregroundStyle(Color.beansSecondary)
             }
         }
     }

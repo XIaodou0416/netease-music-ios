@@ -382,8 +382,7 @@ final class QQMusicAPI {
             guard !key.isEmpty, !seen.contains(key) else { continue }
             seen.insert(key)
             var content = Self.decodeCommentEmoji(item["rootcommentcontent"] as? String ?? "")
-            content = content.replacingOccurrences(of: "\\n", with: "
-")
+            content = content.replacingOccurrences(of: "\\n", with: "\n")
             guard !content.isEmpty else { continue }
             var nick = item["nick"] as? String ?? ""
             if nick.isEmpty { nick = item["rootcommentnick"] as? String ?? "" }

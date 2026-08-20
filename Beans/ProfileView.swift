@@ -104,7 +104,7 @@ struct ProfileView: View {
             }
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: qqAuth.isLoggedIn ? "checkmark.seal.fill" : "qrcode.viewfinder")
+                Image(systemName: qqAuth.isLoggedIn ? "checkmark.seal.fill" : "globe")
                     .font(.system(size: 17))
                     .foregroundStyle(qqAuth.isLoggedIn ? Color.beansSage : Color.beansAmber)
                     .frame(width: 38, height: 38)
@@ -115,7 +115,7 @@ struct ProfileView: View {
                         .foregroundStyle(Color.beansLabel)
                     Text(qqAuth.isLoggedIn
                          ? "已登录：\(qqAuth.nickname.isEmpty ? "QQ 账号" : qqAuth.nickname)"
-                         : "扫码登录后可播放 QQ 音乐歌曲")
+                         : "登录后可播放 QQ 音乐歌曲")
                         .font(.system(size: 12))
                         .foregroundStyle(Color.beansSecondary)
                         .lineLimit(1)

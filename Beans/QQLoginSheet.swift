@@ -1,7 +1,9 @@
 import SwiftUI
 import UIKit
 
-/// QQ 音乐扫码登录页（二维码 + 状态轮询 + 过期/错误重试）
+/// QQ 音乐登录页：网页登录（默认）/ 扫码登录 / 手动粘贴 Cookie
+/// 网页登录：应用内 WKWebView 打开 y.qq.com，登录完成后自动读取 Cookie，最稳定。
+/// 扫码登录：逆向 ptlogin2 接口，仍保留为备选方案。
 struct QQLoginSheet: View {
     @EnvironmentObject private var theme: ThemeStore
     @Environment(\.dismiss) private var dismiss
@@ -9,6 +11,14 @@ struct QQLoginSheet: View {
     @State private var qrImage: UIImage?
     @State private var status: QQMusicAuth.ScanState = .waiting
     @State private var timer: Timer?
+    @State private var mode: QQLoginMode = .web
+
+    enum QQLoginMode: String, CaseIterable, Identifiable {
+        case web = "网页登录"
+        case scan = "扫码登录"
+        case paste = "粘贴Cookie"
+        var id: String { rawValue }
+    }
 
     private let auth = QQMusicAuth.shared
 
@@ -16,7 +26,7 @@ struct QQLoginSheet: View {
         let _ = theme.accent
         ZStack {
             GlassBackdrop()
-            VStack(spacing: 20) {
+            VStack(spacing: 16) {
                 Capsule()
                     .fill(Color.beansSecondary.opacity(0.3))
                     .frame(width: 38, height: 4)
@@ -39,26 +49,52 @@ struct QQLoginSheet: View {
                 }
                 .padding(.horizontal, 24)
 
-                Text("使用手机 QQ 扫描二维码\n登录后可播放更多 QQ 音乐歌曲（含 VIP 试听）")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.beansSecondary)
-                    .multilineTextAlignment(.center)
+                Picker("登录方式", selection: $mode) {
+                    ForEach(QQLoginMode.allCases) { m in
+                        Text(m.rawValue).tag(m)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 24)
 
-                qrArea
-                    .frame(width: 240, height: 240)
-                    .padding(16)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                    .shadow(color: .black.opacity(0.2), radius: 18, y: 8)
-
-                statusView
-                    .frame(height: 40)
-
-                Spacer(minLength: 8)
+                Group {
+                    switch mode {
+                    case .web:
+                        QQWebLoginPanel(onSuccess: { dismiss() })
+                    case .scan:
+                        scanContent
+                    case .paste:
+                        QQCookieImportPanel(onSuccess: { dismiss() })
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .onAppear { start() }
         .onDisappear { timer?.invalidate(); timer = nil }
+    }
+
+    // MARK: - 扫码登录内容（进入该页签时才启动二维码流程）
+
+    private var scanContent: some View {
+        VStack(spacing: 20) {
+            Text("使用手机 QQ 扫描二维码\n登录后可播放更多 QQ 音乐歌曲（含 VIP 试听）")
+                .font(.system(size: 13))
+                .foregroundStyle(Color.beansSecondary)
+                .multilineTextAlignment(.center)
+
+            qrArea
+                .frame(width: 240, height: 240)
+                .padding(16)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .shadow(color: .black.opacity(0.2), radius: 18, y: 8)
+
+            statusView
+                .frame(height: 40)
+
+            Spacer(minLength: 8)
+        }
+        .onAppear { start() }
     }
 
     // MARK: - 二维码区域
@@ -132,7 +168,7 @@ struct QQLoginSheet: View {
         return ""
     }
 
-    // MARK: - 登录流程
+    // MARK: - 扫码流程
 
     private func start() {
         timer?.invalidate()

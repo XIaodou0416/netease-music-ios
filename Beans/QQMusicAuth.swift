@@ -63,6 +63,55 @@ final class QQMusicAuth: ObservableObject {
         defaults.removeObject(forKey: nickKey)
     }
 
+    // MARK: - 网页登录 / Cookie 导入
+
+    /// 网页登录（WKWebView 读取）或手动粘贴 Cookie 导入登录态
+    func importCookies(_ dict: [String: String], nickname: String?) {
+        guard !dict.isEmpty else { return }
+        cookies = dict
+        isLoggedIn = true
+        self.nickname = nickname ?? Self.fallbackNickname(dict)
+        defaults.set(cookies, forKey: cookieKey)
+        defaults.set(self.nickname, forKey: nickKey)
+    }
+
+    /// Cookie 是否包含有效登录态（uin 非空且带任一有效凭证）
+    func hasValidLogin(_ dict: [String: String]) -> Bool {
+        guard let uin = dict["uin"], !uin.isEmpty, uin != "0" else { return false }
+        let credentialKeys = ["p_skey", "skey", "qqmusic_key", "qm_keyst", "musickey", "p_uin"]
+        return credentialKeys.contains { key in
+            guard let value = dict[key] else { return false }
+            return !value.isEmpty
+        }
+    }
+
+    /// 网页登录关注的 Cookie 名（WKWebView 读取时按此过滤）
+    static let webCookieNames: Set<String> = [
+        "uin", "p_uin", "skey", "p_skey", "qqmusic_key", "qm_keyst",
+        "musickey", "pt4_token", "pt2gguin", "pt_login_sig", "pt4_aid",
+        "qmusic_s", "pgv_pvid", "pgv_info",
+    ]
+
+    /// 解析浏览器复制出来的完整 Cookie 字符串："a=b; c=d"
+    static func parseCookieHeader(_ header: String) -> [String: String] {
+        var dict: [String: String] = [:]
+        for part in header.split(separator: ";") {
+            let kv = part.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            guard kv.count == 2 else { continue }
+            let key = kv[0].trimmingCharacters(in: .whitespacesAndNewlines)
+            let value = kv[1].trimmingCharacters(in: .whitespacesAndNewlines)
+            if !key.isEmpty, !value.isEmpty {
+                dict[key] = value
+            }
+        }
+        return dict
+    }
+
+    /// uin（可能带 o 前缀）转显示昵称
+    static func fallbackNickname(_ dict: [String: String]) -> String {
+        let clean = (dict["uin"] ?? "").replacingOccurrences(of: "o", with: "")
+        return clean.isEmpty ? "QQ音乐用户" : "QQ音乐用户 \(clean)"
+    }
     // MARK: - 扫码登录
 
     enum ScanState: Equatable {

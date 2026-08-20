@@ -1,77 +1,83 @@
 import SwiftUI
 
-// 播放队列（全新布局）
 struct QueueView: View {
     @EnvironmentObject private var player: PlayerManager
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        GlassEffectContainer {
-            NavigationStack {
-                Group {
-                    if player.queue.isEmpty {
-                        BeansEmpty(icon: "music.note", title: "队列为空", subtitle: "从歌单或搜索中添加歌曲")
-                    } else {
-                        List {
-                            Section {
-                                ForEach(Array(player.queue.enumerated()), id: \.element.id) { index, song in
-                                    HStack(spacing: 12) {
-                                        Button {
-                                            player.playQueueIndex(index)
-                                        } label: {
-                                            HStack(spacing: 12) {
-                                                BeansCover(url: song.coverURL, radius: 8).frame(width: 42, height: 42)
-                                                VStack(alignment: .leading, spacing: 2) {
-                                                    Text(song.name)
-                                                        .font(.subheadline.weight(index == player.currentIndex ? .semibold : .regular))
-                                                        .foregroundStyle(index == player.currentIndex ? Color.beansAmber : Color.beansLabel)
-                                                        .lineLimit(1)
-                                                    Text(song.artists).font(.caption).foregroundStyle(Color.beansSecondary).lineLimit(1)
-                                                }
-                                            }
-                                        }
-                                        .buttonStyle(.plain)
-                                        Spacer(minLength: 8)
-                                        if index == player.currentIndex {
-                                            Image(systemName: player.isPlaying ? "speaker.wave.2.fill" : "pause.circle")
-                                                .foregroundStyle(Color.beansAmber)
-                                        }
-                                        if player.queue.count > 1 {
-                                            Button {
-                                                player.removeFromQueue(at: index)
-                                            } label: {
-                                                Image(systemName: "xmark.circle.fill").foregroundStyle(Color.beansSecondary)
-                                                    .frame(width: 30, height: 30)
-                                                    .contentShape(Rectangle())
-                                            }
-                                            .buttonStyle(.plain)
-                                        }
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .beansRow()
+        NavigationStack {
+            Group {
+                if player.queue.isEmpty {
+                    EmptyStateView(icon: "music.note.list", text: "播放队列为空")
+                } else {
+                    List {
+                        Section("接下来 (\(player.queue.count) 首)") {
+                            ForEach(Array(player.queue.enumerated()), id: \.element.id) { index, song in
+                                row(song, index: index)
+                            }
+                            .onDelete { offsets in
+                                let indices = offsets.map { $0 }
+                                for index in indices.sorted(by: >) where player.queue.indices.contains(index) {
+                                    player.removeFromQueue(at: index)
                                 }
-                            } header: {
-                                Text("\(player.queue.count) 首 · \(player.playMode.title)")
                             }
                         }
-                        .listStyle(.insetGrouped)
-                        .scrollContentBackground(.hidden)
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     }
                 }
-                .beansPage()
-                .navigationTitle("播放队列")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("完成") { dismiss() }
+            }
+            .navigationTitle("播放队列")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            player.clearQueue()
+                        } label: {
+                            Label("清空队列", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
                 }
             }
         }
-        .presentationDragIndicator(.hidden)
+    }
+
+    @ViewBuilder
+    private func row(_ song: Song, index: Int) -> some View {
+        let isCurrent = index == player.currentIndex
+        HStack(spacing: 12) {
+            CoverImage(url: song.coverURL, size: 42, cornerRadius: 9)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(song.name)
+                    .font(.system(size: 15, weight: isCurrent ? .semibold : .regular))
+                    .foregroundStyle(isCurrent ? Color.beansAmber : Color.beansLabel)
+                    .lineLimit(1)
+                Text(song.artists)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.beansSecondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            if isCurrent {
+                if player.isPlaying {
+                    NowPlayingIndicator()
+                } else {
+                    Image(systemName: "pause.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.beansAmber)
+                }
+            } else {
+                Text(song.formattedDuration)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(Color.beansSecondary)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if player.queue.indices.contains(index) {
+                player.playQueueIndex(index)
+            }
+        }
     }
 }

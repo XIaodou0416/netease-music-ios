@@ -76,3 +76,35 @@ enum BeansThemeMode: String, CaseIterable, Identifiable {
         }
     }
 }
+// MARK: - 背景氛围渐变（让液态玻璃始终有内容可采样）
+
+extension LinearGradient {
+    /// 暖调咖啡色系背景
+    static let beansBackdrop = LinearGradient(
+        colors: [
+            Color(uiColor: .beansBackground),
+            Color(uiColor: .beansBackground).opacity(0.72),
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+
+    /// 强调色渐变（琥珀暖金）
+    static let beansAccent = LinearGradient(
+        colors: [Color.beansAmber, Color(uiColor: .beansAmber).opacity(0.55)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+}
+
+// MARK: - 主题模式 ↔ 系统外观
+
+extension BeansThemeMode {
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}

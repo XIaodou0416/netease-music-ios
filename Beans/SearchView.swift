@@ -1,191 +1,148 @@
 import SwiftUI
 
-// 搜索页（全新布局）
 struct SearchView: View {
     @EnvironmentObject private var player: PlayerManager
+    @EnvironmentObject private var auth: AuthStore
+
     @State private var keyword = ""
-    @State private var songs: [Song] = []
-    @State private var isLoading = false
-    @State private var searched = false
-    @State private var searchFailed = false
-    @State private var hotKeywords: [String] = []
-    @State private var history: [String] = UserDefaults.standard.stringArray(forKey: "beans.searchhistory") ?? []
+    @State private var results: [Song] = []
+    @State private var hotWords: [String] = []
+    @State private var searching = false
+    @State private var errorMessage: String?
+    @State private var showAddToPlaylist: Song?
+    @FocusState private var focused: Bool
 
     var body: some View {
-        Group {
-            if !searched {
-                initialContent
+        VStack(spacing: 0) {
+            searchField
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
+
+            if keyword.isEmpty {
+                hotSection
+            } else if searching {
+                LoadingStateView()
+            } else if let errorMessage {
+                ErrorStateView(message: errorMessage) {
+                    Task { await search() }
+                }
             } else {
                 resultsList
             }
         }
-        .beansPage()
-        .navigationTitle("搜索")
-        .navigationBarTitleDisplayMode(.large)
-        .searchable(text: $keyword, prompt: "歌名 / 歌手 / 专辑")
-        .onSubmit(of: .search) { runSearch() }
         .task {
-            if hotKeywords.isEmpty {
-                hotKeywords = (try? await NetEaseAPI.shared.hotSearch()) ?? []
+            if hotWords.isEmpty {
+                if let words = try? await NetEaseAPI.shared.hotSearch() {
+                    hotWords = words
+                }
             }
+        }
+        .sheet(item: $showAddToPlaylist) { song in
+            AddToPlaylistSheet(song: song)
+                .environmentObject(auth)
         }
     }
 
-    // MARK: - 初始页
+    private var searchField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 15))
+                .foregroundStyle(Color.beansSecondary)
+            TextField("搜索歌曲、歌手、专辑", text: $keyword)
+                .font(.system(size: 15))
+                .foregroundStyle(Color.beansLabel)
+                .focused($focused)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .onSubmit {
+                    Task { await search() }
+                }
+            if !keyword.isEmpty {
+                Button {
+                    keyword = ""
+                    results = []
+                    errorMessage = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.beansSecondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .padding(.bottom, 8)
+    }
 
-    private var initialContent: some View {
+    private var hotSection: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                if !history.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("搜索历史").font(.headline).foregroundStyle(Color.beansLabel)
-                            Spacer()
+            VStack(alignment: .leading, spacing: 16) {
+                SectionHeader(title: "热门搜索")
+                if hotWords.isEmpty {
+                    LoadingStateView()
+                } else {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        ForEach(Array(hotWords.enumerated()), id: \.element) { index, word in
                             Button {
-                                history = []
-                                UserDefaults.standard.set([String](), forKey: "beans.searchhistory")
+                                keyword = word
+                                focused = false
+                                Task { await search() }
                             } label: {
-                                Image(systemName: "trash").font(.caption).foregroundStyle(Color.beansSecondary)
+                                HStack(spacing: 10) {
+                                    Text("\(index + 1)")
+                                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                                        .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
+                                    Text(word)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(Color.beansLabel)
+                                        .lineLimit(1)
+                                    Spacer(minLength: 0)
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 13)
+                                .glassEffect(.regular, in: .rect(cornerRadius: 16))
                             }
                             .buttonStyle(.plain)
                         }
-                        FlowLayout(spacing: 10) {
-                            ForEach(history, id: \.self) { item in
-                                Button {
-                                    keyword = item
-                                    runSearch()
-                                } label: {
-                                    Text(item)
-                                        .font(.footnote)
-                                        .foregroundStyle(Color.beansLabel)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 8)
-                                        .beansRow(radius: 18)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
                     }
                 }
+                Spacer().frame(height: 120)
+            }
+            .padding(.horizontal, 16)
+        }
+        .scrollIndicators(.hidden)
+    }
 
-                if !hotKeywords.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("热门搜索").font(.headline).foregroundStyle(Color.beansLabel)
-                        FlowLayout(spacing: 10) {
-                            ForEach(Array(hotKeywords.enumerated()), id: \.element) { index, item in
-                                Button {
-                                    keyword = item
-                                    runSearch()
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Text("\(index + 1)")
-                                            .font(.caption2.bold())
-                                            .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
-                                        Text(item).font(.footnote).foregroundStyle(Color.beansLabel)
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .beansRow(radius: 18)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+    private var resultsList: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(Array(results.enumerated()), id: \.element.id) { index, song in
+                    SongCell(song: song) {
+                        player.play(songs: results, startAt: index)
                     }
+                    Divider().overlay(Color.beansSecondary.opacity(0.15))
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
+            .padding(.bottom, 180)
         }
+        .scrollIndicators(.hidden)
     }
 
-    // MARK: - 结果
-
-    private var resultsList: some View {
-        Group {
-            if songs.isEmpty && !isLoading && searchFailed {
-                BeansError(title: "搜索失败") { runSearch() }
-            } else if songs.isEmpty && !isLoading {
-                BeansEmpty(icon: "music.note", title: "没有找到相关歌曲", subtitle: "换个关键词试试")
-            } else {
-                List {
-                    ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-                        SongCell(song: song) {
-                            player.play(songs: songs, startAt: index)
-                        }
-                    }
-                }
-                .beansList()
-                .overlay {
-                    if isLoading { ProgressView() }
-                }
-            }
-        }
-    }
-
-    private func runSearch() {
+    private func search() async {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        saveHistory(trimmed)
-        searched = true
-        isLoading = true
-        Task {
-            defer { isLoading = false }
-            do {
-                searchFailed = false
-                songs = try await NetEaseAPI.shared.search(keyword: trimmed)
-            } catch {
-                searchFailed = true
-                songs = []
-            }
-        }
-    }
-
-    private func saveHistory(_ item: String) {
-        history.removeAll { $0 == item }
-        history.insert(item, at: 0)
-        if history.count > 12 {
-            history = Array(history.prefix(12))
-        }
-        UserDefaults.standard.set(history, forKey: "beans.searchhistory")
-    }
-}
-
-// 流式布局（chips 自动换行）
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth, x > 0 {
-                x = 0
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-        return CGSize(width: maxWidth, height: y + rowHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX
-        var y = bounds.minY
-        var rowHeight: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > bounds.maxX, x > bounds.minX {
-                x = bounds.minX
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
+        searching = true
+        errorMessage = nil
+        do {
+            results = try await NetEaseAPI.shared.search(keyword: trimmed, limit: 40)
+            searching = false
+        } catch {
+            errorMessage = error.localizedDescription
+            searching = false
         }
     }
 }

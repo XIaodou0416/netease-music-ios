@@ -62,6 +62,20 @@ final class AuthStore: ObservableObject {
         }
     }
 
+    /// 收藏/取消收藏：成功后同步更新「我喜欢的音乐」列表
+    @MainActor
+    func toggleLike(_ song: Song) async throws -> Bool {
+        let isLiked = favoriteTracks.contains(song)
+        let ok = try await NetEaseAPI.shared.like(id: song.id, liked: !isLiked)
+        guard ok else { return false }
+        if isLiked {
+            favoriteTracks.removeAll { $0.id == song.id }
+        } else {
+            favoriteTracks.insert(song, at: 0)
+        }
+        return true
+    }
+
     func logout() {
         NetEaseAPI.shared.clearCookies()
         user = nil

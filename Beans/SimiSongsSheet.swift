@@ -1,62 +1,55 @@
 import SwiftUI
 
-// 相似歌曲（全新布局）
 struct SimiSongsSheet: View {
     @EnvironmentObject private var player: PlayerManager
-    @Environment(\.dismiss) private var dismiss
-    let songID: Int
+    @EnvironmentObject private var auth: AuthStore
+
     @State private var songs: [Song] = []
-    @State private var isLoading = true
-    @State private var loadFailed = false
+    @State private var loading = true
+    @State private var errorMessage: String?
 
     var body: some View {
-        GlassEffectContainer {
-            NavigationStack {
-                Group {
-                    if isLoading {
-                        ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if loadFailed {
-                        BeansError(title: "相似歌曲加载失败") {
-                            Task { await load() }
-                        }
-                    } else if songs.isEmpty {
-                        BeansEmpty(icon: "sparkles", title: "暂无相似歌曲", subtitle: "试试其它歌曲吧")
-                    } else {
-                        List {
+        NavigationStack {
+            Group {
+                if loading {
+                    LoadingStateView()
+                } else if let errorMessage {
+                    ErrorStateView(message: errorMessage) {
+                        Task { await load() }
+                    }
+                } else if songs.isEmpty {
+                    EmptyStateView(icon: "sparkles", text: "暂无相似歌曲")
+                } else {
+                    List {
+                        Section("根据《\(player.currentSong?.name ?? "")》推荐") {
                             ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-                                SongCell(song: song) {
+                                SongCell(song: song, showLike: auth.isLoggedIn) {
                                     player.play(songs: songs, startAt: index)
                                 }
                             }
                         }
-                        .beansList()
                     }
-                }
-                .beansPage()
-                .navigationTitle("相似歌曲")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("完成") { dismiss() }
-                    }
-                }
-                .task {
-                    guard songs.isEmpty else { return }
-                    await load()
                 }
             }
+            .navigationTitle("相似歌曲")
+            .navigationBarTitleDisplayMode(.inline)
         }
-        .presentationDragIndicator(.hidden)
+        .task(id: player.currentSong?.id) { await load() }
     }
 
     private func load() async {
-        isLoading = true
-        loadFailed = false
-        do {
-            songs = try await NetEaseAPI.shared.simiSongs(id: songID)
-        } catch {
-            loadFailed = true
+        guard let song = player.currentSong else {
+            loading = false
+            return
         }
-        isLoading = false
+        loading = true
+        errorMessage = nil
+        do {
+            songs = try await NetEaseAPI.shared.simiSongs(id: song.id)
+            loading = false
+        } catch {
+            errorMessage = error.localizedDescription
+            loading = false
+        }
     }
 }

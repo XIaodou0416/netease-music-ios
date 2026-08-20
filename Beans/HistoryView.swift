@@ -1,26 +1,34 @@
 import SwiftUI
 
-// 最近播放（全新布局）
 struct HistoryView: View {
     @EnvironmentObject private var player: PlayerManager
 
     var body: some View {
-        Group {
-            if player.history.isEmpty {
-                BeansEmpty(icon: "clock.arrow.circlepath", title: "还没有播放记录", subtitle: "播放过的歌曲会出现在这里")
-            } else {
-                List {
-                    ForEach(Array(player.history.enumerated()), id: \.element.id) { index, song in
-                        SongCell(song: song) {
-                            player.play(songs: player.history, startAt: index)
+        NavigationStack {
+            Group {
+                if player.history.isEmpty {
+                    EmptyStateView(icon: "clock.arrow.circlepath", text: "暂无播放历史")
+                } else {
+                    List {
+                        ForEach(Array(player.history.enumerated()), id: \.element.id) { index, song in
+                            SongCell(song: song, showLike: false) {
+                                player.play(songs: player.history, startAt: index)
+                            }
                         }
                     }
                 }
-                .beansList()
+            }
+            .navigationTitle("最近播放")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if !player.history.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("清空") {
+                            player.clearHistory()
+                        }
+                    }
+                }
             }
         }
-        .beansPage()
-        .navigationTitle("最近播放")
-        .navigationBarTitleDisplayMode(.large)
     }
 }

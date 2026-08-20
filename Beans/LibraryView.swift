@@ -1,374 +1,228 @@
 import SwiftUI
 
-// 音乐库主页（全新布局：标题 + 收藏 + 发现，无自定义底栏）
 struct LibraryView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
-    @State private var selectedPlaylist: Playlist?
-    @State private var loaded = false
-    @State private var topLists: [TopList] = []
-    @State private var recommended: [Playlist] = []
-    @State private var newSongs: [Song] = []
-    @State private var topPlaylists: [Playlist] = []
-    @State private var showSearch = false
-    @State private var toast: String?
 
-    private let grid = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
+    @State private var showFavorites = false
+    @State private var showHistory = false
+    @State private var selectedPlaylist: Playlist?
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    title
-                    if auth.isLoggedIn {
-                        if auth.playlists.isEmpty && !loaded {
-                            ProgressView().frame(maxWidth: .infinity).padding(.top, 32)
-                        } else {
-                            favoriteCard
-                            myPlaylists
-                        }
-                    } else {
-                        loginCard
-                    }
-                    discover
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 90)   // 底部留出迷你播放器空间
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                header
+                favoritesCard
+                playlistsSection
+                historySection
+                topPlayedSection
             }
-            .beansPage()
-            .refreshable { await refreshAll() }
-            .navigationDestination(item: $selectedPlaylist) { PlaylistView(playlist: $0) }
-            .navigationDestination(isPresented: $showSearch) { SearchView() }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showSearch = true
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(Color.beansLabel)
-                    }
-                }
-            }
-            .task { await refreshAll(); loaded = true }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 190)
         }
-        .beansToast(message: $toast)
+        .scrollIndicators(.hidden)
+        .refreshable { await auth.loadLibrary() }
+        .task { await auth.loadLibrary() }
+        .sheet(isPresented: $showFavorites) {
+            FavoritesView()
+                .environmentObject(auth)
+                .environmentObject(player)
+        }
+        .sheet(isPresented: $showHistory) {
+            HistoryView()
+                .environmentObject(player)
+                .environmentObject(auth)
+        }
+        .sheet(item: $selectedPlaylist) { playlist in
+            PlaylistView(playlist: playlist)
+                .environmentObject(player)
+                .environmentObject(auth)
+        }
     }
 
-    // MARK: - 标题
-
-    private var title: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("音乐库")
-                .font(.largeTitle.bold())
-                .foregroundStyle(Color.beansLabel)
-            Text(auth.user?.nickname ?? "发现好歌，登录同步收藏")
-                .font(.footnote)
-                .foregroundStyle(Color.beansSecondary)
-                .lineLimit(1)
+    private var header: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("音乐库")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundStyle(Color.beansLabel)
+                Text("\(auth.playlists.count) 个歌单 · \(auth.favoriteTracks.count) 首收藏")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.beansSecondary)
+            }
+            Spacer()
+            GlassIconButton(systemName: "arrow.clockwise") {
+                Task { await auth.loadLibrary() }
+            }
         }
         .padding(.top, 8)
     }
 
-    // MARK: - 登录卡
-
-    private var loginCard: some View {
+    private var favoritesCard: some View {
         Button {
-            NotificationCenter.default.post(name: .init("beans.openLogin"), object: nil)
+            showFavorites = true
         } label: {
             HStack(spacing: 14) {
-                Image(systemName: "person.crop.circle.badge.plus")
-                    .font(.title2)
-                    .foregroundStyle(Color.beansAmber)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("登录同步你的收藏").font(.headline).foregroundStyle(Color.beansLabel)
-                    Text("扫码登录后，歌单和喜欢的音乐会出现在这里").font(.caption).foregroundStyle(Color.beansSecondary)
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right").font(.footnote.bold()).foregroundStyle(Color.beansSecondary)
-            }
-        }
-        .buttonStyle(.plain)
-        .beansGlass(padding: 16)
-    }
-
-    // MARK: - 我喜欢的音乐
-
-    private var favoriteCard: some View {
-        Button {
-            if !auth.favoriteTracks.isEmpty {
-                player.play(songs: auth.favoriteTracks, startAt: 0)
-            } else {
-                toast = "「我喜欢的音乐」暂无歌曲"
-            }
-        } label: {
-            HStack(spacing: 16) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(LinearGradient(colors: [.pink, .orange, .red], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    Image(systemName: "heart.fill").font(.title).foregroundStyle(.white)
+                        .fill(LinearGradient.beansAccent)
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Color.black.opacity(0.6))
                 }
-                .frame(width: 56, height: 56)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("我喜欢的音乐").font(.headline).foregroundStyle(Color.beansLabel)
-                    Text("\(auth.favoriteTracks.count) 首 · 点按播放").font(.caption).foregroundStyle(Color.beansSecondary)
+                .frame(width: 58, height: 58)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("我喜欢的音乐")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.beansLabel)
+                    Text("\(auth.favoriteTracks.count) 首")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.beansSecondary)
                 }
-                Spacer(minLength: 8)
-                Image(systemName: "play.circle.fill").font(.system(size: 32)).foregroundStyle(Color.beansAmber)
-            }
-        }
-        .buttonStyle(.plain)
-        .beansGlass(padding: 14)
-    }
-
-    // MARK: - 我的歌单
-
-    private var myPlaylists: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("我的歌单").font(.title3.bold()).foregroundStyle(Color.beansLabel)
                 Spacer()
-                Button {
-                    Task { await createPlaylist() }
-                } label: {
-                    Image(systemName: "plus.circle.fill").font(.title3).foregroundStyle(Color.beansAmber)
-                }
-                .buttonStyle(.plain)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.beansSecondary)
             }
-            LazyVGrid(columns: grid, spacing: 16) {
-                ForEach(auth.playlists.filter { $0.id != auth.favoritePlaylistID }) { playlist in
-                    Button {
-                        selectedPlaylist = playlist
-                    } label: {
-                        VStack(alignment: .leading, spacing: 8) {
-                            BeansCover(url: playlist.coverURL)
-                            Text(playlist.name)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(Color.beansLabel)
-                                .lineLimit(2, reservesSpace: true)
-                                .multilineTextAlignment(.leading)
-                            Text("\(playlist.trackCount) 首").font(.caption2).foregroundStyle(Color.beansSecondary)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    private func createPlaylist() async {
-        let name = "Beans 歌单 \(Int(Date().timeIntervalSince1970) % 10000)"
-        do {
-            _ = try await NetEaseAPI.shared.createPlaylist(name: name)
-            toast = "已创建歌单「\(name)」"
-            if let user = auth.user {
-                auth.playlists = (try? await NetEaseAPI.shared.userPlaylists(uid: user.uid)) ?? auth.playlists
-            }
-        } catch {
-            toast = error.localizedDescription
-        }
-    }
-
-    // MARK: - 发现
-
-    private var discover: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("发现").font(.title3.bold()).foregroundStyle(Color.beansLabel)
-
-            if topLists.isEmpty && newSongs.isEmpty && recommended.isEmpty && topPlaylists.isEmpty {
-                BeansEmpty(icon: "music.note", title: "发现内容加载失败", subtitle: "下拉刷新或检查网络")
-                    .frame(minHeight: 200)
-            }
-
-            if auth.isLoggedIn {
-                HStack(spacing: 12) {
-                    quickCard(icon: "sparkles", tint: [Color.blue, .purple], title: "每日推荐", subtitle: "30 首") {
-                        Task { await playDaily() }
-                    }
-                    quickCard(icon: "radio", tint: [Color.green, .teal], title: "私人 FM", subtitle: "猜你喜欢") {
-                        Task { await playFM() }
-                    }
-                }
-            }
-
-            if !topLists.isEmpty {
-                sectionTitle("排行榜")
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 14) {
-                        ForEach(topLists) { top in
-                            Button {
-                                selectedPlaylist = Playlist(id: top.id, name: top.name, coverURL: top.coverURL)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    BeansCover(url: top.coverURL)
-                                        .frame(width: 112, height: 112)
-                                    Text(top.name).font(.caption.weight(.medium)).foregroundStyle(Color.beansLabel).lineLimit(1)
-                                    Text(top.updateFrequency).font(.caption2).foregroundStyle(Color.beansSecondary).lineLimit(1)
-                                }
-                                .frame(width: 112)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
-
-            if !newSongs.isEmpty {
-                sectionTitle("新歌速递")
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 14) {
-                        ForEach(newSongs) { song in
-                            Button {
-                                player.play(songs: newSongs, startAt: newSongs.firstIndex(of: song) ?? 0)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    BeansCover(url: song.coverURL)
-                                        .frame(width: 112, height: 112)
-                                        .overlay(alignment: .bottomTrailing) {
-                                            Image(systemName: "play.circle.fill").font(.title3).foregroundStyle(Color.beansAmber).padding(5)
-                                        }
-                                    Text(song.name).font(.caption.weight(.medium)).foregroundStyle(Color.beansLabel).lineLimit(1)
-                                    Text(song.artists).font(.caption2).foregroundStyle(Color.beansSecondary).lineLimit(1)
-                                }
-                                .frame(width: 112)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
-
-            if !recommended.isEmpty {
-                sectionTitle("推荐歌单")
-                LazyVGrid(columns: grid, spacing: 16) {
-                    ForEach(recommended) { playlist in
-                        Button {
-                            selectedPlaylist = playlist
-                        } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                BeansCover(url: playlist.coverURL)
-                                Text(playlist.name)
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(Color.beansLabel)
-                                    .lineLimit(2, reservesSpace: true)
-                                    .multilineTextAlignment(.leading)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-
-            if !topPlaylists.isEmpty {
-                sectionTitle("精品歌单")
-                LazyVGrid(columns: grid, spacing: 16) {
-                    ForEach(topPlaylists) { playlist in
-                        Button {
-                            selectedPlaylist = playlist
-                        } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                BeansCover(url: playlist.coverURL)
-                                Text(playlist.name)
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(Color.beansLabel)
-                                    .lineLimit(2, reservesSpace: true)
-                                    .multilineTextAlignment(.leading)
-                                Text("\(playlist.trackCount) 首").font(.caption2).foregroundStyle(Color.beansSecondary)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
-    }
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text).font(.headline).foregroundStyle(Color.beansLabel)
-    }
-
-    private func quickCard(icon: String, tint: [Color], title: String, subtitle: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(LinearGradient(colors: tint, startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(Color.beansLabel)
-                    Text(subtitle).font(.caption2).foregroundStyle(Color.beansSecondary)
-                }
-                Spacer(minLength: 4)
-            }
+            .padding(14)
+            .glassEffect(.regular, in: .rect(cornerRadius: 22))
         }
         .buttonStyle(.plain)
-        .beansGlass(radius: 18, padding: 12)
     }
 
-    // MARK: - 数据
-
-    private func refreshAll() async {
-        async let a: Void = loadTopLists()
-        async let b: Void = loadRecommended()
-        async let c: Void = loadNewSongs()
-        async let d: Void = loadTopPlaylists()
-        _ = await (a, b, c, d)
-        if auth.isLoggedIn {
-            await auth.loadLibrary()
-        }
-    }
-
-    private func loadTopLists() async { topLists = (try? await NetEaseAPI.shared.topLists()) ?? [] }
-    private func loadRecommended() async { recommended = (try? await NetEaseAPI.shared.personalizedPlaylists(limit: 8)) ?? [] }
-    private func loadNewSongs() async { newSongs = (try? await NetEaseAPI.shared.newSongs(limit: 10)) ?? [] }
-    private func loadTopPlaylists() async { topPlaylists = (try? await NetEaseAPI.shared.topPlaylists(limit: 8)) ?? [] }
-
-    private func playDaily() async {
-        do {
-            let songs = try await NetEaseAPI.shared.dailyRecommend()
-            guard !songs.isEmpty else { toast = "今天还没有推荐，稍后再来"; return }
-            player.play(songs: songs, startAt: 0)
-        } catch { toast = error.localizedDescription }
-    }
-
-    private func playFM() async {
-        do {
-            let songs = try await NetEaseAPI.shared.personalFM()
-            guard !songs.isEmpty else { toast = "私人 FM 暂无可播歌曲"; return }
-            player.play(songs: songs, startAt: 0)
-        } catch { toast = error.localizedDescription }
-    }
-}
-
-// 轻量 toast
-struct BeansToastModifier: ViewModifier {
-    @Binding var message: String?
-
-    func body(content: Content) -> some View {
-        content.overlay(alignment: .bottom) {
-            if let text = message {
-                Text(text)
-                    .font(.footnote)
-                    .foregroundStyle(Color.beansLabel)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Color.beansCard, in: Capsule())
-                    .padding(.bottom, 100)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                            withAnimation { self.message = nil }
+    private var playlistsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "我的歌单")
+            if auth.playlists.isEmpty {
+                EmptyStateView(icon: "music.note.list", text: "暂无歌单")
+            } else {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 16) {
+                    ForEach(auth.playlists) { playlist in
+                        Button {
+                            selectedPlaylist = playlist
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                CoverImage(url: playlist.coverURL, size: 160, cornerRadius: 16)
+                                    .frame(maxWidth: .infinity)
+                                Text(playlist.name)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(Color.beansLabel)
+                                    .lineLimit(1)
+                                Text("\(playlist.trackCount) 首")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Color.beansSecondary)
+                            }
                         }
+                        .buttonStyle(.plain)
                     }
+                }
             }
         }
     }
+
+    private var historySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "最近播放", trailing: "查看全部") {
+                showHistory = true
+            }
+            if player.history.isEmpty {
+                EmptyStateView(icon: "clock.arrow.circlepath", text: "暂无播放记录")
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(player.history.prefix(5)) { song in
+                        SongCell(song: song, showLike: false) {
+                            playFromHistory(song)
+                        }
+                        Divider().overlay(Color.beansSecondary.opacity(0.15))
+                    }
+                }
+            }
+        }
+    }
+
+    private var topPlayedSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "听歌排行")
+            let top = player.topPlayed
+            if top.isEmpty {
+                EmptyStateView(icon: "chart.bar.fill", text: "多听几首再来看看吧")
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(top.enumerated()), id: \.element.song.id) { index, entry in
+                        HStack(spacing: 12) {
+                            Text("\(index + 1)")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
+                                .frame(width: 22)
+                            CoverImage(url: entry.song.coverURL, size: 44, cornerRadius: 10)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(entry.song.name)
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(Color.beansLabel)
+                                    .lineLimit(1)
+                                Text("播放 \(entry.count) 次")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color.beansSecondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 6)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            player.play(songs: top.map(\.song), startAt: index)
+                        }
+                        Divider().overlay(Color.beansSecondary.opacity(0.15))
+                    }
+                }
+            }
+        }
+    }
+
+    private func playFromHistory(_ song: Song) {
+        if let index = player.history.firstIndex(of: song) {
+            player.play(songs: player.history, startAt: index)
+        }
+    }
 }
 
-extension View {
-    func beansToast(message: Binding<String?>) -> some View {
-        modifier(BeansToastModifier(message: message))
+// MARK: - 我喜欢的音乐
+
+struct FavoritesView: View {
+    @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var player: PlayerManager
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if auth.favoriteTracks.isEmpty {
+                    EmptyStateView(icon: "heart", text: "还没有收藏的歌曲")
+                } else {
+                    List {
+                        HStack(spacing: 12) {
+                            GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
+                                player.play(songs: auth.favoriteTracks, startAt: 0)
+                            }
+                            GlassButton(title: "随机播放", systemName: "shuffle") {
+                                player.play(songs: auth.favoriteTracks, startAt: Int.random(in: 0..<auth.favoriteTracks.count))
+                            }
+                        }
+                        .listRowBackground(Color.clear)
+                        .padding(.vertical, 8)
+
+                        Section {
+                            ForEach(Array(auth.favoriteTracks.enumerated()), id: \.element.id) { index, song in
+                                SongCell(song: song) {
+                                    player.play(songs: auth.favoriteTracks, startAt: index)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("我喜欢的音乐")
+            .navigationBarTitleDisplayMode(.inline)
+        }
     }
 }

@@ -1,100 +1,94 @@
 import SwiftUI
 
-// 通用歌曲行（全新样式：普通圆角卡片，渲染稳定）
 struct SongCell: View {
-    let song: Song
-    var index: Int? = nil
-    var showIndex = false
-    var action: () -> Void
-
     @EnvironmentObject private var player: PlayerManager
     @EnvironmentObject private var auth: AuthStore
-    @State private var showAddSheet = false
-    @State private var isLiked = false
-    @State private var toast: String?
 
-    private var isCurrent: Bool { player.currentSong?.id == song.id }
+    let song: Song
+    var showCover = true
+    var showLike = true
+    var onTap: (() -> Void)?
+
+    @State private var showAddToPlaylist = false
+
+    private var isCurrent: Bool {
+        player.currentSong?.id == song.id
+    }
+
+    private var isLiked: Bool {
+        auth.favoriteTracks.contains { $0.id == song.id }
+    }
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                if showIndex, let index {
-                    Text("\(index + 1)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(Color.beansSecondary)
-                        .frame(width: 24)
-                }
-                BeansCover(url: song.coverURL, radius: 8)
-                    .frame(width: 44, height: 44)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(song.name)
-                        .font(.body)
-                        .foregroundStyle(isCurrent ? Color.beansAmber : Color.beansLabel)
-                        .lineLimit(1)
-                    Text(song.artists)
-                        .font(.caption)
-                        .foregroundStyle(Color.beansSecondary)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                if isCurrent {
-                    Image(systemName: player.isPlaying ? "waveform" : "pause.circle")
-                        .foregroundStyle(Color.beansAmber)
-                } else {
-                    Text(song.formattedDuration)
-                        .font(.caption)
-                        .foregroundStyle(Color.beansSecondary)
-                }
+        HStack(spacing: 12) {
+            if showCover {
+                CoverImage(url: song.coverURL, size: 46, cornerRadius: 10)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .beansRow()
+            VStack(alignment: .leading, spacing: 3) {
+                Text(song.name)
+                    .font(.system(size: 15, weight: isCurrent ? .semibold : .regular))
+                    .foregroundStyle(isCurrent ? Color.beansAmber : Color.beansLabel)
+                    .lineLimit(1)
+                Text(song.artists.isEmpty ? song.album : song.artists)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.beansSecondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            if isCurrent && player.isPlaying {
+                NowPlayingIndicator()
+            } else {
+                Text(song.formattedDuration)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(Color.beansSecondary)
+            }
+            if showLike {
+                Button {
+                    Task { _ = try? await auth.toggleLike(song) }
+                } label: {
+                    Image(systemName: isLiked ? "heart.fill" : "heart")
+                        .font(.system(size: 15))
+                        .foregroundStyle(isLiked ? Color.beansAmber : Color.beansSecondary)
+                        .frame(width: 30, height: 30)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?()
+        }
         .contextMenu {
             Button {
-                player.playNext(song)
-            } label: {
-                Label("下一首播放", systemImage: "text.badge.plus")
-            }
-            Button {
-                toggleLike()
+                Task { _ = try? await auth.toggleLike(song) }
             } label: {
                 Label(isLiked ? "取消收藏" : "收藏", systemImage: isLiked ? "heart.slash" : "heart")
             }
             Button {
-                showAddSheet = true
+                player.playNext(song)
             } label: {
-                Label("添加到歌单", systemImage: "plus.circle")
-            }
-            ShareLink(item: "\(song.name) - \(song.artists)（来自 Beans）") {
-                Label("分享歌曲", systemImage: "square.and.arrow.up")
+                Label("下一首播放", systemImage: "text.line.first.and.arrowtriangle.forward")
             }
             Button {
-                UIPasteboard.general.string = song.name
-                toast = "已复制歌名"
+                showAddToPlaylist = true
             } label: {
-                Label("复制歌名", systemImage: "doc.on.doc")
+                Label("添加到歌单", systemImage: "text.badge.plus")
             }
-        }
-        .sheet(isPresented: $showAddSheet) {
-            AddToPlaylistSheet(song: song)
-                .presentationDetents([.medium])
-        }
-        .beansToast(message: $toast)
-    }
-
-    private func toggleLike() {
-        isLiked.toggle()
-        Task {
-            let ok = (try? await NetEaseAPI.shared.like(id: song.id, liked: isLiked)) ?? false
-            if !ok {
-                await MainActor.run {
-                    self.isLiked.toggle()
-                    self.toast = "操作失败，请确认已登录"
+            if !isCurrent {
+                Button {
+                    if let index = player.queue.firstIndex(of: song) {
+                        player.playQueueIndex(index)
+                    }
+                } label: {
+                    Label("立即播放", systemImage: "play.fill")
                 }
             }
+        }
+        .sheet(isPresented: $showAddToPlaylist) {
+            AddToPlaylistSheet(song: song)
+                .environmentObject(auth)
         }
     }
 }

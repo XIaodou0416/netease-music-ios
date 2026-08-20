@@ -181,6 +181,25 @@ final class PlayerManager: NSObject, ObservableObject {
         loadCurrent()
     }
 
+    /// 清空播放历史（含持久化）
+    func clearHistory() {
+        history.removeAll()
+        defaults.removeObject(forKey: historyKey)
+    }
+
+    /// 清空队列，仅保留当前歌曲
+    func clearQueue() {
+        guard !queue.isEmpty else { return }
+        if let current = currentSong {
+            queue = [current]
+            currentIndex = 0
+        } else {
+            queue = []
+            currentIndex = 0
+        }
+        buildPlayOrder()
+    }
+
     // MARK: - 睡眠定时
 
     func startSleepTimer(minutes: Int) {

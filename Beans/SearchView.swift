@@ -154,7 +154,8 @@ struct SearchView: View {
                 .autocorrectionDisabled()
                 .submitLabel(.search)
                 .onSubmit {
-                    submitSearch()
+                    // 输入法回车：先失焦提交拼音再延迟读取，避免中文输入法未上屏时读到旧值
+                    commitSearch()
                 }
             if searching {
                 ProgressView()

@@ -1,6 +1,5 @@
 import SwiftUI
 import PhotosUI
-import UniformTypeIdentifiers
 
 struct ProfileView: View {
     @EnvironmentObject private var theme: ThemeStore
@@ -14,8 +13,11 @@ struct ProfileView: View {
     @State private var showLogin = false
     @State private var confirmQQLogout = false
     @State private var bgImageItem: PhotosPickerItem?
-    @State private var showFileImporter = false
     @State private var appearanceExpanded = false
+    @State private var weekRecord: [PlayRecordItem] = []
+    @State private var allRecord: [PlayRecordItem] = []
+    @State private var rankLoading = false
+    @State private var showNetEaseRank = false
     @ObservedObject private var qqAuth = QQMusicAuth.shared
 
     private var themeMode: BeansThemeMode {
@@ -52,8 +54,14 @@ struct ProfileView: View {
                 }
             }
         }
+        .task(id: auth.isLoggedIn) { await loadNetEaseRank() }
         .sheet(isPresented: $showHistory) {
             HistoryView()
+                .environmentObject(player)
+                .environmentObject(auth)
+        }
+        .sheet(isPresented: $showNetEaseRank) {
+            NetEaseRankSheet(week: weekRecord, all: allRecord)
                 .environmentObject(player)
                 .environmentObject(auth)
         }
@@ -65,33 +73,6 @@ struct ProfileView: View {
         .sheet(isPresented: $showQQLogin) {
             QQLoginSheet()
                 .environmentObject(theme)
-        }
-        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.image], allowsMultipleSelection: true) { result in
-            switch result {
-            case .success(let urls):
-                var ok = 0
-                for url in urls {
-                    let accessing = url.startAccessingSecurityScopedResource()
-                    defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-                    do {
-                        let data = try Data(contentsOf: url)
-                        if !data.isEmpty {
-                            theme.addWallpaper(data)
-                            ok += 1
-                        }
-                    } catch {
-                        ToastCenter.shared.show("读取文件失败：\(error.localizedDescription)", duration: 2.5)
-                    }
-                }
-                if ok > 0 {
-                    BeansHaptics.success()
-                    ToastCenter.shared.show("已添加 \(ok) 张壁纸，已应用为当前背景", duration: 2)
-                } else {
-                    ToastCenter.shared.show("未能读取所选图片，请重试", duration: 2.5)
-                }
-            case .failure(let error):
-                ToastCenter.shared.show("选择失败：\(error.localizedDescription)", duration: 2.5)
-            }
         }
         .confirmationDialog("退出登录？", isPresented: $confirmLogout, titleVisibility: .visible) {
             Button("退出登录", role: .destructive) {
@@ -386,26 +367,6 @@ struct ProfileView: View {
                             }
                         }
                     }
-                    HStack(spacing: 10) {
-                        Image(systemName: "folder")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Color.beansAmber)
-                            .frame(width: 28)
-                        Button {
-                            showFileImporter = true
-                        } label: {
-                            HStack(spacing: 8) {
-                                Text("从文件选择壁纸")
-                                    .font(.system(size: 15))
-                                    .foregroundStyle(Color.beansLabel)
-                                Spacer()
-                                Image(systemName: "folder.fill")
-                                    .font(.system(size: 22))
-                                    .foregroundStyle(Color.beansAmber)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
                     // 壁纸库：所有已上传壁纸，点击即应用为当前背景
                     if !theme.wallpaperPaths.isEmpty {
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
@@ -497,8 +458,10 @@ struct ProfileView: View {
                     showHistory = true
                 }
                 Divider().overlay(Color.beansSecondary.opacity(0.15))
-                row(icon: "chart.bar.fill", title: "听歌排行", value: "前 \(player.topPlayed.count) 名") {
-                    // 顶部排行入口已放在音乐库
+                row(icon: "chart.bar.fill", title: "听歌排行", value: rankValue) {
+                    if auth.isLoggedIn, !weekRecord.isEmpty || !allRecord.isEmpty {
+                        showNetEaseRank = true
+                    }
                 }
             }
             .padding(.horizontal, 4)
@@ -542,6 +505,30 @@ struct ProfileView: View {
         .buttonStyle(.plain)
     }
 
+    /// 听歌排行列表值：登录后显示网易云数据，未登录回退本机数据
+    private var rankValue: String {
+        if auth.isLoggedIn {
+            if rankLoading { return "加载中…" }
+            let w = weekRecord.count
+            let a = allRecord.count
+            if w > 0 || a > 0 { return "本周 \(w) · 累计 \(a)" }
+            return "暂无数据"
+        }
+        return "前 \(player.topPlayed.count) 名"
+    }
+
+    /// 加载网易云听歌排行（本周 + 所有时间）
+    private func loadNetEaseRank() async {
+        guard let user = auth.user, auth.isLoggedIn else { return }
+        rankLoading = true
+        async let w = (try? NetEaseAPI.shared.playRecord(uid: user.uid, type: 1)) ?? []
+        async let a = (try? NetEaseAPI.shared.playRecord(uid: user.uid, type: 0)) ?? []
+        let (week, all) = await (w, a)
+        weekRecord = week
+        allRecord = all
+        rankLoading = false
+    }
+
     private var aboutSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "关于")
@@ -577,5 +564,75 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+}
+
+// MARK: - 网易云听歌排行详情
+
+struct NetEaseRankSheet: View {
+    @EnvironmentObject private var player: PlayerManager
+    @Environment(\.dismiss) private var dismiss
+    let week: [PlayRecordItem]
+    let all: [PlayRecordItem]
+    @State private var tab = 0
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                Picker("范围", selection: $tab) {
+                    Text("最近一周").tag(0)
+                    Text("所有时间").tag(1)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+
+                let items = tab == 0 ? week : all
+                if items.isEmpty {
+                    EmptyStateView(icon: "chart.bar", text: "暂无播放记录")
+                } else {
+                    List {
+                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                            Button {
+                                BeansHaptics.tap()
+                                player.play(songs: items.map(\.song), startAt: index)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Text("\(index + 1)")
+                                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                                        .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
+                                        .frame(width: 24)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.song.name)
+                                            .font(.system(size: 15))
+                                            .foregroundStyle(Color.beansLabel)
+                                            .lineLimit(1)
+                                        Text(item.song.artists)
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(Color.beansSecondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
+                                    Text("\(item.playCount) 次")
+                                        .font(.system(size: 12, design: .monospaced))
+                                        .foregroundStyle(Color.beansSecondary)
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("听歌排行")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 }

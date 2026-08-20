@@ -341,6 +341,18 @@ final class NetEaseAPI {
 
     // MARK: - 收藏
 
+    /// 听歌排行（type=1 最近一周 / type=0 所有时间）
+    func playRecord(uid: Int, type: Int) async throws -> [PlayRecordItem] {
+        let json = try await request("/api/v1/play/record", payload: ["uid": uid, "type": type, "limit": 100], crypto: "weapi")
+        let key = type == 1 ? "weekData" : "allData"
+        let list = json[key] as? [[String: Any]] ?? []
+        return list.compactMap { item in
+            guard let songJSON = item["song"] as? [String: Any], let song = Song(json: songJSON) else { return nil }
+            let count = item["playCount"] as? Int ?? 0
+            return PlayRecordItem(song: song, playCount: count)
+        }
+    }
+
     func like(id: Int, liked: Bool) async throws -> Bool {
         let json = try await request("/api/song/like", payload: ["alg": "itembased", "time": 3, "id": "\(id)", "like": liked], crypto: "weapi")
         return (json["code"] as? Int) == 200

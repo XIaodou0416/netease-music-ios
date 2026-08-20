@@ -562,15 +562,22 @@ struct SearchView: View {
         Task { await startSearch(trimmed) }
     }
 
-    /// 点搜索按钮：先让输入法失焦提交拼音，再延迟读取文本，
-    /// 避免中文输入法未提交拼音时读到旧值导致“搜空/搜索键无反应”。
+    /// 点搜索按钮 / 输入法回车：
+    /// 优先直接搜索已上屏文本；若输入法还在组字（拼音未上屏），
+    /// 等待短时间让拼音自动提交后再读取。
+    /// 重点：绝不在组字中失焦（失焦会取消组字，导致输入框被清空、搜索无结果）。
     private func commitSearch() {
-        focused = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-            let trimmed = self.keyword.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return }
+        let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        debounceTask?.cancel()
+        if !trimmed.isEmpty {
+            Task { await startSearch(trimmed) }
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            let t = self.keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !t.isEmpty else { return }
             self.debounceTask?.cancel()
-            Task { await self.startSearch(trimmed) }
+            Task { await self.startSearch(t) }
         }
     }
 

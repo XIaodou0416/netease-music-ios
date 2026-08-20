@@ -122,8 +122,8 @@ struct DiscoverView: View {
                 ],
                 spacing: 14
             ) {
-                // 只展示前三个主流排行榜（磁升榜/热歌榜/新歌榜），单行展示不再变长
-                ForEach(topLists.prefix(3)) { topList in
+                // 三列网格展示前六个排行榜（两行，既不是一长行也不会太长）
+                ForEach(topLists.prefix(6)) { topList in
                     Button {
                         selectedTopList = topList
                     } label: {

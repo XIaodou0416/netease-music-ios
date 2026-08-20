@@ -222,6 +222,13 @@ struct NetEaseUser: Identifiable, Hashable, Codable {
         avatarURL = pic.isEmpty ? nil : URL(string: pic)
     }
 }
+/// 听歌排行条目（网易云听歌记录）
+struct PlayRecordItem: Identifiable, Hashable {
+    let song: Song
+    let playCount: Int
+    var id: Int { song.id }
+}
+
 // MARK: - 歌曲评论
 
 struct SongComment: Identifiable, Hashable {

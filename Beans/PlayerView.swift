@@ -51,8 +51,9 @@ struct PlayerView: View {
         return CoverPalette.fallback(colorScheme: colorScheme)
     }
 
-    /// 当前行歌词颜色（可自定义，默认跟随主题）
+    /// 当前行歌词颜色（可自定义；配色模式关闭时自动跟随封面取色）
     private var lyricCurrentColor: Color {
+        guard lyricGradMode == 1 else { return palette.accent }
         switch lyricColorRaw {
         case "white": return .white
         case "amber": return Color.beansAmber
@@ -65,8 +66,9 @@ struct PlayerView: View {
         }
     }
 
-    /// 未播放歌词颜色（可自定义，默认淡灰）
+    /// 未播放歌词颜色（可自定义；配色模式关闭时自动跟随封面取色）
     private var lyricDimColor: Color {
+        guard lyricGradMode == 1 else { return palette.secondary }
         switch lyricDimColorRaw {
         case "white": return .white.opacity(0.78)
         case "bluegray": return Color(red: 0.72, green: 0.78, blue: 0.86)
@@ -79,7 +81,7 @@ struct PlayerView: View {
     }
 
     /// 当前行歌词渐变（可自定义起止色；未设置时自动从封面强调色派生，深浅模式自适应）
-    /// 渐变模式：开（保持自定义）时使用用户选色且切歌后不重置；关（默认）时始终跟随封面自动取色
+    /// 配色模式：开（保持自定义）时歌词颜色与渐变都一直用用户选色且切歌后不重置；关（默认）时全部自动跟随封面取色
     private var lyricGradStart: Color {
         if lyricGradMode == 1, lyricGradStartRaw.hasPrefix("#"), let c = Color(hex: lyricGradStartRaw) { return c }
         return lyricCurrentColor
@@ -994,6 +996,7 @@ struct LyricSettingsSheet: View {
             },
             set: { newValue in
                 currentColorRaw = "#" + UIColor(newValue).hexString
+                gradMode = 1
             }
         )
     }
@@ -1007,6 +1010,7 @@ struct LyricSettingsSheet: View {
             },
             set: { newValue in
                 dimColorRaw = "#" + UIColor(newValue).hexString
+                gradMode = 1
             }
         )
     }
@@ -1084,20 +1088,31 @@ struct LyricSettingsSheet: View {
                         .foregroundStyle(Color.beansSecondary)
                 }
 
-                Section("歌词颜色") {
-                    ColorPicker("当前行颜色", selection: currentColor, supportsOpacity: false)
-                    ColorPicker("未播放行颜色", selection: dimColor, supportsOpacity: false)
-                }
-
-                Section("歌词渐变") {
-                    Toggle("保持自定义渐变", isOn: Binding(
+                Section("自定义配色") {
+                    Toggle("保持自定义配色", isOn: Binding(
                         get: { gradMode == 1 },
                         set: { gradMode = $0 ? 1 : 0 }
                     ))
                     .tint(Color.beansAmber)
-                    Text("开启后一直使用你选择的渐变颜色；关闭时自动跟随歌曲封面取色调整渐变")
+                    Text("开启后一直使用你选择的歌词颜色与渐变；关闭时自动跟随歌曲封面取色调整")
                         .font(.footnote)
                         .foregroundStyle(Color.beansSecondary)
+                }
+
+                Section("歌词颜色") {
+                    ColorPicker("当前行颜色", selection: currentColor, supportsOpacity: false)
+                    ColorPicker("未播放行颜色", selection: dimColor, supportsOpacity: false)
+                    Button("恢复默认颜色") {
+                        currentColorRaw = ""
+                        dimColorRaw = ""
+                        gradMode = 0
+                        BeansHaptics.select()
+                    }
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.beansAmber)
+                }
+
+                Section("歌词渐变") {
                     ColorPicker("渐变起始色", selection: gradStart, supportsOpacity: false)
                     ColorPicker("渐变结束色", selection: gradEnd, supportsOpacity: false)
                     Button("恢复默认渐变") {

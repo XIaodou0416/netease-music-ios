@@ -1,5 +1,6 @@
 import SwiftUI
 
+// 睡眠定时（全新布局）
 struct SleepTimerSheet: View {
     @EnvironmentObject private var player: PlayerManager
     @Environment(\.dismiss) private var dismiss
@@ -25,19 +26,17 @@ struct SleepTimerSheet: View {
                                 dismiss()
                             } label: {
                                 HStack {
-                                    Text("\(minutes) 分钟")
-                                        .foregroundStyle(Color.beansLabel)
+                                    Text("\(minutes) 分钟").foregroundStyle(Color.beansLabel)
                                     Spacer()
                                     if let end = player.sleepTimerEndsAt,
                                        abs(end.timeIntervalSinceNow - TimeInterval(minutes * 60)) < 2 {
-                                        Image(systemName: "checkmark")
-                                            .foregroundStyle(Color.beansAmber)
+                                        Image(systemName: "checkmark").foregroundStyle(Color.beansAmber)
                                     }
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
                                 .frame(maxWidth: .infinity)
-                                .beansRowCard()
+                                .beansRow()
                             }
                         }
                     }
@@ -56,7 +55,7 @@ struct SleepTimerSheet: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .beansPageBackground()
+                .beansPage()
                 .navigationTitle("睡眠定时")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

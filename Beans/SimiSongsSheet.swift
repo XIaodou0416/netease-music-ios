@@ -1,5 +1,6 @@
 import SwiftUI
 
+// 相似歌曲（全新布局）
 struct SimiSongsSheet: View {
     @EnvironmentObject private var player: PlayerManager
     @Environment(\.dismiss) private var dismiss
@@ -15,11 +16,11 @@ struct SimiSongsSheet: View {
                     if isLoading {
                         ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if loadFailed {
-                        BeansErrorState(title: "相似歌曲加载失败") {
+                        BeansError(title: "相似歌曲加载失败") {
                             Task { await load() }
                         }
                     } else if songs.isEmpty {
-                        BeansEmptyState(icon: "sparkles", title: "暂无相似歌曲", subtitle: "试试其它歌曲吧")
+                        BeansEmpty(icon: "sparkles", title: "暂无相似歌曲", subtitle: "试试其它歌曲吧")
                     } else {
                         List {
                             ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
@@ -28,10 +29,10 @@ struct SimiSongsSheet: View {
                                 }
                             }
                         }
-                        .beansListStyle()
+                        .beansList()
                     }
                 }
-                .beansPageBackground()
+                .beansPage()
                 .navigationTitle("相似歌曲")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

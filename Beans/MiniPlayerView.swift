@@ -1,13 +1,14 @@
 import SwiftUI
 
-struct MiniPlayerBar: View {
+// 迷你播放器：全局悬浮，点击进入全屏播放器
+struct MiniPlayerView: View {
     @EnvironmentObject private var player: PlayerManager
     @State private var showPlayer = false
 
     var body: some View {
         if let song = player.currentSong {
             HStack(spacing: 12) {
-                BeansCover(url: song.coverURL, cornerRadius: 9)
+                BeansCover(url: song.coverURL, radius: 9)
                     .frame(width: 42, height: 42)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -21,6 +22,7 @@ struct MiniPlayerBar: View {
                         .lineLimit(1)
                 }
                 Spacer(minLength: 8)
+
                 Button {
                     player.togglePlayPause()
                 } label: {
@@ -33,34 +35,21 @@ struct MiniPlayerBar: View {
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 12)
-            .padding(.top, 10)
-            .padding(.bottom, 9)
-            .background(Color.beansGlassFill)   // 玻璃非透明基底，避免糊块
+            .padding(.vertical, 10)
+            .background(Color.beansGlassFill)
             .glassEffect(.regular)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(alignment: .bottom) {
-                // 进度条贴底自动对齐（原固定 offset 会在不同字体/尺寸下错位）
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(.white.opacity(0.12))
-                        Capsule()
-                            .fill(Color.beansAmber)
-                            .frame(width: max(0, geo.size.width * (player.duration > 0 ? player.progress / player.duration : 0)))
-                    }
-                }
-                .frame(height: 3)
-                .padding(.horizontal, 10)
-                .padding(.bottom, 4)
-                .allowsHitTesting(false)
-            }
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(.primary.opacity(0.12), lineWidth: 1)
             )
-            .padding(.horizontal, 10)
+            .shadow(color: .black.opacity(0.2), radius: 14, y: 6)
             .contentShape(Rectangle())
             .onTapGesture { showPlayer = true }
-            .sheet(isPresented: $showPlayer) { PlayerView() }
+            .sheet(isPresented: $showPlayer) {
+                PlayerView()
+                    .presentationDragIndicator(.hidden)
+            }
         }
     }
 }

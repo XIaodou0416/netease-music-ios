@@ -1,5 +1,6 @@
 import SwiftUI
 
+// 添加到歌单（全新布局）
 struct AddToPlaylistSheet: View {
     @EnvironmentObject private var auth: AuthStore
     @Environment(\.dismiss) private var dismiss
@@ -19,16 +20,13 @@ struct AddToPlaylistSheet: View {
                                         Task { await add(playlistID: playlist.id) }
                                     } label: {
                                         HStack(spacing: 12) {
-                                            BeansCover(url: playlist.coverURL, cornerRadius: 8)
-                                                .frame(width: 40, height: 40)
-                                            Text(playlist.name)
-                                                .font(.subheadline)
-                                                .foregroundStyle(Color.beansLabel)
+                                            BeansCover(url: playlist.coverURL, radius: 8).frame(width: 40, height: 40)
+                                            Text(playlist.name).font(.subheadline).foregroundStyle(Color.beansLabel)
                                             Spacer(minLength: 8)
                                         }
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
-                                        .beansRowCard(cornerRadius: 14)
+                                        .beansRow(radius: 12)
                                     }
                                 }
                             }
@@ -43,13 +41,13 @@ struct AddToPlaylistSheet: View {
                             }
                         }
                     } else {
-                        BeansEmptyState(icon: "person.crop.circle.badge.exclamationmark", title: "登录后才能添加到歌单", subtitle: "请先在「我的」页扫码登录")
+                        BeansEmpty(icon: "person.crop.circle.badge.exclamationmark", title: "登录后才能添加到歌单", subtitle: "请先在「我的」页扫码登录")
                     }
                 }
                 .scrollContentBackground(.hidden)
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
-                .beansPageBackground()
+                .beansPage()
                 .navigationTitle(song.name)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

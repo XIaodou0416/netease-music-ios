@@ -1,7 +1,7 @@
 import SwiftUI
 
+// 我的页（全新布局）
 struct ProfileView: View {
-    @Binding var tab: BeansTab
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
     @AppStorage("beans.theme") private var themeRaw = BeansThemeMode.system.rawValue
@@ -12,39 +12,41 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    header
+                VStack(alignment: .leading, spacing: 18) {
+                    Text("我的")
+                        .font(.largeTitle.bold())
+                        .foregroundStyle(Color.beansLabel)
+                        .padding(.top, 8)
+
                     if let user = auth.user {
                         accountCard(user)
-                        statsCard
+                        statsRow
                         if player.topPlayed.isEmpty {
-                            emptyStatsCard
+                            emptyRank
                         } else {
-                            topPlayedCard
+                            rankCard
                         }
-                        servicesCard
+                        services
                         themeCard
-                        aboutCard
+                        about
                         logoutButton
                     } else {
                         loginCard
                         themeCard
-                        aboutCard
+                        about
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                .padding(.bottom, 90)
             }
-            .beansPageBackground()
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                BeansBottomBar(selected: $tab)
-            }
-            .navigationDestination(isPresented: $showHistory) {
-                HistoryView()
-            }
+            .beansPage()
+            .navigationDestination(isPresented: $showHistory) { HistoryView() }
             .sheet(isPresented: $showLogin) {
                 LoginView()
                     .presentationDragIndicator(.hidden)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .init("beans.openLogin"))) { _ in
+                showLogin = true
             }
             .confirmationDialog("退出登录？", isPresented: $showLogoutConfirm, titleVisibility: .visible) {
                 Button("退出登录", role: .destructive) { auth.logout() }
@@ -55,49 +57,22 @@ struct ProfileView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("我的")
-                .font(.system(size: 38, weight: .bold, design: .rounded))
-                .foregroundStyle(Color.beansLabel)
-            Text("账号、主题与你的音乐足迹")
-                .font(.footnote)
-                .foregroundStyle(Color.beansSecondary)
-        }
-        .padding(.top, 14)
-    }
-
     // MARK: - 未登录
 
     private var loginCard: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 16) {
             HStack(spacing: 16) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.beansAmber.opacity(0.38), Color.beansSage.opacity(0.26)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 62, height: 62)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(.white.opacity(0.28), lineWidth: 1)
-                        )
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(LinearGradient(colors: [Color.beansAmber.opacity(0.38), Color.beansSage.opacity(0.26)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 58, height: 58)
                     Image(systemName: "person.crop.circle.badge.plus")
-                        .font(.system(size: 27, weight: .semibold))
+                        .font(.system(size: 26, weight: .semibold))
                         .foregroundStyle(Color.beansLabel)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("登录网易云账号")
-                        .font(.title3.bold())
-                        .foregroundStyle(Color.beansLabel)
-                    Text("扫码登录，同步收藏、歌单与每日推荐")
-                        .font(.footnote)
-                        .foregroundStyle(Color.beansSecondary)
-                        .multilineTextAlignment(.leading)
+                    Text("登录网易云账号").font(.title3.bold()).foregroundStyle(Color.beansLabel)
+                    Text("扫码登录，同步收藏、歌单与每日推荐").font(.footnote).foregroundStyle(Color.beansSecondary)
                 }
                 Spacer(minLength: 0)
             }
@@ -113,7 +88,7 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
         }
-        .beansGlassCard(cornerRadius: 24, padding: 20)
+        .beansGlass(padding: 18)
     }
 
     // MARK: - 已登录
@@ -123,37 +98,28 @@ struct ProfileView: View {
             AsyncImage(url: user.avatarURL) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 52))
-                    .foregroundStyle(Color.beansSecondary)
+                Image(systemName: "person.crop.circle.fill").font(.system(size: 48)).foregroundStyle(Color.beansSecondary)
             }
-            .frame(width: 72, height: 72)
+            .frame(width: 68, height: 68)
             .clipShape(Circle())
             .overlay(Circle().strokeBorder(.primary.opacity(0.1), lineWidth: 1))
 
             VStack(alignment: .leading, spacing: 5) {
-                Text(user.nickname)
-                    .font(.title3.bold())
-                    .foregroundStyle(Color.beansLabel)
-                    .lineLimit(1)
-                HStack(spacing: 6) {
-                    Text("已连接网易云")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.beansSage)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 3)
-                        .background(Color.beansSage.opacity(0.14), in: Capsule())
-                }
+                Text(user.nickname).font(.title3.bold()).foregroundStyle(Color.beansLabel).lineLimit(1)
+                Text("已连接网易云")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.beansSage)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 3)
+                    .background(Color.beansSage.opacity(0.14), in: Capsule())
             }
             Spacer(minLength: 8)
-            Image(systemName: "checkmark.seal.fill")
-                .font(.title2)
-                .foregroundStyle(Color.beansAmber)
+            Image(systemName: "checkmark.seal.fill").font(.title2).foregroundStyle(Color.beansAmber)
         }
-        .beansGlassCard(cornerRadius: 24, padding: 20)
+        .beansGlass(padding: 18)
     }
 
-    private var statsCard: some View {
+    private var statsRow: some View {
         HStack(spacing: 12) {
             statCell(icon: "heart.fill", tint: .pink, value: "\(auth.favoriteTracks.count)", label: "喜欢的音乐")
             statCell(icon: "music.note.list", tint: Color.beansAmber, value: "\(auth.playlists.count)", label: "歌单")
@@ -162,11 +128,9 @@ struct ProfileView: View {
 
     private func statCell(icon: String, tint: Color, value: String, label: String) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(tint)
-                .frame(width: 38, height: 38)
-                .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            Image(systemName: icon).font(.title3).foregroundStyle(tint)
+                .frame(width: 36, height: 36)
+                .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
                 Text(value).font(.headline).foregroundStyle(Color.beansLabel)
                 Text(label).font(.caption2).foregroundStyle(Color.beansSecondary)
@@ -175,28 +139,24 @@ struct ProfileView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity)
-        .beansRowCard(cornerRadius: 18)
+        .beansRow(radius: 16)
     }
 
-    // MARK: - 听歌排行（无数据时展示提示，禁止空白）
-
-    private var emptyStatsCard: some View {
+    private var emptyRank: some View {
         HStack(spacing: 14) {
-            Image(systemName: "chart.bar")
-                .font(.title2)
-                .foregroundStyle(Color.beansSecondary)
+            Image(systemName: "chart.bar").font(.title2).foregroundStyle(Color.beansSecondary)
                 .frame(width: 40, height: 40)
-                .background(Color.beansSecondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .background(Color.beansSecondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             VStack(alignment: .leading, spacing: 3) {
                 Text("暂无听歌数据").font(.subheadline.weight(.semibold)).foregroundStyle(Color.beansLabel)
                 Text("播放过的歌曲会自动计入听歌排行").font(.caption2).foregroundStyle(Color.beansSecondary)
             }
             Spacer(minLength: 8)
         }
-        .beansGlassCard(cornerRadius: 20, padding: 16)
+        .beansGlass(padding: 16)
     }
 
-    private var topPlayedCard: some View {
+    private var rankCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("听歌排行").font(.headline).foregroundStyle(Color.beansLabel)
             ForEach(player.topPlayed.prefix(5), id: \.song.id) { item in
@@ -204,43 +164,33 @@ struct ProfileView: View {
                     player.play(songs: player.history, startAt: player.history.firstIndex(of: item.song) ?? 0)
                 } label: {
                     HStack(spacing: 12) {
-                        BeansCover(url: item.song.coverURL, cornerRadius: 8)
-                            .frame(width: 40, height: 40)
+                        BeansCover(url: item.song.coverURL, radius: 8).frame(width: 40, height: 40)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(item.song.name)
-                                .font(.subheadline)
-                                .foregroundStyle(Color.beansLabel)
-                                .lineLimit(1)
-                            Text(item.song.artists)
-                                .font(.caption2)
-                                .foregroundStyle(Color.beansSecondary)
-                                .lineLimit(1)
+                            Text(item.song.name).font(.subheadline).foregroundStyle(Color.beansLabel).lineLimit(1)
+                            Text(item.song.artists).font(.caption2).foregroundStyle(Color.beansSecondary).lineLimit(1)
                         }
                         Spacer(minLength: 8)
-                        Text("\(item.count) 次")
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(Color.beansSecondary)
+                        Text("\(item.count) 次").font(.caption.monospacedDigit()).foregroundStyle(Color.beansSecondary)
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .beansRowCard(cornerRadius: 12)
+                    .beansRow(radius: 12)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
         .background(Color.beansCard.opacity(0.35))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(.primary.opacity(0.08), lineWidth: 1)
         )
     }
 
-    // MARK: - 服务
+    // MARK: - 服务 / 设置
 
-    private var servicesCard: some View {
+    private var services: some View {
         VStack(spacing: 0) {
             Button {
                 showHistory = true
@@ -254,31 +204,25 @@ struct ProfileView: View {
                 serviceRow(icon: "chart.bar.fill", tint: .blue, title: "播放统计", subtitle: "听歌次数自动累计")
             }
         }
-        .beansGlassCard(cornerRadius: 20, padding: 0)
+        .beansGlass(radius: 18, padding: 0)
     }
 
     private func serviceRow(icon: String, tint: Color, title: String, subtitle: String) -> some View {
         HStack(spacing: 14) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: 36, height: 36)
+            Image(systemName: icon).font(.system(size: 16, weight: .semibold)).foregroundStyle(tint)
+                .frame(width: 34, height: 34)
                 .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.subheadline.weight(.medium)).foregroundStyle(Color.beansLabel)
                 Text(subtitle).font(.caption2).foregroundStyle(Color.beansSecondary)
             }
             Spacer(minLength: 8)
-            Image(systemName: "chevron.right")
-                .font(.caption.bold())
-                .foregroundStyle(Color.beansSecondary)
+            Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(Color.beansSecondary)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .contentShape(Rectangle())
     }
-
-    // MARK: - 设置
 
     private var themeCard: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -289,14 +233,12 @@ struct ProfileView: View {
                 }
             }
             .pickerStyle(.segmented)
-            Text("选择「跟随系统」会自动切换深浅色")
-                .font(.caption2)
-                .foregroundStyle(Color.beansSecondary)
+            Text("选择「跟随系统」会自动切换深浅色").font(.caption2).foregroundStyle(Color.beansSecondary)
         }
-        .beansGlassCard(cornerRadius: 20, padding: 16)
+        .beansGlass(padding: 14)
     }
 
-    private var aboutCard: some View {
+    private var about: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("关于").font(.headline).foregroundStyle(Color.beansLabel)
             HStack {
@@ -305,15 +247,11 @@ struct ProfileView: View {
                 Text("1.2").foregroundStyle(Color.beansSecondary)
             }
             .font(.subheadline)
-            HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "info.circle")
-                    .foregroundStyle(Color.beansSecondary)
-                Text("音乐数据与登录均由网易云音乐提供，Beans 仅作第三方播放器使用。联网播放音乐无需额外授权（iOS 默认允许访问网络）。")
-                    .font(.caption)
-                    .foregroundStyle(Color.beansSecondary)
-            }
+            Text("音乐数据与登录均由网易云音乐提供，Beans 仅作第三方播放器使用。")
+                .font(.caption)
+                .foregroundStyle(Color.beansSecondary)
         }
-        .beansGlassCard(cornerRadius: 20, padding: 16)
+        .beansGlass(padding: 14)
     }
 
     private var logoutButton: some View {
@@ -328,7 +266,7 @@ struct ProfileView: View {
                 Spacer()
             }
             .padding(.vertical, 13)
-            .beansRowCard(cornerRadius: 16)
+            .beansRow(radius: 14)
         }
         .buttonStyle(.plain)
     }

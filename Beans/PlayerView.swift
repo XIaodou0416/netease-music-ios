@@ -1,6 +1,7 @@
 import SwiftUI
 import MediaPlayer
 
+// 全屏播放器（全新布局）
 struct PlayerView: View {
     @EnvironmentObject private var player: PlayerManager
     @Environment(\.dismiss) private var dismiss
@@ -15,19 +16,16 @@ struct PlayerView: View {
     private let rates: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 
     var body: some View {
-        // sheet 内部独立玻璃采样容器：否则页内 glassEffect 无法采样 → 空白/灰块
         GlassEffectContainer {
             ZStack {
-                backgroundBlur
-                Color.beansBackground.opacity(0.3).ignoresSafeArea()
+                background
                 if player.currentSong == nil {
-                    emptyFallback
+                    emptyState
                 } else {
                     content
                 }
             }
         }
-        .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
         .sheet(isPresented: $showQueue) { QueueView() }
         .sheet(isPresented: $showSleep) { SleepTimerSheet() }
@@ -43,45 +41,28 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - 主内容（小屏可滚动，避免溢出裁切/空白）
-
-    private var content: some View {
-        GeometryReader { geo in
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 16) {
-                    dragHandle
-                    songHeader
-                    Spacer(minLength: 8)
-                    if showLyrics {
-                        lyricsView.frame(height: max(200, min(320, geo.size.height * 0.30)))
-                    } else {
-                        coverArt(side: min(280, max(180, geo.size.width - 96)))
-                    }
-                    Spacer(minLength: 8)
-                    controlPanel
+    private var background: some View {
+        Group {
+            if let song = player.currentSong, let url = song.coverURL {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Color.beansBackground
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 24)
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: geo.size.height - 24, alignment: .top)
+                .blur(radius: 90)
+                .opacity(0.5)
+                .ignoresSafeArea()
+            } else {
+                Color.beansBackground.ignoresSafeArea()
             }
         }
     }
 
-    // MARK: - 兜底视图（无歌曲时不白屏）
-
-    private var emptyFallback: some View {
+    private var emptyState: some View {
         VStack(spacing: 14) {
-            Image(systemName: "music.note")
-                .font(.system(size: 52))
-                .foregroundStyle(Color.beansSecondary)
-            Text("暂无可播放的歌曲")
-                .font(.headline)
-                .foregroundStyle(Color.beansLabel)
-            Text("从歌单或搜索中选择一首歌开始播放")
-                .font(.footnote)
-                .foregroundStyle(Color.beansSecondary)
-                .multilineTextAlignment(.center)
+            Image(systemName: "music.note").font(.system(size: 52)).foregroundStyle(Color.beansSecondary)
+            Text("暂无可播放的歌曲").font(.headline).foregroundStyle(Color.beansLabel)
+            Text("从歌单或搜索中选择一首歌开始播放").font(.footnote).foregroundStyle(Color.beansSecondary).multilineTextAlignment(.center)
             Button {
                 dismiss()
             } label: {
@@ -99,88 +80,78 @@ struct PlayerView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - 视觉
-
-    private var backgroundBlur: some View {
-        Group {
-            if let song = player.currentSong, let url = song.coverURL {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Color.beansBackground
+    private var content: some View {
+        GeometryReader { geo in
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 18) {
+                    songInfo
+                    Spacer(minLength: 6)
+                    if showLyrics {
+                        lyricsView.frame(height: max(200, min(320, geo.size.height * 0.32)))
+                    } else {
+                        cover
+                    }
+                    Spacer(minLength: 6)
+                    controls
                 }
-                .blur(radius: 90)
-                .opacity(0.5)
-                .ignoresSafeArea()
-            } else {
-                Color.beansBackground.ignoresSafeArea()
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 30)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: geo.size.height - 20, alignment: .top)
             }
         }
     }
 
-    private var dragHandle: some View {
-        Capsule()
-            .fill(.primary.opacity(0.25))
-            .frame(width: 40, height: 5)
-            .padding(.top, 8)
-    }
+    // MARK: - 歌曲信息
 
-    private var songHeader: some View {
+    private var songInfo: some View {
         VStack(spacing: 4) {
-            Text(player.currentSong?.name ?? "")
-                .font(.headline)
-                .foregroundStyle(Color.beansLabel)
-                .lineLimit(1)
-            Text(player.currentSong?.artists ?? "")
-                .font(.subheadline)
-                .foregroundStyle(Color.beansSecondary)
-                .lineLimit(1)
+            Text(player.currentSong?.name ?? "").font(.title3.bold()).foregroundStyle(Color.beansLabel).lineLimit(1)
+            Text(player.currentSong?.artists ?? "").font(.subheadline).foregroundStyle(Color.beansSecondary).lineLimit(1)
             if let album = player.currentSong?.album, !album.isEmpty {
-                Text(album)
-                    .font(.caption)
-                    .foregroundStyle(Color.beansSecondary.opacity(0.8))
-                    .lineLimit(1)
+                Text(album).font(.caption).foregroundStyle(Color.beansSecondary.opacity(0.8)).lineLimit(1)
             }
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
-        .background(Color.beansGlassFill)
-        .glassEffect(.regular)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(.primary.opacity(0.1), lineWidth: 1)
-        )
     }
 
-    private func coverArt(side: CGFloat) -> some View {
-        Button {
-            withAnimation(.snappy) { showLyrics.toggle() }
-        } label: {
-            TimelineView(.animation(minimumInterval: 1 / 30, paused: !player.isPlaying)) { timeline in
-                let angle = timeline.date.timeIntervalSinceReferenceDate * 15
-                BeansCover(url: player.currentSong?.coverURL, cornerRadius: 24)
-                    .frame(width: side, height: side)
-                    .rotationEffect(.degrees(angle.truncatingRemainder(dividingBy: 360)))
-                    .shadow(color: .black.opacity(0.4), radius: 30, y: 12)
-            }
-        }
-        .buttonStyle(.plain)
-        .overlay(alignment: .bottomTrailing) {
+    // MARK: - 封面（点击切换歌词）
+
+    private var cover: some View {
+        GeometryReader { geo in
+            let side = min(300, max(180, geo.size.width))
             Button {
                 withAnimation(.snappy) { showLyrics.toggle() }
             } label: {
-                Image(systemName: "quote.bubble")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.beansLabel)
-                    .frame(width: 34, height: 34)
-                    .background(.ultraThinMaterial, in: Circle())
+                TimelineView(.animation(minimumInterval: 1 / 30, paused: !player.isPlaying)) { timeline in
+                    let angle = timeline.date.timeIntervalSinceReferenceDate * 15
+                    BeansCover(url: player.currentSong?.coverURL, radius: 24)
+                        .frame(width: side, height: side)
+                        .rotationEffect(.degrees(angle.truncatingRemainder(dividingBy: 360)))
+                        .shadow(color: .black.opacity(0.4), radius: 30, y: 12)
+                }
             }
             .buttonStyle(.plain)
-            .padding(10)
+            .frame(maxWidth: .infinity)
+            .overlay(alignment: .bottomTrailing) {
+                Button {
+                    withAnimation(.snappy) { showLyrics.toggle() }
+                } label: {
+                    Image(systemName: "quote.bubble")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.beansLabel)
+                        .frame(width: 34, height: 34)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(8)
+            }
         }
+        .frame(height: 320)
     }
+
+    // MARK: - 歌词
 
     private var lyricsView: some View {
         ScrollViewReader { proxy in
@@ -201,9 +172,7 @@ struct PlayerView: View {
                                 .id(index)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    if line.text != "·" {
-                                        player.seek(to: line.time)
-                                    }
+                                    if line.text != "·" { player.seek(to: line.time) }
                                 }
                         }
                     }
@@ -229,10 +198,10 @@ struct PlayerView: View {
         return index
     }
 
-    // MARK: - 控制面板（玻璃容器）
+    // MARK: - 控制区
 
-    private var controlPanel: some View {
-        VStack(spacing: 12) {
+    private var controls: some View {
+        VStack(spacing: 14) {
             progressBar
 
             HStack(spacing: 40) {
@@ -261,26 +230,27 @@ struct PlayerView: View {
                 .frame(maxWidth: .infinity)
             }
 
-            HStack(spacing: 18) {
-                controlButton(icon: "gobackward.15", caption: "-15") { player.seekBy(-15) }
-                controlButton(icon: player.playMode.icon, caption: player.playMode.title) { player.togglePlayMode() }
+            HStack(spacing: 16) {
+                controlButton("gobackward.15", "-15") { player.seekBy(-15) }
+                controlButton(player.playMode.icon, player.playMode.title) { player.togglePlayMode() }
                 rateMenu
-                controlButton(icon: "list.bullet", caption: "队列") { showQueue = true }
-                controlButton(icon: "moon.zzz", caption: player.sleepTimerFormatted ?? "定时", tint: player.sleepTimerEndsAt != nil ? Color.beansAmber : nil) { showSleep = true }
-                controlButton(icon: "goforward.15", caption: "+15") { player.seekBy(15) }
+                controlButton("list.bullet", "队列") { showQueue = true }
+                controlButton("moon.zzz", player.sleepTimerFormatted ?? "定时", tint: player.sleepTimerEndsAt != nil ? Color.beansAmber : nil) { showSleep = true }
+                controlButton("goforward.15", "+15") { player.seekBy(15) }
             }
 
-            HStack(spacing: 18) {
-                controlButton(icon: isLiked ? "heart.fill" : "heart", caption: "喜欢", tint: isLiked ? .pink : nil) { toggleLike() }
+            HStack(spacing: 16) {
+                controlButton(isLiked ? "heart.fill" : "heart", "喜欢", tint: isLiked ? .pink : nil) { toggleLike() }
+                controlButton("sparkles", "相似") { showSimi = true }
+                controlButton("square.and.arrow.up", "分享") { shareCurrentSong() }
                 if let count = player.playCounts[player.currentSong?.id ?? -1], count > 1 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "play.circle").font(.system(size: 14))
-                        Text("已听 \(count) 次").font(.system(size: 10))
-                    }
-                    .foregroundStyle(Color.beansSecondary)
+                    Text("已听 \(count) 次")
+                        .font(.caption2)
+                        .foregroundStyle(Color.beansSecondary)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Spacer().frame(maxWidth: .infinity)
                 }
-                controlButton(icon: "sparkles", caption: "相似") { showSimi = true }
-                controlButton(icon: "square.and.arrow.up", caption: "分享") { shareCurrentSong() }
             }
 
             if player.loadFailed {
@@ -294,13 +264,10 @@ struct PlayerView: View {
                 .buttonStyle(.plain)
             }
 
-            VolumeSlider()
-                .frame(height: 24)
-                .padding(.horizontal, 6)
+            VolumeSlider().frame(height: 24).padding(.horizontal, 6)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
         .background(Color.beansGlassFill)
         .glassEffect(.regular)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
@@ -311,14 +278,11 @@ struct PlayerView: View {
         .shadow(color: .black.opacity(0.25), radius: 24, y: 8)
     }
 
-    private func controlButton(icon: String, caption: String, tint: Color? = nil, action: @escaping () -> Void) -> some View {
+    private func controlButton(_ icon: String, _ caption: String, tint: Color? = nil, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 3) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                Text(caption)
-                    .font(.system(size: 9))
-                    .lineLimit(1)
+                Image(systemName: icon).font(.system(size: 16, weight: .semibold))
+                Text(caption).font(.system(size: 9)).lineLimit(1)
             }
             .frame(maxWidth: .infinity)
             .foregroundStyle(tint ?? Color.beansLabel)
@@ -341,10 +305,8 @@ struct PlayerView: View {
             }
         } label: {
             VStack(spacing: 3) {
-                Image(systemName: "speedometer")
-                    .font(.system(size: 16, weight: .semibold))
-                Text("\(player.rate, specifier: "%.2g")x")
-                    .font(.system(size: 9))
+                Image(systemName: "speedometer").font(.system(size: 16, weight: .semibold))
+                Text("\(player.rate, specifier: "%.2g")x").font(.system(size: 9))
             }
             .frame(maxWidth: .infinity)
             .foregroundStyle(Color.beansLabel)

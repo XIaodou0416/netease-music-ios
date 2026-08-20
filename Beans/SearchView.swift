@@ -1,8 +1,8 @@
 import SwiftUI
 
+// 搜索页（全新布局）
 struct SearchView: View {
     @EnvironmentObject private var player: PlayerManager
-    @EnvironmentObject private var auth: AuthStore
     @State private var keyword = ""
     @State private var songs: [Song] = []
     @State private var isLoading = false
@@ -19,7 +19,7 @@ struct SearchView: View {
                 resultsList
             }
         }
-        .beansPageBackground()
+        .beansPage()
         .navigationTitle("搜索")
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $keyword, prompt: "歌名 / 歌手 / 专辑")
@@ -31,11 +31,11 @@ struct SearchView: View {
         }
     }
 
-    // MARK: - 初始页：历史 + 热门
+    // MARK: - 初始页
 
     private var initialContent: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 22) {
                 if !history.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -45,11 +45,7 @@ struct SearchView: View {
                                 history = []
                                 UserDefaults.standard.set([String](), forKey: "beans.searchhistory")
                             } label: {
-                                Image(systemName: "trash")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.beansSecondary)
-                                    .frame(width: 32, height: 32)
-                                    .contentShape(Rectangle())
+                                Image(systemName: "trash").font(.caption).foregroundStyle(Color.beansSecondary)
                             }
                             .buttonStyle(.plain)
                         }
@@ -64,7 +60,7 @@ struct SearchView: View {
                                         .foregroundStyle(Color.beansLabel)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
-                                        .beansRowCard(cornerRadius: 18)
+                                        .beansRow(radius: 18)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -85,13 +81,11 @@ struct SearchView: View {
                                         Text("\(index + 1)")
                                             .font(.caption2.bold())
                                             .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
-                                        Text(item)
-                                            .font(.footnote)
-                                            .foregroundStyle(Color.beansLabel)
+                                        Text(item).font(.footnote).foregroundStyle(Color.beansLabel)
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
-                                    .beansRowCard(cornerRadius: 18)
+                                    .beansRow(radius: 18)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -109,11 +103,9 @@ struct SearchView: View {
     private var resultsList: some View {
         Group {
             if songs.isEmpty && !isLoading && searchFailed {
-                BeansErrorState(title: "搜索失败") {
-                    runSearch()
-                }
+                BeansError(title: "搜索失败") { runSearch() }
             } else if songs.isEmpty && !isLoading {
-                BeansEmptyState(icon: "music.note", title: "没有找到相关歌曲", subtitle: "换个关键词试试")
+                BeansEmpty(icon: "music.note", title: "没有找到相关歌曲", subtitle: "换个关键词试试")
             } else {
                 List {
                     ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
@@ -122,11 +114,9 @@ struct SearchView: View {
                         }
                     }
                 }
-                .beansListStyle()
+                .beansList()
                 .overlay {
-                    if isLoading {
-                        ProgressView()
-                    }
+                    if isLoading { ProgressView() }
                 }
             }
         }
@@ -160,7 +150,7 @@ struct SearchView: View {
     }
 }
 
-// 简单流式布局（chips 自动换行）
+// 流式布局（chips 自动换行）
 struct FlowLayout: Layout {
     var spacing: CGFloat = 8
 

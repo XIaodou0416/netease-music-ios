@@ -1,5 +1,6 @@
 import SwiftUI
 
+// 播放队列（全新布局）
 struct QueueView: View {
     @EnvironmentObject private var player: PlayerManager
     @Environment(\.dismiss) private var dismiss
@@ -9,7 +10,7 @@ struct QueueView: View {
             NavigationStack {
                 Group {
                     if player.queue.isEmpty {
-                        BeansEmptyState(icon: "music.note", title: "队列为空", subtitle: "从歌单或搜索中添加歌曲")
+                        BeansEmpty(icon: "music.note", title: "队列为空", subtitle: "从歌单或搜索中添加歌曲")
                     } else {
                         List {
                             Section {
@@ -19,17 +20,13 @@ struct QueueView: View {
                                             player.playQueueIndex(index)
                                         } label: {
                                             HStack(spacing: 12) {
-                                                BeansCover(url: song.coverURL, cornerRadius: 8)
-                                                    .frame(width: 42, height: 42)
+                                                BeansCover(url: song.coverURL, radius: 8).frame(width: 42, height: 42)
                                                 VStack(alignment: .leading, spacing: 2) {
                                                     Text(song.name)
                                                         .font(.subheadline.weight(index == player.currentIndex ? .semibold : .regular))
                                                         .foregroundStyle(index == player.currentIndex ? Color.beansAmber : Color.beansLabel)
                                                         .lineLimit(1)
-                                                    Text(song.artists)
-                                                        .font(.caption)
-                                                        .foregroundStyle(Color.beansSecondary)
-                                                        .lineLimit(1)
+                                                    Text(song.artists).font(.caption).foregroundStyle(Color.beansSecondary).lineLimit(1)
                                                 }
                                             }
                                         }
@@ -43,8 +40,7 @@ struct QueueView: View {
                                             Button {
                                                 player.removeFromQueue(at: index)
                                             } label: {
-                                                Image(systemName: "xmark.circle.fill")
-                                                    .foregroundStyle(Color.beansSecondary)
+                                                Image(systemName: "xmark.circle.fill").foregroundStyle(Color.beansSecondary)
                                                     .frame(width: 30, height: 30)
                                                     .contentShape(Rectangle())
                                             }
@@ -53,7 +49,7 @@ struct QueueView: View {
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
-                                    .beansRowCard()
+                                    .beansRow()
                                 }
                             } header: {
                                 Text("\(player.queue.count) 首 · \(player.playMode.title)")
@@ -66,7 +62,7 @@ struct QueueView: View {
                         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     }
                 }
-                .beansPageBackground()
+                .beansPage()
                 .navigationTitle("播放队列")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

@@ -1,9 +1,6 @@
 import SwiftUI
-import UIKit
 
-/// 通用歌曲行：点击播放，长按弹出操作菜单
-/// 说明：列表行内不使用 .glassEffect（滚动内容中玻璃采样异常是渲染错乱主因），
-/// 统一使用普通圆角卡片背景，保证稳定。
+// 通用歌曲行（全新样式：普通圆角卡片，渲染稳定）
 struct SongCell: View {
     let song: Song
     var index: Int? = nil
@@ -16,9 +13,7 @@ struct SongCell: View {
     @State private var isLiked = false
     @State private var toast: String?
 
-    private var isCurrent: Bool {
-        player.currentSong?.id == song.id
-    }
+    private var isCurrent: Bool { player.currentSong?.id == song.id }
 
     var body: some View {
         Button(action: action) {
@@ -29,7 +24,7 @@ struct SongCell: View {
                         .foregroundStyle(Color.beansSecondary)
                         .frame(width: 24)
                 }
-                BeansCover(url: song.coverURL, cornerRadius: 8)
+                BeansCover(url: song.coverURL, radius: 8)
                     .frame(width: 44, height: 44)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -54,7 +49,7 @@ struct SongCell: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .beansRowCard()
+            .beansRow()
         }
         .buttonStyle(.plain)
         .contextMenu {

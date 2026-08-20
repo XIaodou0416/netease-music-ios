@@ -1,5 +1,6 @@
 import SwiftUI
 
+// 歌单详情（全新布局）
 struct PlaylistView: View {
     let playlist: Playlist
     @EnvironmentObject private var player: PlayerManager
@@ -12,11 +13,11 @@ struct PlaylistView: View {
             if isLoading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if loadFailed {
-                BeansErrorState(title: "歌单加载失败") {
+                BeansError(title: "歌单加载失败") {
                     Task { await load() }
                 }
             } else if songs.isEmpty {
-                BeansEmptyState(icon: "music.note.list", title: "歌单里还没有歌曲", subtitle: "换个歌单试试吧")
+                BeansEmpty(icon: "music.note.list", title: "歌单里还没有歌曲", subtitle: "换个歌单试试吧")
             } else {
                 List {
                     Section {
@@ -31,15 +32,13 @@ struct PlaylistView: View {
                                     .background(Color.beansAmber, in: Circle())
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("播放全部").font(.headline).foregroundStyle(Color.beansLabel)
-                                    Text("共 \(songs.count) 首")
-                                        .font(.caption)
-                                        .foregroundStyle(Color.beansSecondary)
+                                    Text("共 \(songs.count) 首").font(.caption).foregroundStyle(Color.beansSecondary)
                                 }
                                 Spacer(minLength: 8)
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .beansRowCard(cornerRadius: 16)
+                            .beansRow()
                         }
                         .buttonStyle(.plain)
                     }
@@ -49,10 +48,10 @@ struct PlaylistView: View {
                         }
                     }
                 }
-                .beansListStyle()
+                .beansList()
             }
         }
-        .beansPageBackground()
+        .beansPage()
         .navigationTitle(playlist.name)
         .navigationBarTitleDisplayMode(.large)
         .task {

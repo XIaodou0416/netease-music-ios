@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreImage.CIFilterBuiltins
 
+// 扫码登录（全新布局）
 struct LoginView: View {
     @EnvironmentObject private var auth: AuthStore
     @Environment(\.dismiss) private var dismiss
@@ -16,7 +17,6 @@ struct LoginView: View {
     @State private var qrCreatedAt = Date()
     @State private var didAutoRefresh = false
 
-    /// 二维码密钥有效期约 60~120 秒，超时后自动刷新一次（再超时提示手动刷新）
     private let qrTTL: TimeInterval = 75
 
     var body: some View {
@@ -26,10 +26,27 @@ struct LoginView: View {
                 LinearGradient(colors: [Color.beansAmber.opacity(0.16), .clear], startPoint: .top, endPoint: .center)
                     .ignoresSafeArea()
 
-                VStack(spacing: 20) {
-                    header
-                    Spacer(minLength: 8)
-                    qrSection
+                VStack(spacing: 18) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("登录网易云").font(.title2.bold()).foregroundStyle(Color.beansLabel)
+                            Text("扫码登录，同步你的收藏与歌单").font(.footnote).foregroundStyle(Color.beansSecondary)
+                        }
+                        Spacer()
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill").font(.title2).foregroundStyle(Color.beansSecondary)
+                                .frame(width: 40, height: 40)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+
+                    Spacer(minLength: 6)
+                    qrBox
                     Text(statusText)
                         .font(.footnote)
                         .foregroundStyle(Color.beansSecondary)
@@ -50,9 +67,8 @@ struct LoginView: View {
                     }
                     .disabled(isLoading)
                     .padding(.horizontal, 32)
-                    Spacer(minLength: 24)
+                    Spacer(minLength: 20)
                 }
-                .padding(.top, 14)
             }
         }
         .alert("出错了", isPresented: $showAlert) {
@@ -60,50 +76,19 @@ struct LoginView: View {
         } message: {
             Text(alertMessage)
         }
-        // 关闭/取消登录时取消轮询（用户取消扫码的回调）
         .onDisappear { pollTask?.cancel() }
         .task { await startLogin() }
     }
 
-    private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("登录网易云")
-                    .font(.title2.bold())
-                    .foregroundStyle(Color.beansLabel)
-                Text("扫码登录，同步你的收藏与歌单")
-                    .font(.footnote)
-                    .foregroundStyle(Color.beansSecondary)
-            }
-            Spacer()
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(Color.beansSecondary)
-                    .frame(width: 40, height: 40)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 20)
-    }
-
-    private var qrSection: some View {
+    private var qrBox: some View {
         Group {
             if let errorDetail {
                 VStack(spacing: 10) {
-                    Image(systemName: "wifi.exclamationmark")
-                        .font(.largeTitle)
-                        .foregroundStyle(Color.beansAmber)
-                    Text(errorDetail)
-                        .font(.footnote)
-                        .foregroundStyle(Color.beansSecondary)
-                        .multilineTextAlignment(.center)
+                    Image(systemName: "wifi.exclamationmark").font(.largeTitle).foregroundStyle(Color.beansAmber)
+                    Text(errorDetail).font(.footnote).foregroundStyle(Color.beansSecondary).multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
                 }
-                .frame(maxWidth: 300, minHeight: 200, maxHeight: 240)
+                .frame(maxWidth: 300, minHeight: 200)
                 .background(Color.beansGlassFill)
                 .glassEffect(.regular)
                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
@@ -127,14 +112,10 @@ struct LoginView: View {
                     )
             } else {
                 VStack(spacing: 10) {
-                    Image(systemName: "qrcode")
-                        .font(.largeTitle)
-                        .foregroundStyle(Color.beansAmber)
-                    Text("二维码会出现在这里")
-                        .font(.footnote)
-                        .foregroundStyle(Color.beansSecondary)
+                    Image(systemName: "qrcode").font(.largeTitle).foregroundStyle(Color.beansAmber)
+                    Text("二维码会出现在这里").font(.footnote).foregroundStyle(Color.beansSecondary)
                 }
-                .frame(maxWidth: 260, minHeight: 250, maxHeight: 260)
+                .frame(maxWidth: 260, minHeight: 250)
                 .frame(maxWidth: .infinity)
                 .background(Color.beansGlassFill)
                 .glassEffect(.regular)

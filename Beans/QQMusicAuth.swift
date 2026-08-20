@@ -160,6 +160,11 @@ final class QQMusicAuth: ObservableObject {
     // MARK: - 授权换 musickey
 
     private func completeOAuth(redirectURL: String) async throws {
+        // check_sig 跳转链必须携带 qrsig（ptlogin2.qq.com 域），否则校验失败、拿不到 skey/p_skey
+        var loginCookie = cookieHeader
+        if !qrsig.isEmpty {
+            loginCookie = "qrsig=\(qrsig)" + (loginCookie.isEmpty ? "" : "; " + loginCookie)
+        }
         // 1. 依次访问 check_sig 跳转链，收集 skey / p_skey（最多 6 跳）
         var current = redirectURL
         for _ in 0..<6 {
@@ -167,14 +172,21 @@ final class QQMusicAuth: ObservableObject {
             var request = URLRequest(url: url)
             request.setValue(Self.ua, forHTTPHeaderField: "User-Agent")
             request.setValue("https://xui.ptlogin2.qq.com/", forHTTPHeaderField: "Referer")
-            request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+            request.setValue(loginCookie, forHTTPHeaderField: "Cookie")
             let (_, response) = try await session.data(for: request)
             collectCookies(from: response)
             guard let http = response as? HTTPURLResponse,
                   (300...399).contains(http.statusCode),
                   let location = http.value(forHTTPHeaderField: "Location"),
                   !location.isEmpty else { break }
-            current = location
+            if let locURL = URL(string: location), locURL.scheme != nil {
+                current = location
+            } else if let base = URL(string: current),
+                      let resolved = URL(string: location, relativeTo: base) {
+                current = resolved.absoluteString
+            } else {
+                break
+            }
         }
 
         // 2. graph.qq.com oauth2 authorize 换 code
@@ -199,7 +211,7 @@ final class QQMusicAuth: ObservableObject {
         authRequest.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         authRequest.setValue(Self.ua, forHTTPHeaderField: "User-Agent")
         authRequest.setValue("https://graph.qq.com/", forHTTPHeaderField: "Referer")
-        authRequest.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+        authRequest.setValue(loginCookie, forHTTPHeaderField: "Cookie")
         authRequest.httpBody = Self.formEncode(fields).data(using: .utf8)
         let (_, authResponse) = try await session.data(for: authRequest)
         collectCookies(from: authResponse)
@@ -216,7 +228,7 @@ final class QQMusicAuth: ObservableObject {
         loginRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         loginRequest.setValue(Self.ua, forHTTPHeaderField: "User-Agent")
         loginRequest.setValue("https://y.qq.com/", forHTTPHeaderField: "Referer")
-        loginRequest.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+        loginRequest.setValue(loginCookie, forHTTPHeaderField: "Cookie")
         loginRequest.httpBody = body.data(using: .utf8)
         let (_, loginResponse) = try await session.data(for: loginRequest)
         collectCookies(from: loginResponse)

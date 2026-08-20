@@ -353,20 +353,30 @@ struct PlayerView: View {
     // MARK: - 底部控制栏（普通材质圆角面板：进度 / 主控制 / 工具行）
 
     private var controlDeck: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 4) {
             Capsule()
                 .fill(palette.secondary.opacity(0.4))
-                .frame(width: 34, height: 4)
-                .padding(.top, 6)
+                .frame(width: 30, height: 3.5)
+                .padding(.top, 5)
 
             progressBlock
             mainControls
             utilityRow
         }
         .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 6)
+        .padding(.top, 6)
+        .padding(.bottom, 4)
         .frame(maxWidth: .infinity)
+        .simultaneousGesture(
+            // 上滑底部呼出评论区（替代原评论按钮）
+            DragGesture(minimumDistance: 25)
+                .onEnded { value in
+                    if value.translation.height < -50, song != nil {
+                        BeansHaptics.medium()
+                        showComments = true
+                    }
+                }
+        )
         .background {
             // iOS 原生液态玻璃面板，延伸到底部安全区贴满屏幕底部，不留空白
             GlassEffectContainer {
@@ -432,7 +442,7 @@ struct PlayerView: View {
         .buttonStyle(GlassPressButtonStyle())
     }
 
-    // MARK: - 主控制（5 键等宽对称，播放键居中）
+    // MARK: - 主控制（4 键等宽对称，播放键居中；评论已改为上滑底部呼出）
 
     private var mainControls: some View {
         HStack(spacing: 6) {
@@ -449,10 +459,6 @@ struct PlayerView: View {
                 BeansHaptics.tap()
                 player.next()
             }
-            deckButton(icon: "bubble.left.and.bubble.right") {
-                BeansHaptics.tap()
-                showComments = true
-            }
         }
     }
 
@@ -462,9 +468,9 @@ struct PlayerView: View {
             action()
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .medium))
+                .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(accent ? palette.accent : palette.text)
-                .frame(width: 44, height: 44)
+                .frame(width: 40, height: 40)
                 .background {
                     GlassEffectContainer {
                         Circle()
@@ -484,9 +490,12 @@ struct PlayerView: View {
             player.togglePlayPause()
         } label: {
             Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                .font(.system(size: 24, weight: .semibold))
+                .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(Color.white)
-                .frame(width: 58, height: 58)
+                .contentTransition(.symbolEffect(.replace))
+                .scaleEffect(player.isPlaying ? 1.0 : 0.88)
+                .animation(.spring(response: 0.32, dampingFraction: 0.6), value: player.isPlaying)
+                .frame(width: 52, height: 52)
                 .background {
                     GlassEffectContainer {
                         Circle()
@@ -537,8 +546,8 @@ struct PlayerView: View {
                         .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 }
                 .foregroundStyle(palette.secondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
                 .background {
                     GlassEffectContainer {
                         Capsule()
@@ -555,9 +564,9 @@ struct PlayerView: View {
                 toggleLyrics()
             } label: {
                 Image(systemName: showLyrics ? "quote.bubble.fill" : "quote.bubble")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(showLyrics ? palette.accent : palette.secondary)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 30, height: 30)
                     .background {
                         GlassEffectContainer {
                             Circle()
@@ -587,9 +596,9 @@ struct PlayerView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(palette.secondary)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 30, height: 30)
                     .background {
                         GlassEffectContainer {
                             Circle()
@@ -677,12 +686,13 @@ struct SeekBar: View {
                     .frame(width: thumbX, height: 5)
                 Circle()
                     .fill(accent)
-                    .frame(width: 15, height: 15)
+                    .frame(width: scrubbing ? 21 : 15, height: scrubbing ? 21 : 15)
                     .overlay {
-                        Circle().strokeBorder(.white.opacity(0.55), lineWidth: 1)
+                        Circle().strokeBorder(.white.opacity(0.6), lineWidth: scrubbing ? 1.5 : 1)
                     }
-                    .shadow(color: .black.opacity(0.3), radius: 3, y: 1)
-                    .offset(x: thumbX - 7.5)
+                    .shadow(color: .black.opacity(0.35), radius: scrubbing ? 6 : 3, y: scrubbing ? 3 : 1)
+                    .offset(x: thumbX - (scrubbing ? 10.5 : 7.5))
+                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: scrubbing)
             }
             .frame(width: width, height: 30)
             .contentShape(Rectangle())
@@ -753,8 +763,8 @@ struct LyricsSection: View {
         let distance = abs(index - (currentIndex ?? 0))
         let opacity: Double = isCurrent
             ? 1.0
-            : (isPlayed ? 0.38 : 0.72) - min(distance, 4) * 0.05
-        let size = isCurrent ? baseFontSize + 4 : baseFontSize - min(distance, 2) * 1.5
+            : (isPlayed ? 0.38 : 0.72) - Double(min(distance, 4)) * 0.05
+        let size = isCurrent ? baseFontSize + 4 : baseFontSize - CGFloat(min(distance, 2)) * 1.5
 
         return Text(line.text.isEmpty ? "♪" : line.text)
             .font(.system(

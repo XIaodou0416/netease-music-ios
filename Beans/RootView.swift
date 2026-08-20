@@ -128,31 +128,7 @@ struct AppStoreTabBar: View {
 
     private var barCapsule: some View {
         ZStack {
-            // 液态玻璃选中指示器：放在按钮层之下，半透明清透，不遮挡图标；跟随选中项弹簧滑动
-            GeometryReader { geo in
-                let count = CGFloat(max(RootTab.allCases.count, 1))
-                let tabWidth = max((geo.size.width - 10 - 4 * (count - 1)) / count, 0)
-                let index = CGFloat(RootTab.allCases.firstIndex(of: selection) ?? 0)
-                GlassEffectContainer {
-                    Capsule()
-                        .fill(.clear)
-                        .glassEffect(.thin, in: Capsule())
-                }
-                .overlay {
-                    Capsule()
-                        .fill(Color.beansAmber.opacity(0.16))
-                }
-                .overlay {
-                    Capsule()
-                        .strokeBorder(Color.beansAmber.opacity(0.32), lineWidth: 0.7)
-                }
-                .shadow(color: .black.opacity(0.10), radius: 5, y: 2)
-                .frame(width: tabWidth, height: geo.size.height - 10)
-                .offset(x: 5 + index * (tabWidth + 4))
-                .animation(.spring(response: 0.38, dampingFraction: 0.72), value: selection)
-                .allowsHitTesting(false)
-            }
-
+            SlidingIndicator(selection: $selection)
             HStack(spacing: 4) {
                 ForEach(RootTab.allCases) { tab in
                     tabButton(tab)
@@ -356,6 +332,36 @@ struct AppStoreTabBar: View {
 }
 
 // MARK: - 液态涟漪（长按扩散的玻璃波纹）
+
+// MARK: - 液态玻璃选中指示器（独立视图，位于按钮层之下，半透明清透不遮挡图标）
+
+struct SlidingIndicator: View {
+    @Binding var selection: RootTab
+
+    var body: some View {
+        GeometryReader { geo in
+            let count = CGFloat(max(RootTab.allCases.count, 1))
+            let tabWidth = max((geo.size.width - 10 - 4 * (count - 1)) / count, 0)
+            let index = CGFloat(RootTab.allCases.firstIndex(of: selection) ?? 0)
+            GlassEffectContainer {
+                Capsule()
+                    .fill(.clear)
+                    .glassEffect(.thin, in: Capsule())
+            }
+            .overlay {
+                Capsule().fill(Color.beansAmber.opacity(0.16))
+            }
+            .overlay {
+                Capsule().strokeBorder(Color.beansAmber.opacity(0.32), lineWidth: 0.7)
+            }
+            .shadow(color: .black.opacity(0.10), radius: 5, y: 2)
+            .frame(width: tabWidth, height: geo.size.height - 10)
+            .offset(x: 5 + index * (tabWidth + 4))
+            .animation(.spring(response: 0.38, dampingFraction: 0.72), value: selection)
+            .allowsHitTesting(false)
+        }
+    }
+}
 
 struct LiquidRippleEffect: View {
     @State private var active = false

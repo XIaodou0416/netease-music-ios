@@ -152,15 +152,6 @@ struct PlayerView: View {
                     : [.white.opacity(0.08), .clear, .black.opacity(0.12)],
                 startPoint: .top, endPoint: .bottom
             )
-            // 顶部渐隐：整页上方柔化过渡，顶栏区域更沉浸
-            LinearGradient(
-                colors: colorScheme == .dark
-                    ? [.black.opacity(0.40), .clear]
-                    : [.black.opacity(0.18), .clear],
-                startPoint: .top, endPoint: .bottom
-            )
-            .frame(height: 150)
-            .frame(maxHeight: .infinity, alignment: .top)
         }
         .allowsHitTesting(false)
     }
@@ -360,21 +351,21 @@ struct PlayerView: View {
                         player.seek(to: line.time)
                     }
                 }
-                // 底部渐隐：歌词接近底栏时逐渐淡出，透过玻璃呈模糊渲染
+                // 底部微渐隐：只做画面磨合，避免到底栏处生硬割裂
                 LinearGradient(
-                    colors: [.clear, palette.backgroundBottom.opacity(0.94)],
+                    colors: [.clear, palette.backgroundBottom.opacity(0.5)],
                     startPoint: .top, endPoint: .bottom
                 )
-                .frame(height: 140)
+                .frame(height: 64)
                 .allowsHitTesting(false)
             }
             .overlay(alignment: .top) {
-                // 顶部渐隐：歌词向上滚动时柔和淡出
+                // 顶部微渐隐：配合未出现歌词的模糊过渡
                 LinearGradient(
-                    colors: [palette.backgroundTop.opacity(0.92), .clear],
+                    colors: [palette.backgroundTop.opacity(0.45), .clear],
                     startPoint: .top, endPoint: .bottom
                 )
-                .frame(height: 96)
+                .frame(height: 52)
                 .allowsHitTesting(false)
             }
             .padding(.bottom, deckInset)
@@ -469,50 +460,28 @@ struct PlayerView: View {
         .padding(.bottom, 4)
         .frame(maxWidth: .infinity)
         .background {
-            // 通透液态玻璃面板：底部清晰、顶部渐隐融入背景（无硬边/白线）
+            // iOS 原生透明液态玻璃：直角通栏、无圆角无硬线，通透采样背景
             GlassEffectContainer {
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 30, bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0, topTrailingRadius: 30,
-                    style: .continuous
-                )
-                .fill(Color.beansGlassFill)
-                .glassEffect(.clear, in: UnevenRoundedRectangle(
-                    topLeadingRadius: 30, bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0, topTrailingRadius: 30,
-                    style: .continuous
-                ))
+                Rectangle()
+                    .fill(Color.beansGlassFill)
+                    .glassEffect(.clear, in: Rectangle())
             }
             .ignoresSafeArea(edges: .bottom)
-            .mask {
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0),
-                        .init(color: .black.opacity(0.45), location: 0.20),
-                        .init(color: .black, location: 0.45)
-                    ],
-                    startPoint: .top, endPoint: .bottom
-                )
-            }
             .overlay {
                 LinearGradient(
-                    colors: [.white.opacity(0.26), .clear, .white.opacity(0.05)],
+                    colors: [.white.opacity(0.22), .clear, .white.opacity(0.04)],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 )
             }
             .overlay {
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 30, bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0, topTrailingRadius: 30,
-                    style: .continuous
-                )
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [.white.opacity(0.38), .white.opacity(0.06)],
-                        startPoint: .top, endPoint: .bottom
-                    ),
-                    lineWidth: 0.8
-                )
+                Rectangle()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(0.28), .white.opacity(0.04)],
+                            startPoint: .top, endPoint: .bottom
+                        ),
+                        lineWidth: 0.5
+                    )
             }
         }
         .shadow(color: .black.opacity(0.06), radius: 14, y: -2)
@@ -926,6 +895,8 @@ struct LyricsSection: View {
             ? 1.0
             : (isPlayed ? 0.38 : 0.72) - Double(min(distance, 4)) * 0.05
         let size = isCurrent ? baseFontSize + 4 : baseFontSize - CGFloat(min(distance, 2)) * 1.5
+        // 已出现/未出现的歌词行：距离当前行越远越模糊（Apple Music 式景深）
+        let blurRadius: CGFloat = isCurrent ? 0 : min(CGFloat(distance) * 1.6, 5)
 
         return Text(line.text.isEmpty ? "♪" : line.text)
             .font(.system(
@@ -943,6 +914,7 @@ struct LyricsSection: View {
                 color: isCurrent ? accent.opacity(glowRadius > 0 ? 0.55 : 0) : .clear,
                 radius: isCurrent ? glowRadius : 0
             )
+            .blur(radius: blurRadius)
             .opacity(max(opacity, 0.15))
             .scaleEffect(isCurrent ? 1.05 : 1)
             .multilineTextAlignment(.center)

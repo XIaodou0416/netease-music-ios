@@ -24,7 +24,6 @@ struct LibraryView: View {
         .scrollIndicators(.hidden)
         .refreshable { await auth.loadLibrary() }
         .task { await auth.loadLibrary() }
-        .overlay(alignment: .top) { TopFade() }
         .sheet(isPresented: $showFavorites) {
             FavoritesView()
                 .environmentObject(auth)

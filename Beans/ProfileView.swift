@@ -26,7 +26,6 @@ struct ProfileView: View {
             .padding(.bottom, 190)
         }
         .scrollIndicators(.hidden)
-        .overlay(alignment: .top) { TopFade() }
         .sheet(isPresented: $showHistory) {
             HistoryView()
                 .environmentObject(player)

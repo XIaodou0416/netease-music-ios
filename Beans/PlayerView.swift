@@ -11,6 +11,7 @@ struct PlayerView: View {
     @State private var showSleepTimer = false
     @State private var showSimi = false
     @State private var showAddToPlaylist = false
+    @State private var showComments = false
     @State private var scrubbing = false
     @State private var scrubValue: Double = 0
     @State private var dragOffset: CGFloat = 0
@@ -53,9 +54,7 @@ struct PlayerView: View {
             .opacity(1 - min(dragOffset / 480, 0.6))
         }
         .foregroundStyle(Color.beansLabel)
-        .overlay(alignment: .top) {
-            TopFade(height: 64, color: .black)
-        }
+
         .task(id: song?.id) {
             await loadLyrics()
         }
@@ -65,6 +64,11 @@ struct PlayerView: View {
         .sheet(isPresented: $showAddToPlaylist) {
             if let song {
                 AddToPlaylistSheet(song: song).environmentObject(auth)
+            }
+        }
+        .sheet(isPresented: $showComments) {
+            if let song {
+                CommentsSheet(song: song)
             }
         }
     }
@@ -127,11 +131,15 @@ struct PlayerView: View {
                 Text(player.isBuffering ? "加载中…" : (player.isPlaying ? "正在播放" : "已暂停"))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Color.beansSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 Text(song?.album ?? "")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.beansSecondary)
                     .lineLimit(1)
+                    .truncationMode(.tail)
             }
+            .frame(maxWidth: .infinity)
             Spacer()
             Button {
                 showQueue = true
@@ -183,11 +191,14 @@ struct PlayerView: View {
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Color.beansLabel)
                     .lineLimit(1)
+                    .truncationMode(.tail)
                 Text(song?.artists ?? "")
                     .font(.system(size: 14))
                     .foregroundStyle(Color.beansSecondary)
                     .lineLimit(1)
+                    .truncationMode(.tail)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             Spacer()
             if auth.isLoggedIn, let song {
                 Button {
@@ -380,19 +391,14 @@ struct PlayerView: View {
             Spacer()
 
             Button {
-                showSleepTimer = true
+                BeansHaptics.tap()
+                showComments = true
             } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: player.sleepTimerRemaining > 0 ? "moon.zzz.fill" : "moon.zzz")
-                    if player.sleepTimerRemaining > 0 {
-                        Text(player.sleepTimerFormatted ?? "")
-                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                    }
-                }
-                .foregroundStyle(player.sleepTimerRemaining > 0 ? Color.beansAmber : Color.beansSecondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .glassEffect(.clear, in: .capsule)
+                Image(systemName: "bubble.left.and.bubble.right")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.beansSecondary)
+                    .frame(width: 40, height: 40)
+                    .glassEffect(.clear, in: .circle)
             }
             .buttonStyle(GlassPressButtonStyle())
 
@@ -408,27 +414,33 @@ struct PlayerView: View {
             }
             .buttonStyle(GlassPressButtonStyle())
 
-            Button {
-                showSimi = true
+            Menu {
+                Button {
+                    showSleepTimer = true
+                } label: {
+                    if player.sleepTimerRemaining > 0 {
+                        Label("睡眠定时 \(player.sleepTimerFormatted ?? "")", systemImage: "moon.zzz.fill")
+                    } else {
+                        Label("睡眠定时", systemImage: "moon.zzz")
+                    }
+                }
+                Button {
+                    showSimi = true
+                } label: {
+                    Label("相似歌曲", systemImage: "sparkles")
+                }
+                Button {
+                    showAddToPlaylist = true
+                } label: {
+                    Label("添加到歌单", systemImage: "text.badge.plus")
+                }
             } label: {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 14, weight: .semibold))
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.beansSecondary)
                     .frame(width: 40, height: 40)
                     .glassEffect(.clear, in: .circle)
             }
-            .buttonStyle(GlassPressButtonStyle())
-
-            Button {
-                showAddToPlaylist = true
-            } label: {
-                Image(systemName: "text.badge.plus")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.beansSecondary)
-                    .frame(width: 40, height: 40)
-                    .glassEffect(.clear, in: .circle)
-            }
-            .buttonStyle(GlassPressButtonStyle())
         }
         .padding(.horizontal, 20)
     }

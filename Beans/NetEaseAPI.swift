@@ -289,6 +289,23 @@ final class NetEaseAPI {
         let songs = json["songs"] as? [[String: Any]] ?? []
         return songs.compactMap(Song.init(json:))
     }
+    // MARK: - 评论
+
+    struct SongCommentPage {
+        let total: Int
+        let hot: [SongComment]
+        let comments: [SongComment]
+    }
+
+    /// 歌曲评论（含热门评论）
+    func songComments(id: Int, limit: Int = 30, offset: Int = 0) async throws -> SongCommentPage {
+        let json = try await request("/api/v1/resource/comments/R_SO_4_\(id)", payload: ["rid": id, "limit": limit, "offset": offset, "beforeTime": 0], crypto: "weapi")
+        let total = json["total"] as? Int ?? 0
+        let hot = (json["hotComments"] as? [[String: Any]] ?? []).compactMap { SongComment(json: $0, isHot: true) }
+        let comments = (json["comments"] as? [[String: Any]] ?? []).compactMap { SongComment(json: $0) }
+        return SongCommentPage(total: total, hot: hot, comments: comments)
+    }
+
     // MARK: - 搜索
 
     func search(keyword: String, limit: Int = 30, offset: Int = 0) async throws -> [Song] {

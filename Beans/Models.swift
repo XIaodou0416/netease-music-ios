@@ -150,3 +150,28 @@ struct NetEaseUser: Identifiable, Hashable, Codable {
         avatarURL = pic.isEmpty ? nil : URL(string: pic)
     }
 }
+// MARK: - 歌曲评论
+
+struct SongComment: Identifiable, Hashable {
+    let id: Int
+    let content: String
+    let nickname: String
+    let avatarURL: URL?
+    let time: Date
+    let likedCount: Int
+    let isHot: Bool
+
+    init?(json: [String: Any], isHot: Bool = false) {
+        guard let id = json["commentId"] as? Int else { return nil }
+        self.id = id
+        content = json["content"] as? String ?? ""
+        let user = json["user"] as? [String: Any]
+        nickname = user?["nickname"] as? String ?? ""
+        let avatar = user?["avatarUrl"] as? String ?? ""
+        avatarURL = avatar.isEmpty ? nil : URL(string: avatar)
+        let ms = json["time"] as? Int ?? 0
+        time = Date(timeIntervalSince1970: Double(ms) / 1000.0)
+        likedCount = json["likedCount"] as? Int ?? 0
+        self.isHot = isHot
+    }
+}

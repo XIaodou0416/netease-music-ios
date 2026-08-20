@@ -1,0 +1,180 @@
+import SwiftUI
+
+// MARK: - 相对时间
+
+func beansRelativeTime(_ date: Date) -> String {
+    let interval = Date().timeIntervalSince(date)
+    if interval < 60 { return "刚刚" }
+    if interval < 3600 { return "\(Int(interval / 60)) 分钟前" }
+    if interval < 86400 { return "\(Int(interval / 3600)) 小时前" }
+    if interval < 86400 * 30 { return "\(Int(interval / 86400)) 天前" }
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter.string(from: date)
+}
+
+// MARK: - 评论区
+
+struct CommentsSheet: View {
+    let song: Song
+
+    @State private var page: NetEaseAPI.SongCommentPage?
+    @State private var loading = true
+    @State private var errorMessage: String?
+    @State private var offset = 0
+
+    private let limit = 30
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if loading {
+                    LoadingStateView()
+                } else if let errorMessage {
+                    ErrorStateView(message: errorMessage) {
+                        Task { await load(reset: true) }
+                    }
+                } else if let page {
+                    if page.hot.isEmpty && page.comments.isEmpty {
+                        EmptyStateView(icon: "bubble.left", text: "暂无评论")
+                    } else {
+                        List {
+                            Section {
+                                Text("《\(song.name)》 · 共 \(page.total) 条评论")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color.beansSecondary)
+                            }
+                            if !page.hot.isEmpty {
+                                Section("精彩评论") {
+                                    ForEach(page.hot) { comment in
+                                        CommentRow(comment: comment)
+                                    }
+                                }
+                            }
+                            if !page.comments.isEmpty {
+                                Section("最新评论") {
+                                    ForEach(page.comments) { comment in
+                                        CommentRow(comment: comment)
+                                    }
+                                }
+                            }
+                            if page.comments.count >= limit {
+                                Section {
+                                    Button {
+                                        Task { await loadMore() }
+                                    } label: {
+                                        Text("加载更多")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundStyle(Color.beansAmber)
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("评论")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .task { await load(reset: true) }
+    }
+
+    private func load(reset: Bool) async {
+        if reset {
+            offset = 0
+            page = nil
+            loading = true
+        }
+        errorMessage = nil
+        do {
+            let result = try await NetEaseAPI.shared.songComments(id: song.id, limit: limit, offset: offset)
+            if reset {
+                page = result
+            } else if var current = page {
+                current.comments.append(contentsOf: result.comments)
+                page = current
+            }
+            loading = false
+        } catch {
+            errorMessage = error.localizedDescription
+            loading = false
+        }
+    }
+
+    private func loadMore() async {
+        offset += limit
+        await load(reset: false)
+    }
+}
+
+// MARK: - 评论行
+
+struct CommentRow: View {
+    let comment: SongComment
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            AsyncImage(url: comment.avatarURL) { phase in
+                if case .success(let image) = phase {
+                    image.resizable().scaledToFill()
+                } else {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.beansSecondary)
+                }
+            }
+            .frame(width: 36, height: 36)
+            .clipShape(Circle())
+            .background(Color.beansGlassFill, in: Circle())
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 8) {
+                    Text(comment.nickname)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.beansSecondary)
+                        .lineLimit(1)
+                    if comment.isHot {
+                        Text("热评")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(LinearGradient.beansAccent, in: Capsule())
+                    }
+                    Spacer()
+                    Text(beansRelativeTime(comment.time))
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.beansSecondary.opacity(0.8))
+                }
+                Text(comment.content)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.beansLabel)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Spacer()
+                    Label("\(comment.likedCount)", systemImage: "heart")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.beansSecondary)
+                        .labelStyle(.trailingIcon)
+                }
+                .padding(.top, 2)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// 图标在文字后面
+extension LabelStyle where Self == TrailingIconLabelStyle {
+    static var trailingIcon: TrailingIconLabelStyle { TrailingIconLabelStyle() }
+}
+
+struct TrailingIconLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 4) {
+            configuration.title
+            configuration.icon
+        }
+    }
+}

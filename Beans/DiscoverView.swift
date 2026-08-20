@@ -7,7 +7,7 @@ struct DiscoverView: View {
     @State private var topLists: [TopList] = []
     @State private var dailySongs: [Song] = []
     @State private var personalized: [Playlist] = []
-    @State private var newSongs: [Song] = []
+
     @State private var hotPlaylists: [Playlist] = []
     @State private var loading = true
     @State private var errorMessage: String?
@@ -36,9 +36,7 @@ struct DiscoverView: View {
                     if !personalized.isEmpty {
                         personalizedSection
                     }
-                    if !newSongs.isEmpty {
-                        newSongsSection
-                    }
+
                     if !hotPlaylists.isEmpty {
                         hotPlaylistsSection
                     }
@@ -51,7 +49,6 @@ struct DiscoverView: View {
         .scrollIndicators(.hidden)
         .refreshable { await load() }
         .task { await load() }
-        .overlay(alignment: .top) { TopFade() }
         .sheet(item: $selectedTopList) { topList in
             TopListDetailView(topList: topList)
                 .environmentObject(player)
@@ -128,16 +125,51 @@ struct DiscoverView: View {
     }
 
     private var dailySection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "每日推荐")
             VStack(spacing: 0) {
-                ForEach(Array(dailySongs.enumerated()), id: \.element.id) { index, song in
+                HStack(spacing: 14) {
+                    CoverImage(url: dailySongs.first?.coverURL, size: 54, cornerRadius: 12)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("为你精选 \(dailySongs.count) 首")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.beansLabel)
+                        Text("每日更新 · 按你的口味推荐")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.beansSecondary)
+                    }
+                    Spacer()
+                }
+                .padding(14)
+                HStack(spacing: 10) {
+                    GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
+                        BeansHaptics.tap()
+                        player.play(songs: dailySongs, startAt: 0)
+                    }
+                    GlassButton(title: "随机播放", systemName: "shuffle") {
+                        BeansHaptics.tap()
+                        player.play(songs: dailySongs, startAt: Int.random(in: 0..<dailySongs.count))
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.bottom, 14)
+            }
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+            VStack(spacing: 0) {
+                ForEach(Array(dailySongs.prefix(3).enumerated()), id: \.element.id) { index, song in
                     SongCell(song: song) {
+                        BeansHaptics.tap()
                         player.play(songs: dailySongs, startAt: index)
                     }
                     Divider().overlay(Color.beansSecondary.opacity(0.15))
                 }
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
     }
 
@@ -165,35 +197,6 @@ struct DiscoverView: View {
         }
     }
 
-    private var newSongsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "新歌速递")
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(Array(newSongs.enumerated()), id: \.element.id) { index, song in
-                        Button {
-                            player.play(songs: newSongs, startAt: index)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                CoverImage(url: song.coverURL, size: 100, cornerRadius: 14)
-                                Text(song.name)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(Color.beansLabel)
-                                    .lineLimit(1)
-                                    .frame(width: 100, alignment: .leading)
-                                Text(song.artists)
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(Color.beansSecondary)
-                                    .lineLimit(1)
-                                    .frame(width: 100, alignment: .leading)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
-    }
 
     private var hotPlaylistsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -245,14 +248,12 @@ struct DiscoverView: View {
         async let a = NetEaseAPI.shared.topLists()
         async let b = NetEaseAPI.shared.dailyRecommend()
         async let c = NetEaseAPI.shared.personalizedPlaylists(limit: 10)
-        async let d = NetEaseAPI.shared.newSongs(limit: 10)
-        async let e = NetEaseAPI.shared.topPlaylists(limit: 10)
+        async let d = NetEaseAPI.shared.topPlaylists(limit: 10)
         do {
-            let (tl, dr, pp, ns, hp) = try await (a, b, c, d, e)
+            let (tl, dr, pp, hp) = try await (a, b, c, d)
             topLists = tl
             dailySongs = dr
             personalized = pp
-            newSongs = ns
             hotPlaylists = hp
             loading = false
         } catch {
@@ -299,7 +300,6 @@ struct TopListDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .task { await load() }
-        .overlay(alignment: .top) { TopFade() }
     }
 
     private var header: some View {

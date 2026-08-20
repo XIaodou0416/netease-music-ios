@@ -50,26 +50,6 @@ struct GlassBackdrop: View {
     }
 }
 
-// MARK: - 顶部渐隐（每个页面顶部内容淡出）
-
-struct TopFade: View {
-    var height: CGFloat = 72
-    var color: Color = .beansBackground
-
-    var body: some View {
-        LinearGradient(
-            stops: [
-                .init(color: color.opacity(0.95), location: 0),
-                .init(color: color.opacity(0), location: 1),
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .frame(height: height)
-        .frame(maxWidth: .infinity)
-        .allowsHitTesting(false)
-    }
-}
 
 // MARK: - 玻璃卡片（清透版）
 

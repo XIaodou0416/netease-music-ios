@@ -89,54 +89,53 @@ struct AppStoreTabBar: View {
     @Binding var selection: RootTab
 
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(RootTab.allCases) { tab in
-                Button {
-                    if selection != tab {
-                        BeansHaptics.select()
-                        withAnimation(.spring(duration: 0.35)) {
-                            selection = tab
+        GlassEffectContainer {
+            HStack(spacing: 6) {
+                ForEach(RootTab.allCases) { tab in
+                    Button {
+                        if selection != tab {
+                            BeansHaptics.select()
+                            withAnimation(.spring(duration: 0.35)) {
+                                selection = tab
+                            }
                         }
-                    }
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 16, weight: .medium))
-                        Text(tab.title)
-                            .font(.system(size: 10, weight: .semibold))
-                    }
-                    .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background {
-                        if selection == tab {
-                            Capsule()
-                                .fill(Color.beansAmber.opacity(0.16))
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 16, weight: .medium))
+                            Text(tab.title)
+                                .font(.system(size: 10, weight: .semibold))
                         }
+                        .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background {
+                            if selection == tab {
+                                Capsule()
+                                    .fill(Color.beansAmber.opacity(0.18))
+                            }
+                        }
+                        .clipShape(Capsule())
                     }
-                    .clipShape(Capsule())
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
+            .padding(6)
+            .glassEffect(.regular, in: .capsule)
+            .overlay {
+                Capsule()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(0.45), .white.opacity(0.08)],
+                            startPoint: .top, endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .clipShape(Capsule())
         }
-        .padding(6)
-        .background {
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    Capsule()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [.white.opacity(0.35), .white.opacity(0.08)],
-                                startPoint: .top, endPoint: .bottom
-                            ),
-                            lineWidth: 0.8
-                        )
-                }
-        }
-        .clipShape(Capsule())
         .padding(.horizontal, 14)
         .padding(.bottom, 4)
-        .shadow(color: .black.opacity(0.14), radius: 18, y: 8)
+        .shadow(color: .black.opacity(0.15), radius: 18, y: 8)
     }
 }

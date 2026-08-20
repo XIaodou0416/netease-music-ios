@@ -342,15 +342,20 @@ final class NetEaseAPI {
     // MARK: - 收藏
 
     /// 听歌排行（type=1 最近一周 / type=0 所有时间）
-    func playRecord(uid: Int, type: Int) async throws -> [PlayRecordItem] {
-        let json = try await request("/api/v1/play/record", payload: ["uid": uid, "type": type, "limit": 100], crypto: "weapi")
+    /// 本周取 100 顶；累计上限 1000，并优先从 size 字段读取真实总数（避免总是显示 100）
+    func playRecord(uid: Int, type: Int) async throws -> PlayRecordResult {
+        let limit = type == 1 ? 100 : 1000
+        let json = try await request("/api/v1/play/record", payload: ["uid": uid, "type": type, "limit": limit], crypto: "weapi")
         let key = type == 1 ? "weekData" : "allData"
+        let sizeKey = type == 1 ? "weekDataSize" : "allDataSize"
         let list = json[key] as? [[String: Any]] ?? []
-        return list.compactMap { item in
+        let total = json[sizeKey] as? Int ?? list.count
+        let items = list.compactMap { item -> PlayRecordItem? in
             guard let songJSON = item["song"] as? [String: Any], let song = Song(json: songJSON) else { return nil }
             let count = item["playCount"] as? Int ?? 0
             return PlayRecordItem(song: song, playCount: count)
         }
+        return PlayRecordResult(items: items, totalCount: max(total, items.count))
     }
 
     func like(id: Int, liked: Bool) async throws -> Bool {

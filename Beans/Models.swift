@@ -229,6 +229,12 @@ struct PlayRecordItem: Identifiable, Hashable {
     var id: Int { song.id }
 }
 
+/// 听歌排行结果（列表 + 真实总数，避免被接口单次上限截断）
+struct PlayRecordResult {
+    let items: [PlayRecordItem]
+    let totalCount: Int
+}
+
 // MARK: - 歌曲评论
 
 struct SongComment: Identifiable, Hashable {

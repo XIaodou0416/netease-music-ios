@@ -115,24 +115,30 @@ struct DiscoverView: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "排行榜")
             LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: 10),
-                    GridItem(.flexible(), spacing: 10),
-                    GridItem(.flexible(), spacing: 10)
-                ],
-                spacing: 14
+                columns: [GridItem(.adaptive(minimum: 100), spacing: 10)],
+                spacing: 12
             ) {
-                // 三列网格展示前六个排行榜（两行，既不是一长行也不会太长）
+                // 三列网格展示前六个排行榜，液态玻璃卡片
                 ForEach(topLists.prefix(6)) { topList in
                     Button {
                         selectedTopList = topList
                     } label: {
-                        VStack(alignment: .leading, spacing: 8) {
-                            CoverImage(url: topList.coverURL, size: 104, cornerRadius: 14)
+                        VStack(alignment: .leading, spacing: 6) {
+                            CoverImage(url: topList.coverURL, size: 88, cornerRadius: 14)
+                                .frame(maxWidth: .infinity)
                             Text(topList.name)
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(Color.beansLabel)
                                 .lineLimit(1)
+                        }
+                        .padding(6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background {
+                            GlassEffectContainer {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(.clear)
+                                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            }
                         }
                     }
                     .buttonStyle(.plain)
@@ -229,19 +235,32 @@ struct DiscoverView: View {
     private var personalizedSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "歌单广场")
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 16) {
-                ForEach(personalized) { playlist in
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 100), spacing: 10)],
+                spacing: 12
+            ) {
+                // 精简：三列小卡片只显示前六个，不再又长又大
+                ForEach(personalized.prefix(6)) { playlist in
                     Button {
                         selectedPlaylist = playlist
                     } label: {
-                        VStack(alignment: .leading, spacing: 8) {
-                            CoverImage(url: playlist.coverURL, size: 160, cornerRadius: 16)
+                        VStack(alignment: .leading, spacing: 6) {
+                            CoverImage(url: playlist.coverURL, size: 88, cornerRadius: 14)
                                 .frame(maxWidth: .infinity)
                             Text(playlist.name)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(Color.beansLabel)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
+                        }
+                        .padding(6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background {
+                            GlassEffectContainer {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(.clear)
+                                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            }
                         }
                     }
                     .buttonStyle(.plain)

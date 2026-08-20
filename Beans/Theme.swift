@@ -167,6 +167,7 @@ final class ThemeStore: ObservableObject {
     private let backgroundImageKey = "beans.background.image"
     private let wallpaperListKey = "beans.wallpapers.list"
     private let wallpaperDataKey = "beans.wallpapers.data"
+    private let deletedKey = "beans.wallpapers.deleted"
 
     private init() {
         accent = BeansAccent(rawValue: UserDefaults.standard.string(forKey: AccentTheme.key) ?? "") ?? .amber
@@ -188,8 +189,10 @@ final class ThemeStore: ObservableObject {
     private func restoreWallpapers() {
         let dir = Self.wallpaperDirectory()
         let backup = UserDefaults.standard.dictionary(forKey: wallpaperDataKey) as? [String: String] ?? [:]
+        let deleted = deletedWallpaperPaths()
         var restored: [String] = []
         for path in wallpaperPaths {
+            if deleted.contains(path) { continue }
             if FileManager.default.fileExists(atPath: path) {
                 restored.append(path)
             } else if let b64 = backup[path], let data = Data(base64Encoded: b64) {
@@ -201,12 +204,13 @@ final class ThemeStore: ObservableObject {
         if let names = try? FileManager.default.contentsOfDirectory(atPath: dir.path) {
             for name in names where name.hasSuffix(".jpg") {
                 let full = dir.appendingPathComponent(name).path
+                if deleted.contains(full) { continue }
                 if !restored.contains(full) { restored.append(full) }
             }
         }
         wallpaperPaths = restored
         saveWallpaperList()
-        if !backgroundImagePath.isEmpty {
+        if !backgroundImagePath.isEmpty, !deleted.contains(backgroundImagePath) {
             if !FileManager.default.fileExists(atPath: backgroundImagePath),
                let b64 = backup[backgroundImagePath], let data = Data(base64Encoded: b64) {
                 try? data.write(to: URL(fileURLWithPath: backgroundImagePath), options: .atomic)
@@ -313,6 +317,7 @@ final class ThemeStore: ObservableObject {
         try? FileManager.default.removeItem(atPath: path)
         wallpaperPaths.removeAll { $0 == path }
         removeWallpaperBackup(path)
+        saveDeletedWallpaper(path)
         saveWallpaperList()
         if backgroundImagePath == path {
             backgroundImagePath = wallpaperPaths.first ?? ""
@@ -350,6 +355,17 @@ final class ThemeStore: ObservableObject {
         var backup = UserDefaults.standard.dictionary(forKey: wallpaperDataKey) as? [String: String] ?? [:]
         backup.removeValue(forKey: path)
         UserDefaults.standard.set(backup, forKey: wallpaperDataKey)
+    }
+
+    /// 删除标记：删除过的壁纸不会被目录扫描/备份重新拉回（保证删除是永久的）
+    private func saveDeletedWallpaper(_ path: String) {
+        var set = UserDefaults.standard.stringArray(forKey: deletedKey) ?? []
+        if !set.contains(path) { set.append(path) }
+        UserDefaults.standard.set(set, forKey: deletedKey)
+    }
+
+    private func deletedWallpaperPaths() -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: deletedKey) ?? [])
     }
     /// 归一化背景图：长边统一到 1600px；原图过小时放大到该尺寸并轻度高斯模糊柔化，
     /// 铺满屏幕时既不会像素化，也不会因小图拉伸引发布局/视觉问题

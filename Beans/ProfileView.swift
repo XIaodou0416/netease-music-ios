@@ -16,6 +16,8 @@ struct ProfileView: View {
     @State private var appearanceExpanded = false
     @State private var weekRecord: [PlayRecordItem] = []
     @State private var allRecord: [PlayRecordItem] = []
+    @State private var weekTotal = 0
+    @State private var allTotal = 0
     @State private var rankLoading = false
     @State private var showNetEaseRank = false
     @ObservedObject private var qqAuth = QQMusicAuth.shared
@@ -224,12 +226,16 @@ struct ProfileView: View {
                 theme.deleteWallpaper(at: path)
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 15))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color.beansSecondary)
+                    .frame(width: 28, height: 28)
                     .background(Circle().fill(.ultraThinMaterial))
-                    .padding(5)
+                    .clipShape(Circle())
+                    .contentShape(Circle())
+                    .padding(6)
             }
             .buttonStyle(.plain)
+            .zIndex(2)
         }
     }
 
@@ -509,9 +515,7 @@ struct ProfileView: View {
     private var rankValue: String {
         if auth.isLoggedIn {
             if rankLoading { return "加载中…" }
-            let w = weekRecord.count
-            let a = allRecord.count
-            if w > 0 || a > 0 { return "本周 \(w) · 累计 \(a)" }
+            if weekTotal > 0 || allTotal > 0 { return "本周 \(weekTotal) · 累计 \(allTotal)" }
             return "暂无数据"
         }
         return "前 \(player.topPlayed.count) 名"
@@ -521,11 +525,13 @@ struct ProfileView: View {
     private func loadNetEaseRank() async {
         guard let user = auth.user, auth.isLoggedIn else { return }
         rankLoading = true
-        async let w = (try? NetEaseAPI.shared.playRecord(uid: user.uid, type: 1)) ?? []
-        async let a = (try? NetEaseAPI.shared.playRecord(uid: user.uid, type: 0)) ?? []
-        let (week, all) = await (w, a)
-        weekRecord = week
-        allRecord = all
+        async let w = try? NetEaseAPI.shared.playRecord(uid: user.uid, type: 1)
+        async let a = try? NetEaseAPI.shared.playRecord(uid: user.uid, type: 0)
+        let (wr, ar) = await (w, a)
+        weekRecord = wr?.items ?? []
+        allRecord = ar?.items ?? []
+        weekTotal = wr?.totalCount ?? 0
+        allTotal = ar?.totalCount ?? 0
         rankLoading = false
     }
 

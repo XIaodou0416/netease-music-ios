@@ -161,21 +161,40 @@ struct AppStoreTabBar: View {
             }
         }
         .overlay(alignment: .leading) {
-            // 液态滑动指示器：跟随选中项平滑移动，触碰滑动时产生液态跟随动画
+            // 原生液态玻璃选中指示器：跟随选中项平滑移动，玻璃厚度 + 高光 + 阴影（iOS 26 原生 Tab 选中态风格）
             GeometryReader { geo in
                 let count = CGFloat(max(RootTab.allCases.count, 1))
                 let tabWidth = max((geo.size.width - 10 - 4 * (count - 1)) / count, 0)
                 let index = CGFloat(RootTab.allCases.firstIndex(of: selection) ?? 0)
-                Capsule()
-                    .fill(Color.beansAmber.opacity(0.20))
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(Color.beansAmber.opacity(0.35), lineWidth: 0.6)
-                    }
-                    .frame(width: tabWidth, height: geo.size.height - 10)
-                    .offset(x: 5 + index * (tabWidth + 4))
-                    .animation(.spring(response: 0.38, dampingFraction: 0.72), value: selection)
-                    .allowsHitTesting(false)
+                GlassEffectContainer {
+                    Capsule()
+                        .fill(.clear)
+                        .glassEffect(.regular, in: Capsule())
+                }
+                .overlay {
+                    Capsule()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [.white.opacity(0.55), .white.opacity(0.12)],
+                                startPoint: .top, endPoint: .bottom
+                            ),
+                            lineWidth: 0.8
+                        )
+                }
+                .overlay {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [.white.opacity(0.18), .clear],
+                                startPoint: .top, endPoint: .center
+                            )
+                        )
+                }
+                .shadow(color: .black.opacity(0.16), radius: 6, y: 2.5)
+                .frame(width: tabWidth, height: geo.size.height - 10)
+                .offset(x: 5 + index * (tabWidth + 4))
+                .animation(.spring(response: 0.38, dampingFraction: 0.72), value: selection)
+                .allowsHitTesting(false)
             }
         }
         .clipShape(Capsule())

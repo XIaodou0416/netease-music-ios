@@ -63,6 +63,7 @@ final class CoverBlurView: UIView {
         addSubview(imageView)
         addSubview(gradientHost)
         addSubview(tintView)
+        startBackgroundAnimations()
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -73,6 +74,37 @@ final class CoverBlurView: UIView {
         gradientLayer.frame = bounds
         imageView.frame = bounds
         tintView.frame = bounds
+    }
+
+    /// 背景动态效果：模糊封面缓慢呼吸缩放 + 主色渐变端点缓慢摆动。
+    /// 纯 CALayer 变换动画（GPU 合成、长周期低频），不触发 SwiftUI 布局，也几乎不增加耗电。
+    private func startBackgroundAnimations() {
+        let scale = CABasicAnimation(keyPath: "transform.scale")
+        scale.fromValue = 1.0
+        scale.toValue = 1.10
+        scale.duration = 14
+        scale.autoreverses = true
+        scale.repeatCount = .infinity
+        scale.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        imageView.layer.add(scale, forKey: "beansBgBreathe")
+
+        let start = CABasicAnimation(keyPath: "startPoint")
+        start.fromValue = NSValue(cgPoint: CGPoint(x: 0.5, y: 0))
+        start.toValue = NSValue(cgPoint: CGPoint(x: 0.66, y: 0))
+        start.duration = 12
+        start.autoreverses = true
+        start.repeatCount = .infinity
+        start.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        gradientLayer.add(start, forKey: "beansGradStart")
+
+        let end = CABasicAnimation(keyPath: "endPoint")
+        end.fromValue = NSValue(cgPoint: CGPoint(x: 0.5, y: 1))
+        end.toValue = NSValue(cgPoint: CGPoint(x: 0.34, y: 1))
+        end.duration = 12
+        end.autoreverses = true
+        end.repeatCount = .infinity
+        end.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        gradientLayer.add(end, forKey: "beansGradEnd")
     }
 
     func updateScheme(_ scheme: ColorScheme) {

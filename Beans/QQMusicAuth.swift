@@ -270,24 +270,42 @@ final class QQMusicAuth: ObservableObject {
     }
 
     /// 对应 JS: e += (e << 5) + t.charCodeAt(n); return 2147483647 & e（e 初始 0）—— ptqrtoken 用
+    /// JS 的 e 是 IEEE-754 double（累加不截断 32 位），必须用 Double 精确模拟，
+    /// 否则长 qrsig 在 Int64 中溢出导致 ptqrtoken 错误、登录接口返回异常。
     static func hash33(_ t: String) -> Int {
-        var e: Int64 = 0
+        var e: Double = 0
         for unit in t.utf16 {
-            let shifted = Int32(truncatingIfNeeded: e) &* 32
-            e = Int64(shifted) + Int64(unit)
+            e = e + Double(Self.toInt32Shift(e)) + Double(unit)
         }
-        return Int(Int32(truncatingIfNeeded: e) & 0x7FFF_FFFF)
+        return Int(Self.toInt32(e) & 0x7FFF_FFFF)
     }
 
     /// 对应 wp_MusicApi 的 f()：n 初始 5381，key 取 skey/qqmusic_key —— oauth g_tk 用
     static func hash5381(_ t: String) -> Int {
-        var e: Int64 = 5381
+        var e: Double = 5381
         for unit in t.utf16 {
-            let shifted = Int32(truncatingIfNeeded: e) &* 32
-            e = Int64(shifted) + Int64(unit)
+            e = e + Double(Self.toInt32Shift(e)) + Double(unit)
         }
-        return Int(Int32(truncatingIfNeeded: e) & 0x7FFF_FFFF)
+        return Int(Self.toInt32(e) & 0x7FFF_FFFF)
     }
+
+    /// JS ToInt32(d) << 5（32 位有符号截断）
+    private static func toInt32Shift(_ d: Double) -> Int32 {
+        let u = Self.toUInt32(d)
+        return Int32(bitPattern: u &* 32)
+    }
+
+    /// JS ToInt32(d)：对 2^32 取模后转有符号 32 位
+    private static func toInt32(_ d: Double) -> Int32 {
+        Int32(bitPattern: Self.toUInt32(d))
+    }
+
+    private static func toUInt32(_ d: Double) -> UInt32 {
+        var r = d.truncatingRemainder(dividingBy: 4294967296.0)
+        if r < 0 { r += 4294967296.0 }
+        return UInt32(r)
+    }
+
 }
 
 /// 拦截自动重定向，手动处理 302（oauth authorize 需要从 Location 拿 code）

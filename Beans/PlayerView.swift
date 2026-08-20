@@ -441,34 +441,9 @@ struct PlayerView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 6)
-        .padding(.bottom, 4)
+        .padding(.bottom, 2)
         .frame(maxWidth: .infinity)
-        .background {
-            // iOS 原生透明液态玻璃：直角通栏、无圆角无硬线，通透采样背景
-            GlassEffectContainer {
-                Rectangle()
-                    .fill(Color.beansGlassFill)
-                    .glassEffect(.clear, in: Rectangle())
-            }
-            .ignoresSafeArea(edges: .bottom)
-            .overlay {
-                LinearGradient(
-                    colors: [.white.opacity(0.22), .clear, .white.opacity(0.04)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                )
-            }
-            .overlay {
-                Rectangle()
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [.white.opacity(0.28), .white.opacity(0.04)],
-                            startPoint: .top, endPoint: .bottom
-                        ),
-                        lineWidth: 0.5
-                    )
-            }
-        }
-        .shadow(color: .black.opacity(0.06), radius: 14, y: -2)
+        // 底部控件直接悬浮在模糊背景上，与顶部一致地融入画面（无面板无描边）
     }
 
     private var subtitle: String {
@@ -879,8 +854,8 @@ struct LyricsSection: View {
             ? 1.0
             : (isPlayed ? 0.38 : 0.72) - Double(min(distance, 4)) * 0.05
         let size = isCurrent ? baseFontSize + 4 : baseFontSize - CGFloat(min(distance, 2)) * 1.5
-        // 已出现/未出现的歌词行：距离当前行越远越模糊（Apple Music 式景深）
-        let blurRadius: CGFloat = isCurrent ? 0 : min(CGFloat(distance) * 1.6, 5)
+        // 歌词行模糊：当前行与邻近行保持清晰，距离越远才越柔和（避免只剩一行清晰显得突兀）
+        let blurRadius: CGFloat = isCurrent ? 0 : min(CGFloat(max(distance - 1, 0)) * 1.1, 2.8)
 
         return Text(line.text.isEmpty ? "♪" : line.text)
             .font(.system(

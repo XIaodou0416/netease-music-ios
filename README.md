@@ -11,7 +11,7 @@ Beans 是一款面向网易云账号的音乐播放器：扫码登录 → 拉取
 - 发现页：排行榜、每日推荐（单卡片）、推荐歌单、热门歌单
 - 搜索 + 热搜榜 + 相似歌曲 + 在线歌词逐行跟随
 - 液态玻璃 UI（GlassEffectContainer / .glassEffect）+ 深浅色跟随系统 + 5 套全局配色一键切换
-- 播放页：下滑退出 / 静态封面 / 点封面看歌词 / 歌词点击跳转播放
+- 播放页：全屏沉浸舞台 + 毛玻璃控制坞 / 静态封面 / 点封面看歌词 / 歌词点击跳转播放
 - 搜索即时联想（防抖）、网易云收藏数云端同步、App Store 风格底栏、触感与按压动效
 
 ## 工程结构
@@ -23,7 +23,7 @@ Beans/
 ├── SearchView.swift          搜索 + 热搜
 ├── LibraryView.swift        音乐库（收藏 / 歌单 / 最近播放 / 听歌排行）
 ├── PlaylistView.swift       歌单详情
-├── PlayerView.swift         播放页（毛玻璃背景 / 静态封面 / 歌词 / 进度 / 倍速 / 睡眠定时）
+├── PlayerView.swift         播放页（沉浸舞台 + 控制坞 / 歌词 / 进度 / 倍速 / 睡眠定时）
 ├── MiniPlayerView.swift     迷你播放条
 ├── QueueView.swift          播放队列
 ├── HistoryView.swift        最近播放

@@ -119,7 +119,14 @@ struct GlassIconButton: View {
                 .font(.system(size: size * 0.38, weight: .semibold))
                 .foregroundStyle(active ? Color.beansAmber : Color.beansLabel)
                 .frame(width: size, height: size)
-                .glassEffect(.clear, in: .circle)
+                .background {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .overlay {
+                            Circle().strokeBorder(.white.opacity(0.12), lineWidth: 0.6)
+                        }
+                }
+                .clipShape(Circle())
                 .contentShape(Circle())
         }
         .buttonStyle(GlassPressButtonStyle())

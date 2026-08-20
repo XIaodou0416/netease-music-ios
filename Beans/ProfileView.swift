@@ -116,7 +116,7 @@ struct ProfileView: View {
                 .pickerStyle(.segmented)
             }
             .padding(16)
-            .glassEffect(.clear, in: .rect(cornerRadius: 22))
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
     }
 
@@ -192,7 +192,7 @@ struct ProfileView: View {
                     .foregroundStyle(Color.red)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .glassEffect(.clear, in: .rect(cornerRadius: 20))
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
             .buttonStyle(.plain)
         }

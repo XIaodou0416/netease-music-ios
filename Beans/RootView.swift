@@ -83,80 +83,59 @@ struct RootView: View {
     }
 }
 
-// MARK: - App Store 风格液态底栏
+// MARK: - 液态玻璃底栏（玻璃效果仅作背景装饰，不包裹按钮，保证可交互）
 
 struct AppStoreTabBar: View {
     @Binding var selection: RootTab
 
     var body: some View {
-        GlassEffectContainer {
-            ZStack {
-                // 玻璃背景层：独立装饰，避免玻璃效果包裹按钮导致触摸失效
-                Capsule()
-                    .fill(Color.beansGlassFill)
-                    .glassEffect(.regular, in: .capsule)
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [.white.opacity(0.5), .white.opacity(0.1)],
-                                    startPoint: .top, endPoint: .bottom
-                                ),
-                                lineWidth: 1
-                            )
-                    }
-                    .overlay(alignment: .top) {
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.white.opacity(0.22), .clear],
-                                    startPoint: .top, endPoint: .center
-                                )
-                            )
-                            .frame(height: 30)
-                            .padding(.horizontal, 10)
-                            .clipShape(Capsule())
-                            .allowsHitTesting(false)
-                    }
-                    .allowsHitTesting(false)
-
-                // 按钮层：放在玻璃之上，保证可交互
-                HStack(spacing: 6) {
-                    ForEach(RootTab.allCases) { tab in
-                        Button {
-                            if selection != tab {
-                                BeansHaptics.select()
-                                withAnimation(.spring(duration: 0.35)) {
-                                    selection = tab
-                                }
-                            }
-                        } label: {
-                            VStack(spacing: 3) {
-                                Image(systemName: tab.icon)
-                                    .font(.system(size: 16, weight: .medium))
-                                Text(tab.title)
-                                    .font(.system(size: 10, weight: .semibold))
-                            }
-                            .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .background {
-                                if selection == tab {
-                                    Capsule()
-                                        .fill(Color.beansAmber.opacity(0.18))
-                                }
-                            }
-                            .clipShape(Capsule())
+        HStack(spacing: 4) {
+            ForEach(RootTab.allCases) { tab in
+                Button {
+                    if selection != tab {
+                        BeansHaptics.select()
+                        withAnimation(.spring(duration: 0.3)) {
+                            selection = tab
                         }
-                        .buttonStyle(.plain)
                     }
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 17, weight: .medium))
+                        Text(tab.title)
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .background {
+                        if selection == tab {
+                            Capsule().fill(Color.beansAmber.opacity(0.18))
+                        }
+                    }
+                    .clipShape(Capsule())
                 }
-                .padding(6)
+                .buttonStyle(.plain)
             }
-            .frame(height: 60)
         }
-        .padding(.horizontal, 14)
+        .padding(5)
+        .background {
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    Capsule()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [.white.opacity(0.35), .white.opacity(0.08)],
+                                startPoint: .top, endPoint: .bottom
+                            ),
+                            lineWidth: 0.8
+                        )
+                }
+        }
+        .clipShape(Capsule())
+        .padding(.horizontal, 16)
         .padding(.bottom, 4)
-        .shadow(color: .black.opacity(0.15), radius: 18, y: 8)
+        .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
     }
 }

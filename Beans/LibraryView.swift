@@ -87,7 +87,7 @@ struct LibraryView: View {
                     .foregroundStyle(Color.beansSecondary)
             }
             .padding(14)
-            .glassEffect(.clear, in: .rect(cornerRadius: 22))
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
         .buttonStyle(.plain)
     }

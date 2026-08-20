@@ -344,3 +344,55 @@ struct ProgressLine: View {
         }
     }
 }
+// MARK: - 全局轻提示（Toast，收藏/歌单等操作反馈用）
+
+@MainActor
+final class ToastCenter: ObservableObject {
+    static let shared = ToastCenter()
+
+    @Published var message: String?
+    private var dismissTask: Task<Void, Never>?
+
+    private init() {}
+
+    func show(_ text: String, duration: Double = 2.2) {
+        dismissTask?.cancel()
+        message = text
+        dismissTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            self?.message = nil
+        }
+    }
+}
+
+struct ToastView: View {
+    @ObservedObject var center: ToastCenter
+    @EnvironmentObject private var theme: ThemeStore
+
+    var body: some View {
+        let _ = theme.accent
+        Text(center.message ?? "")
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(Color.beansLabel)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 10)
+            .background {
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 0.8)
+                    }
+            }
+            .clipShape(Capsule())
+            .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
+            .padding(.horizontal, 30)
+            .padding(.bottom, 92)
+            .opacity(center.message == nil ? 0 : 1)
+            .offset(y: center.message == nil ? 16 : 0)
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: center.message)
+            .allowsHitTesting(false)
+    }
+}

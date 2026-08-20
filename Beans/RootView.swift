@@ -72,6 +72,9 @@ struct RootView: View {
                 .environmentObject(auth)
         }
         .animation(.spring(duration: 0.4), value: player.currentSong?.id)
+        .overlay(alignment: .bottom) {
+            ToastView(center: ToastCenter.shared)
+        }
     }
 
     @ViewBuilder
@@ -131,20 +134,29 @@ struct AppStoreTabBar: View {
         .padding(5)
         .background {
             Capsule()
-                .fill(.ultraThinMaterial)
+                .fill(.ultraThinMaterial.opacity(0.68))
                 .overlay {
                     Capsule()
                         .strokeBorder(
                             LinearGradient(
-                                colors: [.white.opacity(0.35), .white.opacity(0.08)],
+                                colors: [.white.opacity(0.45), .white.opacity(0.10)],
                                 startPoint: .top, endPoint: .bottom
                             ),
                             lineWidth: 0.8
                         )
                 }
+                .overlay {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [.white.opacity(0.16), .clear],
+                                startPoint: .top, endPoint: .center
+                            )
+                        )
+                }
         }
         .clipShape(Capsule())
-        .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
+        .shadow(color: .black.opacity(0.10), radius: 14, y: 6)
     }
 
     private func tabButton(_ tab: RootTab) -> some View {

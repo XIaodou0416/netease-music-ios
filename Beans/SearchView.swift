@@ -12,6 +12,7 @@ struct SearchView: View {
     @State private var errorMessage: String?
     @State private var showAddToPlaylist: Song?
     @State private var debounceTask: Task<Void, Never>?
+    @State private var searchTask: Task<Void, Never>?
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -48,7 +49,7 @@ struct SearchView: View {
             debounceTask = Task {
                 try? await Task.sleep(nanoseconds: 400_000_000)
                 guard !Task.isCancelled else { return }
-                await search()
+                await startSearch(trimmed)
             }
         }
         .sheet(item: $showAddToPlaylist) { song in
@@ -69,9 +70,7 @@ struct SearchView: View {
                 .autocorrectionDisabled()
                 .submitLabel(.search)
                 .onSubmit {
-                    focused = false
-                    debounceTask?.cancel()
-                    Task { await search() }
+                    submitSearch()
                 }
             if searching {
                 ProgressView()
@@ -92,13 +91,15 @@ struct SearchView: View {
                 .buttonStyle(.plain)
             }
             Button {
-                focused = false
-                debounceTask?.cancel()
-                Task { await search() }
+                submitSearch()
             } label: {
-                Image(systemName: "arrow.right.circle.fill")
-                    .font(.system(size: 22))
+                Text("搜索")
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color.beansAmber)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .clipShape(Capsule())
             }
             .buttonStyle(GlassPressButtonStyle(scale: 0.9))
         }
@@ -124,7 +125,7 @@ struct SearchView: View {
                                 keyword = word
                                 focused = false
                                 debounceTask?.cancel()
-                                Task { await search() }
+                                Task { await startSearch(word) }
                             } label: {
                                 HStack(spacing: 10) {
                                     Text("\(index + 1)")
@@ -156,12 +157,12 @@ struct SearchView: View {
 
     private var resultsArea: some View {
         Group {
-            if searching && results.isEmpty {
-                LoadingStateView()
-            } else if let errorMessage {
+            if let errorMessage, results.isEmpty {
                 ErrorStateView(message: errorMessage) {
-                    Task { await search() }
+                    submitSearch()
                 }
+            } else if searching && results.isEmpty {
+                LoadingStateView()
             } else if results.isEmpty {
                 EmptyStateView(icon: "magnifyingglass", text: "未找到「\(keyword)」相关歌曲")
             } else {
@@ -188,22 +189,47 @@ struct SearchView: View {
                 }
                 .scrollIndicators(.hidden)
                 .scrollDismissesKeyboard(.immediately)
+                .overlay(alignment: .top) {
+                    if searching {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(Color.beansAmber)
+                            .padding(.top, 10)
+                    }
+                }
             }
         }
     }
 
-    private func search() async {
+    private func submitSearch() {
+        focused = false
+        debounceTask?.cancel()
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        searching = true
-        errorMessage = nil
-        do {
-            results = try await NetEaseAPI.shared.search(keyword: trimmed, limit: 40)
-            searching = false
-            BeansHaptics.success()
-        } catch {
-            errorMessage = error.localizedDescription
-            searching = false
+        Task { await startSearch(trimmed) }
+    }
+
+    private func startSearch(_ text: String) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        searchTask?.cancel()
+        searchTask = Task {
+            searching = true
+            errorMessage = nil
+            do {
+                let songs = try await NetEaseAPI.shared.search(keyword: trimmed, limit: 40)
+                guard !Task.isCancelled else { return }
+                results = songs
+                searching = false
+                if !songs.isEmpty {
+                    BeansHaptics.success()
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                errorMessage = error.localizedDescription
+                searching = false
+            }
         }
+        await searchTask?.value
     }
 }

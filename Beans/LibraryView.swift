@@ -8,6 +8,10 @@ struct LibraryView: View {
     @State private var showFavorites = false
     @State private var showHistory = false
     @State private var selectedPlaylist: Playlist?
+    @State private var showCreatePlaylist = false
+    @State private var newPlaylistName = ""
+    @State private var pendingDelete: Playlist?
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         let _ = theme.accent
@@ -40,6 +44,17 @@ struct LibraryView: View {
             PlaylistView(playlist: playlist)
                 .environmentObject(player)
                 .environmentObject(auth)
+        }
+        .alert("新建歌单", isPresented: $showCreatePlaylist) {
+            TextField("歌单名称", text: $newPlaylistName)
+            Button("创建") { createPlaylist() }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("输入歌单名称，创建后同步到网易云")
+        }
+        .confirmationDialog("确定删除歌单「\(pendingDelete?.name ?? "")」吗？", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("删除", role: .destructive) { confirmDeletePlaylist() }
+            Button("取消", role: .cancel) {}
         }
     }
 
@@ -97,11 +112,16 @@ struct LibraryView: View {
 
     private var playlistsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "我的歌单")
-            if auth.playlists.isEmpty {
-                EmptyStateView(icon: "music.note.list", text: "暂无歌单")
-            } else {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 16) {
+            SectionHeader(title: "我的歌单", trailing: "新建") {
+                BeansHaptics.tap()
+                newPlaylistName = ""
+                showCreatePlaylist = true
+            }
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 16) {
+                if auth.playlists.isEmpty {
+                    createPlaylistCard
+                        .gridCellColumns(2)
+                } else {
                     ForEach(auth.playlists) { playlist in
                         Button {
                             selectedPlaylist = playlist
@@ -119,10 +139,43 @@ struct LibraryView: View {
                             }
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                                BeansHaptics.tap()
+                                requestDelete(playlist)
+                            } label: {
+                                Label("删除歌单", systemImage: "trash")
+                            }
+                        }
                     }
+                    createPlaylistCard
                 }
             }
         }
+    }
+
+    private var createPlaylistCard: some View {
+        Button {
+            BeansHaptics.tap()
+            newPlaylistName = ""
+            showCreatePlaylist = true
+        } label: {
+            VStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+                        .foregroundStyle(Color.beansSecondary.opacity(0.45))
+                        .frame(width: 160, height: 160)
+                    Image(systemName: "plus")
+                        .font(.system(size: 26, weight: .medium))
+                        .foregroundStyle(Color.beansSecondary)
+                }
+                Text("新建歌单")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.beansSecondary)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private var historySection: some View {
@@ -179,6 +232,56 @@ struct LibraryView: View {
                         Divider().overlay(Color.beansSecondary.opacity(0.15))
                     }
                 }
+            }
+        }
+    }
+
+    // MARK: - 歌单新建 / 删除
+
+    private func createPlaylist() {
+        let name = newPlaylistName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else {
+            ToastCenter.shared.show("请输入歌单名称")
+            return
+        }
+        guard auth.isLoggedIn else {
+            ToastCenter.shared.show("请先登录后再创建歌单")
+            return
+        }
+        Task {
+            do {
+                _ = try await NetEaseAPI.shared.createPlaylist(name: name)
+                ToastCenter.shared.show("歌单「\(name)」已创建")
+                newPlaylistName = ""
+                await auth.loadLibrary()
+            } catch {
+                ToastCenter.shared.show("创建失败：\(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func requestDelete(_ playlist: Playlist) {
+        guard playlist.name != "我喜欢的音乐" else {
+            ToastCenter.shared.show("「我喜欢的音乐」为系统歌单，不可删除")
+            return
+        }
+        pendingDelete = playlist
+        showDeleteConfirm = true
+    }
+
+    private func confirmDeletePlaylist() {
+        guard let playlist = pendingDelete else { return }
+        Task {
+            do {
+                let ok = try await NetEaseAPI.shared.deletePlaylist(id: playlist.id)
+                if ok {
+                    ToastCenter.shared.show("已删除歌单「\(playlist.name)」")
+                    await auth.loadLibrary()
+                } else {
+                    ToastCenter.shared.show("删除失败，请稍后再试")
+                }
+            } catch {
+                ToastCenter.shared.show("删除失败：\(error.localizedDescription)")
             }
         }
     }

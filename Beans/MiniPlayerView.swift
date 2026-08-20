@@ -52,12 +52,19 @@ struct MiniPlayerView: View {
             .padding(.vertical, 8)
             .background {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(.ultraThinMaterial.opacity(0.78))
+                    .overlay {
+                        // 液态高光：左上到右下清透玻璃质感
+                        LinearGradient(
+                            colors: [.white.opacity(0.22), .clear, .white.opacity(0.04)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    }
                     .overlay {
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
                             .strokeBorder(
                                 LinearGradient(
-                                    colors: [.white.opacity(0.3), .white.opacity(0.06)],
+                                    colors: [.white.opacity(0.45), .white.opacity(0.08)],
                                     startPoint: .top, endPoint: .bottom
                                 ),
                                 lineWidth: 0.8

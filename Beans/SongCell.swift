@@ -20,6 +20,24 @@ struct SongCell: View {
         auth.favoriteTracks.contains { $0.id == song.id }
     }
 
+    private func likeTapped() {
+        guard auth.isLoggedIn else {
+            ToastCenter.shared.show("请先登录后再收藏")
+            return
+        }
+        let willLike = !auth.isLiked(song)
+        Task {
+            do {
+                let ok = try await auth.toggleLike(song)
+                ToastCenter.shared.show(ok
+                    ? (willLike ? "已收藏到「我喜欢的音乐」" : "已取消收藏")
+                    : "收藏失败，请稍后再试")
+            } catch {
+                ToastCenter.shared.show("收藏失败：\(error.localizedDescription)")
+            }
+        }
+    }
+
     var body: some View {
         let _ = theme.accent
         HStack(spacing: 12) {
@@ -46,7 +64,8 @@ struct SongCell: View {
             }
             if showLike {
                 Button {
-                    Task { _ = try? await auth.toggleLike(song) }
+                    BeansHaptics.tap()
+                    likeTapped()
                 } label: {
                     Image(systemName: isLiked ? "heart.fill" : "heart")
                         .font(.system(size: 15))
@@ -64,7 +83,8 @@ struct SongCell: View {
         }
         .contextMenu {
             Button {
-                Task { _ = try? await auth.toggleLike(song) }
+                BeansHaptics.tap()
+                likeTapped()
             } label: {
                 Label(isLiked ? "取消收藏" : "收藏", systemImage: isLiked ? "heart.slash" : "heart")
             }

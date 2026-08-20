@@ -53,6 +53,9 @@ struct PlayerView: View {
                 CommentsSheet(song: song)
             }
         }
+        .overlay(alignment: .bottom) {
+            ToastView(center: ToastCenter.shared)
+        }
     }
 
     // MARK: - 背景（全屏：主题渐变 + 封面模糊源 + 深浅遮罩 + 静态光斑，零逐帧渲染）
@@ -342,7 +345,7 @@ struct PlayerView: View {
             if auth.isLoggedIn, let song {
                 Button {
                     BeansHaptics.tap()
-                    Task { _ = try? await auth.toggleLike(song) }
+                    likeTapped(song)
                 } label: {
                     Image(systemName: isLiked(song) ? "heart.fill" : "heart")
                         .font(.system(size: 15))
@@ -403,10 +406,6 @@ struct PlayerView: View {
 
     private var mainControls: some View {
         HStack(spacing: 0) {
-            deckButton(icon: player.sleepTimerRemaining > 0 ? "moon.zzz.fill" : "moon.zzz",
-                       accent: player.sleepTimerRemaining > 0) {
-                showSleepTimer = true
-            }
             deckButton(icon: player.playMode.icon, accent: player.playMode == .shuffle) {
                 player.togglePlayMode()
                 BeansHaptics.select()
@@ -514,6 +513,11 @@ struct PlayerView: View {
 
             Menu {
                 Button {
+                    showSleepTimer = true
+                } label: {
+                    Label(player.sleepTimerRemaining > 0 ? "定时关闭（进行中）" : "定时关闭", systemImage: "moon.zzz")
+                }
+                Button {
                     showSimi = true
                 } label: {
                     Label("相似歌曲", systemImage: "sparkles")
@@ -544,6 +548,24 @@ struct PlayerView: View {
 
     private func isLiked(_ song: Song) -> Bool {
         auth.favoriteTracks.contains { $0.id == song.id }
+    }
+
+    private func likeTapped(_ song: Song) {
+        guard auth.isLoggedIn else {
+            ToastCenter.shared.show("请先登录后再收藏")
+            return
+        }
+        let willLike = !auth.isLiked(song)
+        Task {
+            do {
+                let ok = try await auth.toggleLike(song)
+                ToastCenter.shared.show(ok
+                    ? (willLike ? "已收藏到「我喜欢的音乐」" : "已取消收藏")
+                    : "收藏失败，请稍后再试")
+            } catch {
+                ToastCenter.shared.show("收藏失败：\(error.localizedDescription)")
+            }
+        }
     }
 
     private func loadLyrics() async {

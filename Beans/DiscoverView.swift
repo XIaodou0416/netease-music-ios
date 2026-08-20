@@ -14,6 +14,7 @@ struct DiscoverView: View {
     @State private var errorMessage: String?
     @State private var selectedTopList: TopList?
     @State private var selectedPlaylist: Playlist?
+    @State private var showDailyList = false
 
     var body: some View {
         let _ = theme.accent
@@ -56,6 +57,11 @@ struct DiscoverView: View {
         }
         .sheet(item: $selectedPlaylist) { playlist in
             PlaylistView(playlist: playlist)
+                .environmentObject(player)
+                .environmentObject(auth)
+        }
+        .sheet(isPresented: $showDailyList) {
+            DailySongsSheet(songs: dailySongs)
                 .environmentObject(player)
                 .environmentObject(auth)
         }
@@ -115,10 +121,17 @@ struct DiscoverView: View {
 
     private var dailySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "每日推荐")
-            VStack(spacing: 0) {
+            SectionHeader(title: "每日推荐", trailing: "查看全部") {
+                BeansHaptics.tap()
+                showDailyList = true
+            }
+            // 每日推荐大卡片：点击查看今日全部推荐
+            Button {
+                BeansHaptics.tap()
+                showDailyList = true
+            } label: {
                 HStack(spacing: 14) {
-                    CoverImage(url: dailySongs.first?.coverURL, size: 54, cornerRadius: 12)
+                    CoverImage(url: dailySongs.first?.coverURL, size: 58, cornerRadius: 13)
                     VStack(alignment: .leading, spacing: 3) {
                         Text("为你精选 \(dailySongs.count) 首")
                             .font(.system(size: 16, weight: .semibold))
@@ -127,24 +140,34 @@ struct DiscoverView: View {
                             .font(.system(size: 12))
                             .foregroundStyle(Color.beansSecondary)
                     }
-                    Spacer()
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.beansSecondary)
                 }
                 .padding(14)
-                HStack(spacing: 10) {
-                    GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
-                        BeansHaptics.tap()
-                        player.play(songs: dailySongs, startAt: 0)
-                    }
-                    GlassButton(title: "随机播放", systemName: "shuffle") {
-                        BeansHaptics.tap()
-                        player.play(songs: dailySongs, startAt: Int.random(in: 0..<dailySongs.count))
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 14)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .beansCardShadow(radius: 8, y: 3)
             }
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .buttonStyle(GlassPressButtonStyle(scale: 0.97))
+
+            // 播放全部 / 随机播放：与封面左边缘对齐
+            HStack(spacing: 10) {
+                GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
+                    BeansHaptics.tap()
+                    player.play(songs: dailySongs, startAt: 0)
+                }
+                GlassButton(title: "随机播放", systemName: "shuffle") {
+                    BeansHaptics.tap()
+                    player.play(songs: dailySongs, startAt: Int.random(in: 0..<dailySongs.count))
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .beansCardShadow(radius: 8, y: 3)
 
             VStack(spacing: 0) {
@@ -163,7 +186,6 @@ struct DiscoverView: View {
             .beansCardShadow(radius: 8, y: 3)
         }
     }
-
     private var personalizedSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "推荐歌单")
@@ -236,6 +258,51 @@ struct DiscoverView: View {
     }
 }
 
+// MARK: - 每日推荐全部歌曲
+
+struct DailySongsSheet: View {
+    @EnvironmentObject private var player: PlayerManager
+    @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var theme: ThemeStore
+
+    let songs: [Song]
+
+    var body: some View {
+        let _ = theme.accent
+        NavigationStack {
+            if songs.isEmpty {
+                EmptyStateView(icon: "sparkles", text: "今日推荐加载中，下拉刷新试试")
+            } else {
+                List {
+                    Section {
+                        HStack(spacing: 12) {
+                            GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
+                                BeansHaptics.tap()
+                                player.play(songs: songs, startAt: 0)
+                            }
+                            GlassButton(title: "随机播放", systemName: "shuffle") {
+                                BeansHaptics.tap()
+                                player.play(songs: songs, startAt: Int.random(in: 0..<songs.count))
+                            }
+                        }
+                        .listRowBackground(Color.clear)
+                        .padding(.vertical, 8)
+                    }
+                    Section {
+                        ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
+                            SongCell(song: song) {
+                                BeansHaptics.tap()
+                                player.play(songs: songs, startAt: index)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("今日推荐")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
 // MARK: - 排行榜详情
 
 struct TopListDetailView: View {

@@ -119,7 +119,7 @@ struct PlayerView: View {
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 40, height: 40)
-                    .glassEffect(.thin, in: .circle)
+                    .glassEffect(.clear, in: .circle)
             }
             .buttonStyle(GlassPressButtonStyle())
             Spacer()
@@ -140,7 +140,7 @@ struct PlayerView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 40, height: 40)
-                    .glassEffect(.thin, in: .circle)
+                    .glassEffect(.clear, in: .circle)
             }
             .buttonStyle(GlassPressButtonStyle())
         }
@@ -198,7 +198,7 @@ struct PlayerView: View {
                         .font(.system(size: 21))
                         .foregroundStyle(isLiked(song) ? Color.beansAmber : Color.beansLabel)
                         .frame(width: 44, height: 44)
-                        .glassEffect(.thin, in: .circle)
+                        .glassEffect(.clear, in: .circle)
                 }
                 .buttonStyle(GlassPressButtonStyle())
             }
@@ -221,7 +221,7 @@ struct PlayerView: View {
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Color.beansSecondary)
                         .frame(width: 34, height: 34)
-                        .glassEffect(.thin, in: .circle)
+                        .glassEffect(.clear, in: .circle)
                 }
                 .buttonStyle(GlassPressButtonStyle())
             }
@@ -294,7 +294,7 @@ struct PlayerView: View {
                     .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 44, height: 44)
-                    .glassEffect(.thin, in: .circle)
+                    .glassEffect(.clear, in: .circle)
             }
             .buttonStyle(GlassPressButtonStyle())
 
@@ -306,7 +306,7 @@ struct PlayerView: View {
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 52, height: 52)
-                    .glassEffect(.thin, in: .circle)
+                    .glassEffect(.clear, in: .circle)
             }
             .buttonStyle(GlassPressButtonStyle())
 
@@ -331,7 +331,7 @@ struct PlayerView: View {
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 52, height: 52)
-                    .glassEffect(.thin, in: .circle)
+                    .glassEffect(.clear, in: .circle)
             }
             .buttonStyle(GlassPressButtonStyle())
 
@@ -342,7 +342,7 @@ struct PlayerView: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(Color.beansSecondary)
                     .frame(width: 44, height: 44)
-                    .glassEffect(.thin, in: .circle)
+                    .glassEffect(.clear, in: .circle)
             }
             .buttonStyle(GlassPressButtonStyle())
         }
@@ -374,7 +374,7 @@ struct PlayerView: View {
                 .foregroundStyle(Color.beansSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .glassEffect(.thin, in: .capsule)
+                .glassEffect(.clear, in: .capsule)
             }
 
             Spacer()
@@ -392,7 +392,7 @@ struct PlayerView: View {
                 .foregroundStyle(player.sleepTimerRemaining > 0 ? Color.beansAmber : Color.beansSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .glassEffect(.thin, in: .capsule)
+                .glassEffect(.clear, in: .capsule)
             }
             .buttonStyle(GlassPressButtonStyle())
 
@@ -404,7 +404,7 @@ struct PlayerView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(showLyrics ? Color.beansAmber : Color.beansSecondary)
                     .frame(width: 40, height: 40)
-                    .glassEffect(.thin, in: .circle)
+                    .glassEffect(.clear, in: .circle)
             }
             .buttonStyle(GlassPressButtonStyle())
 
@@ -415,7 +415,7 @@ struct PlayerView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color.beansSecondary)
                     .frame(width: 40, height: 40)
-                    .glassEffect(.thin, in: .circle)
+                    .glassEffect(.clear, in: .circle)
             }
             .buttonStyle(GlassPressButtonStyle())
 
@@ -426,7 +426,7 @@ struct PlayerView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color.beansSecondary)
                     .frame(width: 40, height: 40)
-                    .glassEffect(.thin, in: .circle)
+                    .glassEffect(.clear, in: .circle)
             }
             .buttonStyle(GlassPressButtonStyle())
         }

@@ -67,7 +67,7 @@ struct ProfileView: View {
             Spacer()
         }
         .padding(16)
-        .glassEffect(.regular, in: .rect(cornerRadius: 24))
+        .glassEffect(.clear, in: .rect(cornerRadius: 24))
     }
 
     private var statsRow: some View {
@@ -92,7 +92,7 @@ struct ProfileView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .glassEffect(.regular, in: .rect(cornerRadius: 20))
+        .glassEffect(.clear, in: .rect(cornerRadius: 20))
     }
 
     private var settingsSection: some View {
@@ -117,7 +117,7 @@ struct ProfileView: View {
                 .pickerStyle(.segmented)
             }
             .padding(16)
-            .glassEffect(.regular, in: .rect(cornerRadius: 22))
+            .glassEffect(.clear, in: .rect(cornerRadius: 22))
         }
     }
 
@@ -183,7 +183,7 @@ struct ProfileView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(16)
-            .glassEffect(.regular, in: .rect(cornerRadius: 22))
+            .glassEffect(.clear, in: .rect(cornerRadius: 22))
 
             Button(role: .destructive) {
                 confirmLogout = true
@@ -193,7 +193,7 @@ struct ProfileView: View {
                     .foregroundStyle(Color.red)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
+                    .glassEffect(.clear, in: .rect(cornerRadius: 20))
             }
             .buttonStyle(.plain)
         }

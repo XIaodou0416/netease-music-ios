@@ -81,7 +81,7 @@ struct GlassCard<Content: View>: View {
         GlassEffectContainer {
             content()
                 .padding(16)
-                .glassEffect(.thin, in: .rect(cornerRadius: cornerRadius))
+                .glassEffect(.clear, in: .rect(cornerRadius: cornerRadius))
         }
     }
 }
@@ -139,7 +139,7 @@ struct GlassIconButton: View {
                 .font(.system(size: size * 0.38, weight: .semibold))
                 .foregroundStyle(active ? Color.beansAmber : Color.beansLabel)
                 .frame(width: size, height: size)
-                .glassEffect(.thin, in: .circle)
+                .glassEffect(.clear, in: .circle)
                 .contentShape(Circle())
         }
         .buttonStyle(GlassPressButtonStyle())

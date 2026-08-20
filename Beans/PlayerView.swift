@@ -492,33 +492,19 @@ struct PlayerView: View {
 
     // MARK: - 底部控制栏（普通材质圆角面板：进度 / 主控制 / 工具行）
 
-    /// 底部控制栏估算高度（专辑模式用它补偿底部占位，歌词模式全高滚动）
-    private let deckInset: CGFloat = 168
+    /// 底部控制栏估算高度（单行控制后降低，给歌词视口更多空间）
+    private let deckInset: CGFloat = 130
 
     private var controlDeck: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
+            deckRow
             progressBlock
-
-            VStack(spacing: 8) {
-                mainControls
-                utilityRow
-            }
-            .simultaneousGesture(
-                // 上滑主控制/工具行区域呼出评论区（进度条区域保留拖动，不误触）
-                DragGesture(minimumDistance: 25)
-                    .onEnded { value in
-                        if value.translation.height < -50, song != nil {
-                            BeansHaptics.medium()
-                            showComments = true
-                        }
-                    }
-            )
         }
         .padding(.horizontal, 24)
         .padding(.top, 4)
-        .padding(.bottom, 2)
+        .padding(.bottom, 6)
         .frame(maxWidth: .infinity)
-        // 底部控件直接悬浮在模糊背景上，与顶部一致地融入画面（无面板无描边）
+        // 底部控件直接悬浮在模糊背景上：单行控制 + 底部进度条，歌词视口更大
     }
 
     private var subtitle: String {
@@ -562,25 +548,82 @@ struct PlayerView: View {
         .buttonStyle(GlassPressButtonStyle())
     }
 
-    // MARK: - 主控制（上一曲 / 播放 / 下一曲 等宽居中，播放键在正中；循环/随机已移至工具行）
+    // MARK: - 合并控制行（循环 / 上一曲 / 播放暂停 / 下一曲 / 播放列表 平行排列，播放键居中）
 
-    // 主控制：上一曲 / 播放 / 下一曲 居中等距簇（不撑满全宽，观感更稳）
-    private var mainControls: some View {
-        HStack(spacing: 30) {
+    private var deckRow: some View {
+        HStack(spacing: 8) {
+            modeButton
+                .frame(maxWidth: .infinity)
             deckButton(icon: "backward.fill", expand: false) {
                 BeansHaptics.tap()
                 player.previous()
             }
-            .frame(width: 56)
+            .frame(maxWidth: .infinity)
             playButton
-                .frame(width: 64)
+                .frame(maxWidth: .infinity)
             deckButton(icon: "forward.fill", expand: false) {
                 BeansHaptics.tap()
                 player.next()
             }
-            .frame(width: 56)
+            .frame(maxWidth: .infinity)
+            queueButton
+                .frame(maxWidth: .infinity)
         }
         .frame(maxWidth: .infinity)
+        .simultaneousGesture(
+            // 上滑控制行呼出评论区（进度条区域保留拖动，不误触）
+            DragGesture(minimumDistance: 25)
+                .onEnded { value in
+                    if value.translation.height < -50, song != nil {
+                        BeansHaptics.medium()
+                        showComments = true
+                    }
+                }
+        )
+    }
+
+    /// 循环 / 随机播放按钮（随机模式高亮）
+    private var modeButton: some View {
+        Button {
+            BeansHaptics.select()
+            player.togglePlayMode()
+        } label: {
+            Image(systemName: player.playMode.icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(player.playMode == .shuffle ? palette.accent : palette.secondary)
+                .frame(width: 30, height: 30)
+                .background {
+                    GlassEffectContainer {
+                        Circle()
+                            .fill(.clear)
+                            .glassEffect(.clear, in: Circle())
+                    }
+                }
+                .clipShape(Circle())
+        }
+        .buttonStyle(GlassPressButtonStyle())
+    }
+
+    /// 播放列表按钮
+    private var queueButton: some View {
+        Button {
+            BeansHaptics.tap()
+            showQueue = true
+        } label: {
+            Image(systemName: "list.bullet")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(palette.secondary)
+                .frame(width: 30, height: 30)
+                .background {
+                    GlassEffectContainer {
+                        Circle()
+                            .fill(.clear)
+                            .glassEffect(.clear, in: Circle())
+                    }
+                }
+                .clipShape(Circle())
+        }
+        .buttonStyle(GlassPressButtonStyle())
     }
 
     private func deckButton(icon: String, accent: Bool = false, expand: Bool = true, action: @escaping () -> Void) -> some View {
@@ -642,54 +685,6 @@ struct PlayerView: View {
         .frame(maxWidth: .infinity)
     }
 
-
-    // MARK: - 工具行（循环/随机 / 播放列表；倍速与更多设置已移入右上角更多菜单）
-
-    private var utilityRow: some View {
-        HStack(spacing: 8) {
-            // 循环 / 随机播放小按钮（缩小，跟随当前播放模式图标，随机模式高亮）
-            Button {
-                BeansHaptics.select()
-                player.togglePlayMode()
-            } label: {
-                Image(systemName: player.playMode.icon)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(player.playMode == .shuffle ? palette.accent : palette.secondary)
-                    .frame(width: 30, height: 30)
-                    .background {
-                        GlassEffectContainer {
-                            Circle()
-                                .fill(.clear)
-                                .glassEffect(.clear, in: Circle())
-                        }
-                    }
-                    .clipShape(Circle())
-            }
-            .buttonStyle(GlassPressButtonStyle())
-
-            Spacer(minLength: 4)
-
-            // 播放列表（右上角更多菜单已收纳倍速/定时/歌词设置等次要功能）
-            Button {
-                BeansHaptics.tap()
-                showQueue = true
-            } label: {
-                Image(systemName: "list.bullet")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(palette.secondary)
-                    .frame(width: 30, height: 30)
-                    .background {
-                        GlassEffectContainer {
-                            Circle()
-                                .fill(.clear)
-                                .glassEffect(.clear, in: Circle())
-                        }
-                    }
-                    .clipShape(Circle())
-            }
-            .buttonStyle(GlassPressButtonStyle())
-        }
-    }
 
     // MARK: - 下载
 

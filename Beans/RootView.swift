@@ -115,6 +115,7 @@ struct AppStoreTabBar: View {
                         .zIndex(10)
                 }
                 barCapsule
+                    .simultaneousGesture(dragToSelect(width: geo.size.width))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .coordinateSpace(name: "beansTabBar")
@@ -278,6 +279,23 @@ struct AppStoreTabBar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    /// 触碰滑动选中：手指在底栏上横向滑动即可切换 tab（与点击 / 长按共存）
+    private func dragToSelect(width: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 2)
+            .onChanged { value in
+                let tabs = RootTab.allCases
+                let count = max(tabs.count, 1)
+                let index = min(max(Int(value.location.x / max(width / CGFloat(count), 1)), 0), count - 1)
+                let tab = tabs[index]
+                if selection != tab {
+                    BeansHaptics.select()
+                    withAnimation(.spring(response: 0.3)) {
+                        selection = tab
+                    }
+                }
+            }
     }
 
     private func tap(_ tab: RootTab) {

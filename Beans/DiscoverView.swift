@@ -4,6 +4,7 @@ struct DiscoverView: View {
     @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var topLists: [TopList] = []
     @State private var dailySongs: [Song] = []
@@ -23,7 +24,9 @@ struct DiscoverView: View {
             if !theme.backgroundSyncAll, let image = theme.customBackgroundImage {
                 WallpaperImage(image: image)
                 LinearGradient(
-                    colors: [.black.opacity(0.30), .black.opacity(0.52)],
+                    colors: colorScheme == .dark
+                        ? [.black.opacity(0.35), .black.opacity(0.55)]
+                        : [.black.opacity(0.08), .black.opacity(0.18)],
                     startPoint: .top, endPoint: .bottom
                 )
                 .ignoresSafeArea()

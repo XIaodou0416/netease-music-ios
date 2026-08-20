@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Security
 
 // MARK: - 动态主题色（跟随系统外观或手动切换）
 
@@ -170,6 +171,7 @@ final class ThemeStore: ObservableObject {
         backgroundHex = UserDefaults.standard.string(forKey: backgroundKey) ?? ""
         backgroundSyncAll = UserDefaults.standard.object(forKey: syncAllKey) as? Bool ?? true
         backgroundImagePath = UserDefaults.standard.string(forKey: backgroundImageKey) ?? ""
+        restoreBackgroundImageIfNeeded()
     }
 
     func set(_ newAccent: BeansAccent) {
@@ -218,7 +220,8 @@ final class ThemeStore: ObservableObject {
         return UIImage(contentsOfFile: backgroundImagePath)
     }
 
-    /// 保存用户上传的背景图片（写入 Documents，路径持久化）
+    /// 保存用户上传的背景图片（写入 Documents，路径持久化；同时备份压缩小图到 Keychain，
+    /// 覆盖安装新版本后容器被清空也能自动恢复背景）
     func setBackgroundImage(_ data: Data) {
         let url = Self.backgroundImageURL()
         do {
@@ -229,6 +232,9 @@ final class ThemeStore: ObservableObject {
             backgroundImagePath = ""
             UserDefaults.standard.set("", forKey: backgroundImageKey)
         }
+        if let backup = Self.downscaledJPEG(from: data, maxDimension: 900, quality: 0.62) {
+            Self.saveKeychain(data: backup)
+        }
     }
 
     func clearBackgroundImage() {
@@ -237,11 +243,87 @@ final class ThemeStore: ObservableObject {
         }
         backgroundImagePath = ""
         UserDefaults.standard.set("", forKey: backgroundImageKey)
+        Self.deleteKeychain()
     }
 
     private static func backgroundImageURL() -> URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         return dir.appendingPathComponent("beans-background.jpg")
+    }
+
+    /// 覆盖安装后：Documents 被清空时从 Keychain 备份恢复
+    private func restoreBackgroundImageIfNeeded() {
+        guard backgroundImagePath.isEmpty else { return }
+        let url = Self.backgroundImageURL()
+        guard !FileManager.default.fileExists(atPath: url.path),
+              let backup = Self.loadKeychain() else { return }
+        do {
+            try backup.write(to: url, options: .atomic)
+            backgroundImagePath = url.path
+            UserDefaults.standard.set(url.path, forKey: backgroundImageKey)
+        } catch {
+            Self.deleteKeychain()
+        }
+    }
+
+    // MARK: Keychain 备份（跨覆盖安装持久）
+
+    private static let keychainService = "beans.background.image"
+
+    private static func saveKeychain(data: Data) {
+        var query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: "beans",
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+        ]
+        SecItemDelete(query as CFDictionary)
+        SecItemAdd(query as CFDictionary, nil)
+        query.removeValue(forKey: kSecValueData as String)
+    }
+
+    private static func loadKeychain() -> Data? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: "beans",
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        return status == errSecSuccess ? result as? Data : nil
+    }
+
+    private static func deleteKeychain() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: "beans",
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+
+    /// 压缩成小图 JPEG（降低体积，便于 Keychain 存储）
+    private static func downscaledJPEG(from data: Data, maxDimension: CGFloat, quality: CGFloat) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+        let w = image.size.width
+        let h = image.size.height
+        guard w > 0, h > 0 else { return nil }
+        let longest = max(w, h)
+        let size: CGSize
+        if longest > maxDimension {
+            let scale = maxDimension / longest
+            size = CGSize(width: w * scale, height: h * scale)
+        } else {
+            size = image.size
+        }
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let resized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+        return resized.jpegData(compressionQuality: quality)
     }
 }
 

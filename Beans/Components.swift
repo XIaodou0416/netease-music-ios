@@ -44,8 +44,16 @@ struct GlassPressButtonStyle: ButtonStyle {
 
 struct GlassBackdrop: View {
     @EnvironmentObject private var theme: ThemeStore
+    @Environment(\.colorScheme) private var colorScheme
     /// 自定义背景色（nil 使用默认氛围渐变）
     var customColor: Color? = nil
+
+    /// 背景图上叠加的可读性遮罩：浅色模式几乎不压暗，深色模式适度压暗
+    private var wallpaperOverlay: [Color] {
+        colorScheme == .dark
+            ? [.black.opacity(0.35), .black.opacity(0.55)]
+            : [.black.opacity(0.08), .black.opacity(0.18)]
+    }
 
     var body: some View {
         let _ = theme.accent
@@ -53,10 +61,7 @@ struct GlassBackdrop: View {
             // 上传图片优先：同步开启时全 App 生效；固定全屏布局 + 小图柔化，图片再小也不会撑大 UI
             if let image = theme.customBackgroundImage, theme.backgroundSyncAll {
                 WallpaperImage(image: image)
-                LinearGradient(
-                    colors: [.black.opacity(0.30), .black.opacity(0.52)],
-                    startPoint: .top, endPoint: .bottom
-                )
+                LinearGradient(colors: wallpaperOverlay, startPoint: .top, endPoint: .bottom)
             } else if let customColor {
                 LinearGradient(
                     colors: [customColor.opacity(0.9), customColor.opacity(0.55)],

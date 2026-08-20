@@ -156,14 +156,17 @@ final class ThemeStore: ObservableObject {
     @Published var backgroundHex: String = ""
     /// 自定义背景是否同步到搜索 / 音乐库 / 我的等全部页面
     @Published var backgroundSyncAll = true
-    /// 自定义背景图片文件路径（空串表示未上传图片）
+    /// 当前使用的背景图片文件路径（空串表示未上传图片）
     @Published var backgroundImagePath: String = ""
+    /// 壁纸库：所有已上传壁纸的文件路径
+    @Published var wallpaperPaths: [String] = []
 
     private let customAccentKey = "beans.accent.custom"
     private let backgroundKey = "beans.background.custom"
     private let syncAllKey = "beans.background.syncAll"
     private let backgroundImageKey = "beans.background.image"
     private let resetKey = "beans.background.resetV30"
+    private let wallpaperListKey = "beans.wallpapers.list"
 
     private init() {
         accent = BeansAccent(rawValue: UserDefaults.standard.string(forKey: AccentTheme.key) ?? "") ?? .amber
@@ -172,6 +175,7 @@ final class ThemeStore: ObservableObject {
         backgroundHex = UserDefaults.standard.string(forKey: backgroundKey) ?? ""
         backgroundSyncAll = UserDefaults.standard.object(forKey: syncAllKey) as? Bool ?? true
         backgroundImagePath = UserDefaults.standard.string(forKey: backgroundImageKey) ?? ""
+        wallpaperPaths = UserDefaults.standard.stringArray(forKey: wallpaperListKey) ?? []
         // 一次性重置：清除旧版本遗留的背景图（旧小图曾导致 UI 放大问题），本版起干净启动
         if UserDefaults.standard.string(forKey: resetKey) != "done" {
             if !backgroundImagePath.isEmpty {
@@ -181,6 +185,15 @@ final class ThemeStore: ObservableObject {
             UserDefaults.standard.set("", forKey: backgroundImageKey)
             UserDefaults.standard.set("done", forKey: resetKey)
         }
+        // 迁移：已生效的背景图自动加入壁纸库（首次升级后保留）
+        if wallpaperPaths.isEmpty, !backgroundImagePath.isEmpty,
+           FileManager.default.fileExists(atPath: backgroundImagePath) {
+            wallpaperPaths = [backgroundImagePath]
+            saveWallpaperList()
+        }
+        // 清理列表里已被删除的文件
+        wallpaperPaths = wallpaperPaths.filter { FileManager.default.fileExists(atPath: $0) }
+        saveWallpaperList()
     }
 
     func set(_ newAccent: BeansAccent) {
@@ -229,42 +242,57 @@ final class ThemeStore: ObservableObject {
         return UIImage(contentsOfFile: backgroundImagePath)
     }
 
-    /// 保存用户上传的背景图片：先归一化（长边统一 1600，小图放大并轻度柔化），
-    /// 保证任何尺寸的原图都不会出现 UI 放大/满屏像素化问题
-    func setBackgroundImage(_ data: Data) {
-        let url = Self.backgroundImageURL()
+    /// 上传新壁纸：归一化后保存到壁纸库，并直接设为当前背景（覆盖保存当前壁纸）
+    func addWallpaper(_ data: Data) {
         let normalized = Self.normalizedWallpaperJPEG(from: data)
+        guard let imageData = normalized, !imageData.isEmpty else { return }
+        let url = Self.wallpaperDirectory()
+            .appendingPathComponent("wallpaper-\(Int(Date().timeIntervalSince1970))-\(Int.random(in: 100...999)).jpg")
         do {
-            if let normalized {
-                try normalized.write(to: url, options: .atomic)
-            } else if !data.isEmpty {
-                try data.write(to: url, options: .atomic)
-            } else {
-                backgroundImagePath = ""
-                UserDefaults.standard.set("", forKey: backgroundImageKey)
-                return
-            }
+            try imageData.write(to: url, options: .atomic)
+            wallpaperPaths.append(url.path)
+            saveWallpaperList()
             backgroundImagePath = url.path
             UserDefaults.standard.set(url.path, forKey: backgroundImageKey)
         } catch {
-            backgroundImagePath = ""
-            UserDefaults.standard.set("", forKey: backgroundImageKey)
+            // 保存失败：静默保留当前壁纸
         }
     }
 
-    func clearBackgroundImage() {
-        if !backgroundImagePath.isEmpty {
-            try? FileManager.default.removeItem(atPath: backgroundImagePath)
+    /// 从壁纸库选择壁纸应用为当前背景（无需再去相册）
+    func applyWallpaper(at path: String) {
+        guard FileManager.default.fileExists(atPath: path) else { return }
+        backgroundImagePath = path
+        UserDefaults.standard.set(path, forKey: backgroundImageKey)
+    }
+
+    /// 删除壁纸库中的某张壁纸；若正在使用则自动切换到上一张/清空
+    func deleteWallpaper(at path: String) {
+        try? FileManager.default.removeItem(atPath: path)
+        wallpaperPaths.removeAll { $0 == path }
+        saveWallpaperList()
+        if backgroundImagePath == path {
+            backgroundImagePath = wallpaperPaths.first ?? ""
+            UserDefaults.standard.set(backgroundImagePath, forKey: backgroundImageKey)
         }
+    }
+
+    /// 清除当前背景（保留壁纸库，可随时重新选择）
+    func clearBackgroundImage() {
         backgroundImagePath = ""
         UserDefaults.standard.set("", forKey: backgroundImageKey)
     }
 
-    private static func backgroundImageURL() -> URL {
+    private static func wallpaperDirectory() -> URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return dir.appendingPathComponent("beans-background.jpg")
+            .appendingPathComponent("BeansWallpapers", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
     }
 
+    private func saveWallpaperList() {
+        UserDefaults.standard.set(wallpaperPaths, forKey: wallpaperListKey)
+    }
     /// 归一化背景图：长边统一到 1600px；原图过小时放大到该尺寸并轻度高斯模糊柔化，
     /// 铺满屏幕时既不会像素化，也不会因小图拉伸引发布局/视觉问题
     private static func normalizedWallpaperJPEG(from data: Data) -> Data? {

@@ -416,15 +416,10 @@ struct PlayerView: View {
     private let deckInset: CGFloat = 168
 
     private var controlDeck: some View {
-        VStack(spacing: 4) {
-            Capsule()
-                .fill(palette.secondary.opacity(0.4))
-                .frame(width: 30, height: 3.5)
-                .padding(.top, 5)
-
+        VStack(spacing: 6) {
             progressBlock
 
-            VStack(spacing: 4) {
+            VStack(spacing: 8) {
                 mainControls
                 utilityRow
             }
@@ -439,8 +434,8 @@ struct PlayerView: View {
                     }
             )
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 6)
+        .padding(.horizontal, 24)
+        .padding(.top, 4)
         .padding(.bottom, 2)
         .frame(maxWidth: .infinity)
         // 底部控件直接悬浮在模糊背景上，与顶部一致地融入画面（无面板无描边）
@@ -489,21 +484,26 @@ struct PlayerView: View {
 
     // MARK: - 主控制（上一曲 / 播放 / 下一曲 等宽居中，播放键在正中；循环/随机已移至工具行）
 
+    // 主控制：上一曲 / 播放 / 下一曲 居中等距簇（不撑满全宽，观感更稳）
     private var mainControls: some View {
-        HStack(spacing: 6) {
-            deckButton(icon: "backward.fill") {
+        HStack(spacing: 30) {
+            deckButton(icon: "backward.fill", expand: false) {
                 BeansHaptics.tap()
                 player.previous()
             }
+            .frame(width: 56)
             playButton
-            deckButton(icon: "forward.fill") {
+                .frame(width: 64)
+            deckButton(icon: "forward.fill", expand: false) {
                 BeansHaptics.tap()
                 player.next()
             }
+            .frame(width: 56)
         }
+        .frame(maxWidth: .infinity)
     }
 
-    private func deckButton(icon: String, accent: Bool = false, action: @escaping () -> Void) -> some View {
+    private func deckButton(icon: String, accent: Bool = false, expand: Bool = true, action: @escaping () -> Void) -> some View {
         Button {
             BeansHaptics.tap()
             action()
@@ -522,7 +522,7 @@ struct PlayerView: View {
                 .clipShape(Circle())
         }
         .buttonStyle(GlassPressButtonStyle())
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: expand ? .infinity : nil)
     }
 
     private var playButton: some View {
@@ -724,49 +724,43 @@ struct SeekBar: View {
             let thumbX = min(max(width * ratio, 9), max(width - 9, 9))
 
             ZStack(alignment: .leading) {
-                // 底轨：液态玻璃
+                // 底轨：iOS 原生清透材质（超薄材质采样背景）
                 Capsule()
                     .fill(track)
-                    .frame(height: 8)
-                GlassEffectContainer {
-                    Capsule()
-                        .fill(Color.beansGlassFill)
-                        .glassEffect(.clear, in: Capsule())
-                }
-                .frame(height: 8)
+                    .frame(height: 5)
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .frame(height: 5)
+                    .overlay {
+                        Capsule().strokeBorder(.white.opacity(0.22), lineWidth: 0.5)
+                    }
                 // 已播放段：强调色渐变 + 顶部高光
                 Capsule()
                     .fill(
                         LinearGradient(
-                            colors: [accent, accent.opacity(0.7)],
+                            colors: [accent, accent.opacity(0.72)],
                             startPoint: .top, endPoint: .bottom
                         )
                     )
-                    .frame(width: thumbX, height: 8)
+                    .frame(width: thumbX, height: 5)
                     .overlay(alignment: .top) {
                         LinearGradient(
-                            colors: [.white.opacity(0.55), .clear],
+                            colors: [.white.opacity(0.5), .clear],
                             startPoint: .top, endPoint: .bottom
                         )
-                        .frame(height: 3.5)
+                        .frame(height: 2.5)
                         .clipShape(Capsule())
                         .padding(.horizontal, 2)
                     }
-                    .overlay {
-                        Capsule().strokeBorder(.white.opacity(0.28), lineWidth: 0.6)
-                    }
-                // 滑块：白色玻璃 + 强调色内芯
+                // 滑块：原生小圆点（白色 + 细描边）
                 Circle()
                     .fill(.white)
-                    .frame(width: scrubbing ? 22 : 16, height: scrubbing ? 22 : 16)
+                    .frame(width: scrubbing ? 20 : 14, height: scrubbing ? 20 : 14)
                     .overlay {
-                        Circle().fill(accent).frame(width: scrubbing ? 14 : 9, height: scrubbing ? 14 : 9)
+                        Circle().strokeBorder(.white.opacity(0.95), lineWidth: 0.8)
                     }
-                    .overlay {
-                        Circle().strokeBorder(.white.opacity(0.9), lineWidth: 1)
-                    }
-                    .shadow(color: .black.opacity(0.3), radius: scrubbing ? 6 : 3, y: scrubbing ? 3 : 1)
-                    .offset(x: thumbX - (scrubbing ? 11 : 8))
+                    .shadow(color: .black.opacity(0.22), radius: scrubbing ? 5 : 2.5, y: scrubbing ? 2 : 1)
+                    .offset(x: thumbX - (scrubbing ? 10 : 7))
                     .animation(.spring(response: 0.25, dampingFraction: 0.7), value: scrubbing)
             }
             .frame(width: width, height: 30)

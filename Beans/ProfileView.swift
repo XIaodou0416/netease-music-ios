@@ -44,7 +44,7 @@ struct ProfileView: View {
             guard let item else { return }
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self), !data.isEmpty {
-                    theme.setBackgroundImage(data)
+                    theme.addWallpaper(data)
                     BeansHaptics.success()
                 }
             }
@@ -169,6 +169,59 @@ struct ProfileView: View {
         .buttonStyle(GlassPressButtonStyle(scale: 0.97))
     }
 
+    /// 壁纸格子：点击应用为当前背景；使用中的壁纸显示主题色边框+勾选；右上角删除
+    private func wallpaperCell(path: String) -> some View {
+        let isActive = path == theme.backgroundImagePath
+        return ZStack(alignment: .topTrailing) {
+            Button {
+                BeansHaptics.tap()
+                theme.applyWallpaper(at: path)
+            } label: {
+                Group {
+                    if let img = UIImage(contentsOfFile: path) {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Color.beansGlassFill
+                    }
+                }
+                .frame(height: 108)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(
+                            isActive ? Color.beansAmber : .white.opacity(0.18),
+                            lineWidth: isActive ? 2.5 : 1
+                        )
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    if isActive {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Color.beansAmber)
+                            .background(Circle().fill(.ultraThinMaterial))
+                            .padding(5)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                BeansHaptics.medium()
+                theme.deleteWallpaper(at: path)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.beansSecondary)
+                    .background(Circle().fill(.ultraThinMaterial))
+                    .padding(5)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "外观")
@@ -287,35 +340,41 @@ struct ProfileView: View {
                             .frame(width: 28)
                         PhotosPicker(selection: $bgImageItem, matching: .images) {
                             HStack(spacing: 8) {
-                                Text("上传背景图")
+                                Text("上传壁纸（可多张）")
                                     .font(.system(size: 15))
                                     .foregroundStyle(Color.beansLabel)
                                 Spacer()
-                                if let img = theme.customBackgroundImage {
-                                    Image(uiImage: img)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 44, height: 44)
-                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                                        }
-                                } else {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 22))
-                                        .foregroundStyle(Color.beansSecondary)
-                                }
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(Color.beansAmber)
                             }
                         }
                     }
-                    if theme.customBackgroundImage != nil {
+                    // 壁纸库：所有已上传壁纸，点击即应用为当前背景
+                    if !theme.wallpaperPaths.isEmpty {
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+                            ForEach(theme.wallpaperPaths, id: \.self) { path in
+                                wallpaperCell(path: path)
+                            }
+                        }
+                    } else {
                         HStack(spacing: 12) {
+                            Image(systemName: "photo.stack")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.beansSecondary)
+                            Text("还没有壁纸，上传后会显示在这里")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.beansSecondary)
+                            Spacer()
+                        }
+                    }
+                    HStack(spacing: 12) {
+                        if theme.customBackgroundImage != nil {
                             Button {
                                 theme.clearBackgroundImage()
                                 BeansHaptics.select()
                             } label: {
-                                Text("清除背景图")
+                                Text("清除当前背景")
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundStyle(.red)
                                     .padding(.horizontal, 12)
@@ -323,8 +382,11 @@ struct ProfileView: View {
                                     .background(.ultraThinMaterial, in: Capsule())
                             }
                             .buttonStyle(.plain)
-                            Spacer()
                         }
+                        Spacer()
+                        Text(theme.customBackgroundImage == nil ? "当前：默认背景" : "当前：已应用壁纸")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.beansSecondary)
                     }
                 Toggle(isOn: Binding(
                     get: { theme.backgroundSyncAll },

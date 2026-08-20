@@ -63,17 +63,18 @@ struct DiscoverView: View {
             .padding(.bottom, 190)
         }
 
-            // 顶部渐隐：滚动时内容滑入顶部渐隐过渡（跟随深浅模式，轻量渐变不影响性能）
-            LinearGradient(
-                colors: [
-                    (colorScheme == .dark ? Color.black : Color.white).opacity(0),
-                    (colorScheme == .dark ? Color.black : Color.white).opacity(0.9),
-                ],
-                startPoint: .bottom, endPoint: .top
-            )
-            .frame(height: 64)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .allowsHitTesting(false)
+            // 顶部模糊过渡：内容滚动到顶部时被原生毛玻璃柔和模糊（非渐隐遮罩）
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .mask(
+                    LinearGradient(
+                        colors: [.black.opacity(0.95), .black.opacity(0)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .frame(height: 64)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .allowsHitTesting(false)
         .scrollIndicators(.hidden)
         .refreshable { await load() }
         .task { await load() }

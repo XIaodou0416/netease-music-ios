@@ -294,7 +294,7 @@ final class NetEaseAPI {
     struct SongCommentPage {
         let total: Int
         let hot: [SongComment]
-        let comments: [SongComment]
+        var comments: [SongComment]
     }
 
     /// 歌曲评论（含热门评论）

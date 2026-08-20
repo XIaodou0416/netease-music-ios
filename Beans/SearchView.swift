@@ -27,7 +27,6 @@ struct SearchView: View {
                     resultsArea
                 }
             }
-            ()
         }
         .task {
             if hotWords.isEmpty {

@@ -235,7 +235,7 @@ struct QQWebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             DispatchQueue.main.async {
-                onLoaded()
+                self.onLoaded()
             }
         }
     }

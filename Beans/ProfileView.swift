@@ -4,12 +4,17 @@ struct ProfileView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
     @AppStorage("beans.themeMode") private var themeModeRaw = BeansThemeMode.system.rawValue
+    @AppStorage(AccentTheme.key) private var accentRaw = ""
 
     @State private var showHistory = false
     @State private var confirmLogout = false
 
     private var themeMode: BeansThemeMode {
         BeansThemeMode(rawValue: themeModeRaw) ?? .system
+    }
+
+    private var currentAccent: BeansAccent {
+        BeansAccent(rawValue: accentRaw) ?? .amber
     }
 
     var body: some View {
@@ -97,7 +102,7 @@ struct ProfileView: View {
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "外观")
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     Image(systemName: "paintpalette.fill")
                         .font(.system(size: 14))
@@ -114,6 +119,44 @@ struct ProfileView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+
+                Divider().overlay(Color.beansSecondary.opacity(0.15))
+
+                HStack {
+                    Image(systemName: "paintbrush.pointed.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.beansAmber)
+                        .frame(width: 28)
+                    Text("播放器配色")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.beansLabel)
+                    Spacer()
+                }
+                HStack(spacing: 16) {
+                    ForEach(BeansAccent.allCases) { accent in
+                        Button {
+                            AccentTheme.set(accent)
+                            accentRaw = accent.rawValue
+                            BeansHaptics.select()
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(LinearGradient(colors: accent.gradientColors, startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    .frame(width: 34, height: 34)
+                                    .overlay {
+                                        Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1)
+                                    }
+                                if accent == currentAccent {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                        }
+                        .buttonStyle(GlassPressButtonStyle(scale: 0.9))
+                    }
+                    Spacer()
+                }
             }
             .padding(16)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))

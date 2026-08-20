@@ -49,6 +49,8 @@ extension Color {
     static let beansAmber = Color(uiColor: .beansAmber)
     static let beansSage = Color(uiColor: .beansSage)
     static let beansGlassFill = Color(uiColor: .beansGlassFill)
+    /// 当前配色主题的高亮色（播放器进度点 / 光斑 / 歌词高亮等）
+    static var beansHighlight: Color { AccentTheme.current.highlight }
 }
 
 // MARK: - 主题偏好
@@ -76,6 +78,52 @@ enum BeansThemeMode: String, CaseIterable, Identifiable {
         }
     }
 }
+
+// MARK: - 播放器配色主题（多套配色，可在「我的 → 外观」中切换）
+
+enum BeansAccent: String, CaseIterable, Identifiable {
+    case amber = "琥珀暖金"
+    case mint = "青碧湖绿"
+    case pink = "樱粉"
+    case sky = "星蓝"
+    case violet = "罗兰紫"
+
+    var id: String { rawValue }
+
+    /// 渐变强调色（播放键 / 进度条 / 玻璃光晕）
+    var gradientColors: [Color] {
+        switch self {
+        case .amber:
+            return [Color(red: 0.949, green: 0.639, blue: 0.235), Color(red: 0.753, green: 0.478, blue: 0.039)]
+        case .mint:
+            return [Color(red: 0.42, green: 0.78, blue: 0.62), Color(red: 0.16, green: 0.55, blue: 0.42)]
+        case .pink:
+            return [Color(red: 0.96, green: 0.56, blue: 0.70), Color(red: 0.82, green: 0.37, blue: 0.56)]
+        case .sky:
+            return [Color(red: 0.39, green: 0.71, blue: 0.96), Color(red: 0.23, green: 0.48, blue: 0.84)]
+        case .violet:
+            return [Color(red: 0.70, green: 0.62, blue: 0.86), Color(red: 0.49, green: 0.34, blue: 0.76)]
+        }
+    }
+
+    var highlight: Color {
+        gradientColors[0]
+    }
+}
+
+/// 当前配色读取 / 写入（持久化到 UserDefaults）
+enum AccentTheme {
+    static let key = "beans.accent"
+
+    static var current: BeansAccent {
+        BeansAccent(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .amber
+    }
+
+    static func set(_ accent: BeansAccent) {
+        UserDefaults.standard.set(accent.rawValue, forKey: key)
+    }
+}
+
 // MARK: - 背景氛围渐变（让液态玻璃始终有内容可采样）
 
 extension LinearGradient {
@@ -89,12 +137,14 @@ extension LinearGradient {
         endPoint: .bottom
     )
 
-    /// 强调色渐变（琥珀暖金）
-    static let beansAccent = LinearGradient(
-        colors: [Color.beansAmber, Color(uiColor: .beansAmber).opacity(0.55)],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
+    /// 强调色渐变（跟随配色主题）
+    static var beansAccent: LinearGradient {
+        LinearGradient(
+            colors: AccentTheme.current.gradientColors,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
 }
 
 // MARK: - 主题模式 ↔ 系统外观

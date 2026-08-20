@@ -1,9 +1,13 @@
 import SwiftUI
 
+// MARK: - 全屏播放器（网易云风格：毛玻璃背景 + 上半区居中封面 + 歌名居中 + 进度条 + 主控制行）
+
 struct PlayerView: View {
     @EnvironmentObject private var player: PlayerManager
     @EnvironmentObject private var auth: AuthStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("beans.accent") private var accentRaw = ""
 
     @State private var lyrics: [LyricLine] = []
     @State private var showLyrics = false
@@ -19,7 +23,7 @@ struct PlayerView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let coverSize = min(248, max(188, geo.size.height * 0.29))
+            let coverSize = min(264, max(200, geo.size.height * 0.30))
             ZStack {
                 background
                     .ignoresSafeArea()
@@ -27,30 +31,36 @@ struct PlayerView: View {
                 VStack(spacing: 0) {
                     topBar
 
-                    if showLyrics {
+                    if song == nil {
+                        // 空态兜底：歌曲数据为空时展示占位视图，避免偶发空白页
+                        placeholderView
+                    } else if showLyrics {
                         lyricsPane
                     } else {
-                        Spacer(minLength: 0)
-                        coverButton(size: coverSize)
-                        songInfo
-                            .padding(.horizontal, 30)
-                            .padding(.top, 16)
-                        Spacer(minLength: 0)
+                        VStack(spacing: 0) {
+                            Spacer(minLength: 24)
+                            coverButton(size: coverSize)
+                            Spacer(minLength: 18)
+                            songInfo
+                            Spacer(minLength: 24)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
 
                     SeekBar()
                         .padding(.horizontal, 30)
+                        .padding(.top, 8)
+                        .padding(.bottom, 12)
 
                     timeRow
                         .padding(.horizontal, 30)
-                        .padding(.top, 8)
+                        .padding(.bottom, 20)
 
                     controlsRow
-                        .padding(.top, 12)
+                        .padding(.bottom, 18)
 
                     bottomRow
-                        .padding(.top, 10)
-                        .padding(.bottom, 12)
+                        .padding(.bottom, 10)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .offset(y: dragOffset)
@@ -79,19 +89,41 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - 背景（轻量氛围：渐变 + 光斑 + 低强度封面模糊，控制发热）
+    // MARK: - 背景（全屏毛玻璃模糊：专辑图作模糊源，深浅模式自适应遮罩 + 配色光斑）
 
     private var background: some View {
         ZStack {
             LinearGradient(
                 colors: [
                     Color.beansBackground,
-                    Color(uiColor: .beansBackground).opacity(0.88),
+                    Color(uiColor: .beansBackground).opacity(0.85),
                 ],
                 startPoint: .top, endPoint: .bottom
             )
+            if let coverURL = song?.coverURL {
+                AsyncImage(url: coverURL) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .blur(radius: 32)
+                            .saturation(1.25)
+                            .opacity(0.62)
+                    }
+                }
+                .ignoresSafeArea()
+            }
+            // 深浅模式遮罩：暗色下拉深、浅色下拉浅，保证前景文字清晰
+            LinearGradient(
+                colors: colorScheme == .dark
+                    ? [.black.opacity(0.55), .black.opacity(0.18), .black.opacity(0.62)]
+                    : [.white.opacity(0.28), .clear, .black.opacity(0.22)],
+                startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            // 配色光斑
             Circle()
-                .fill(Color.beansAmber.opacity(0.12))
+                .fill(Color.beansHighlight.opacity(0.16))
                 .frame(width: 340, height: 340)
                 .blur(radius: 90)
                 .offset(x: 150, y: -320)
@@ -100,23 +132,6 @@ struct PlayerView: View {
                 .frame(width: 300, height: 300)
                 .blur(radius: 100)
                 .offset(x: -160, y: 360)
-            if let coverURL = song?.coverURL {
-                AsyncImage(url: coverURL) { phase in
-                    if case .success(let image) = phase {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .blur(radius: 26)
-                            .opacity(0.15)
-                    }
-                }
-                .ignoresSafeArea()
-            }
-            LinearGradient(
-                colors: [.black.opacity(0.20), .clear, .black.opacity(0.30)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
         }
     }
 
@@ -138,7 +153,7 @@ struct PlayerView: View {
             }
     }
 
-    // MARK: - 顶栏
+    // MARK: - 顶栏（左上角下拉收起按钮保留）
 
     private var topBar: some View {
         HStack(spacing: 12) {
@@ -193,18 +208,47 @@ struct PlayerView: View {
         .gesture(dragGesture)
     }
 
-    // MARK: - 封面（静态展示，点击切换歌词）
+    // MARK: - 空态兜底视图
+
+    private var placeholderView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "music.note")
+                .font(.system(size: 46, weight: .light))
+                .foregroundStyle(Color.beansSecondary)
+            Text("暂无播放内容")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Color.beansLabel)
+            Text("返回后选择一首歌曲即可开始播放")
+                .font(.system(size: 13))
+                .foregroundStyle(Color.beansSecondary)
+            Button {
+                dismiss()
+            } label: {
+                Text("返回")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.beansLabel)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 12)
+                    .background(.ultraThinMaterial, in: Capsule())
+            }
+            .buttonStyle(GlassPressButtonStyle())
+            .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - 封面（居中于页面上半部分，点击切换歌词）
 
     private func coverButton(size: CGFloat) -> some View {
         Button {
             toggleLyrics()
         } label: {
-            CoverImage(url: song?.coverURL, size: size, cornerRadius: min(28, size * 0.115))
+            CoverImage(url: song?.coverURL, size: size, cornerRadius: min(30, size * 0.12))
                 .overlay {
-                    RoundedRectangle(cornerRadius: min(28, size * 0.115), style: .continuous)
+                    RoundedRectangle(cornerRadius: min(30, size * 0.12), style: .continuous)
                         .strokeBorder(.white.opacity(0.18), lineWidth: 1)
                 }
-                .shadow(color: .black.opacity(0.35), radius: 24, y: 12)
+                .shadow(color: .black.opacity(0.35), radius: 26, y: 14)
                 .overlay(alignment: .bottomTrailing) {
                     HStack(spacing: 4) {
                         Image(systemName: "quote.bubble.fill")
@@ -221,18 +265,19 @@ struct PlayerView: View {
                 }
         }
         .buttonStyle(GlassPressButtonStyle(scale: 0.95))
+        .frame(maxWidth: .infinity)
     }
 
-    // MARK: - 歌曲信息（歌名最多两行 + 自动缩字，不再截断丢字）
+    // MARK: - 歌曲信息（居中；歌名最多两行 + 自动缩字防截断）
 
     private var songInfo: some View {
         ZStack {
-            VStack(spacing: 5) {
+            VStack(spacing: 6) {
                 Text(song?.name ?? "")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 21, weight: .bold))
                     .foregroundStyle(Color.beansLabel)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(0.65)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(song?.artists ?? "")
@@ -242,7 +287,7 @@ struct PlayerView: View {
                     .truncationMode(.tail)
             }
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 56)
+            .padding(.horizontal, 60)
 
             if auth.isLoggedIn, let song {
                 Button {
@@ -251,7 +296,7 @@ struct PlayerView: View {
                 } label: {
                     Image(systemName: isLiked(song) ? "heart.fill" : "heart")
                         .font(.system(size: 19))
-                        .foregroundStyle(isLiked(song) ? Color.beansAmber : Color.beansLabel)
+                        .foregroundStyle(isLiked(song) ? Color.beansHighlight : Color.beansLabel)
                         .frame(width: 42, height: 42)
                         .background {
                             Circle().fill(.ultraThinMaterial)
@@ -306,7 +351,7 @@ struct PlayerView: View {
         .padding(.top, 6)
     }
 
-    // MARK: - 时间行（±15 秒在两端，时间贴近进度条）
+    // MARK: - 时间行（±15 秒在两端，时间贴近进度条，上下留安全边距）
 
     private var timeRow: some View {
         HStack(spacing: 10) {
@@ -340,92 +385,73 @@ struct PlayerView: View {
         .buttonStyle(GlassPressButtonStyle())
     }
 
-    // MARK: - 主控制
+    // MARK: - 主控制行（定时 / 循环模式 / 上一曲 / 播放暂停 / 下一曲，尺寸统一、水平均匀居中）
 
     private var controlsRow: some View {
-        HStack(spacing: 26) {
-            Button {
+        HStack(spacing: 0) {
+            controlButton(icon: player.sleepTimerRemaining > 0 ? "moon.zzz.fill" : "moon.zzz",
+                          accent: player.sleepTimerRemaining > 0) {
+                showSleepTimer = true
+            }
+            controlButton(icon: player.playMode.icon, accent: player.playMode == .shuffle) {
                 player.togglePlayMode()
                 BeansHaptics.select()
-            } label: {
-                Image(systemName: player.playMode.icon)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(Color.beansLabel)
-                    .frame(width: 46, height: 46)
-                    .background {
-                        Circle().fill(.ultraThinMaterial)
-                    }
-                    .clipShape(Circle())
             }
-            .buttonStyle(GlassPressButtonStyle())
-
-            Button {
+            controlButton(icon: "backward.fill") {
                 BeansHaptics.tap()
                 player.previous()
-            } label: {
-                Image(systemName: "backward.fill")
-                    .font(.system(size: 21, weight: .medium))
-                    .foregroundStyle(Color.beansLabel)
-                    .frame(width: 56, height: 56)
-                    .background {
-                        Circle().fill(.ultraThinMaterial)
-                    }
-                    .clipShape(Circle())
             }
-            .buttonStyle(GlassPressButtonStyle())
-
-            Button {
-                BeansHaptics.tap()
-                player.togglePlayPause()
-            } label: {
-                Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 30, weight: .semibold))
-                    .foregroundStyle(Color.black)
-                    .frame(width: 78, height: 78)
-                    .background {
-                        Circle()
-                            .fill(LinearGradient.beansAccent)
-                            .overlay {
-                                Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1)
-                            }
-                    }
-                    .clipShape(Circle())
-                    .shadow(color: Color.beansAmber.opacity(0.45), radius: 18, y: 8)
-            }
-            .buttonStyle(GlassPressButtonStyle(scale: 0.92))
-
-            Button {
+            playButton
+            controlButton(icon: "forward.fill") {
                 BeansHaptics.tap()
                 player.next()
-            } label: {
-                Image(systemName: "forward.fill")
-                    .font(.system(size: 21, weight: .medium))
-                    .foregroundStyle(Color.beansLabel)
-                    .frame(width: 56, height: 56)
-                    .background {
-                        Circle().fill(.ultraThinMaterial)
-                    }
-                    .clipShape(Circle())
             }
-            .buttonStyle(GlassPressButtonStyle())
-
-            Button {
-                showQueue = true
-            } label: {
-                Image(systemName: "text.line.last.and.arrowtriangle.forward")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Color.beansSecondary)
-                    .frame(width: 46, height: 46)
-                    .background {
-                        Circle().fill(.ultraThinMaterial)
-                    }
-                    .clipShape(Circle())
-            }
-            .buttonStyle(GlassPressButtonStyle())
         }
+        .padding(.horizontal, 10)
     }
 
-    // MARK: - 底部功能行
+    private func controlButton(icon: String, accent: Bool = false, action: @escaping () -> Void) -> some View {
+        Button {
+            BeansHaptics.tap()
+            action()
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(accent ? Color.beansHighlight : Color.beansLabel)
+                .frame(width: 52, height: 52)
+                .background {
+                    Circle().fill(.ultraThinMaterial)
+                }
+                .clipShape(Circle())
+        }
+        .buttonStyle(GlassPressButtonStyle())
+        .frame(maxWidth: .infinity)
+    }
+
+    private var playButton: some View {
+        Button {
+            BeansHaptics.tap()
+            player.togglePlayPause()
+        } label: {
+            Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                .font(.system(size: 30, weight: .semibold))
+                .foregroundStyle(Color.black)
+                .frame(width: 72, height: 72)
+                .background {
+                    Circle()
+                        .fill(LinearGradient.beansAccent)
+                        .overlay {
+                            Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1)
+                        }
+                }
+                .clipShape(Circle())
+                .shadow(color: Color.beansHighlight.opacity(0.45), radius: 18, y: 8)
+        }
+        .buttonStyle(GlassPressButtonStyle(scale: 0.92))
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - 底部功能行（倍速固定在左下角，其余功能靠右，功能全部保留）
 
     private var bottomRow: some View {
         HStack {
@@ -478,7 +504,7 @@ struct PlayerView: View {
             } label: {
                 Image(systemName: showLyrics ? "quote.bubble.fill" : "quote.bubble")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(showLyrics ? Color.beansAmber : Color.beansSecondary)
+                    .foregroundStyle(showLyrics ? Color.beansHighlight : Color.beansSecondary)
                     .frame(width: 40, height: 40)
                     .background {
                         Circle().fill(.ultraThinMaterial)
@@ -488,15 +514,6 @@ struct PlayerView: View {
             .buttonStyle(GlassPressButtonStyle())
 
             Menu {
-                Button {
-                    showSleepTimer = true
-                } label: {
-                    if player.sleepTimerRemaining > 0 {
-                        Label("睡眠定时 \(player.sleepTimerFormatted ?? "")", systemImage: "moon.zzz.fill")
-                    } else {
-                        Label("睡眠定时", systemImage: "moon.zzz")
-                    }
-                }
                 Button {
                     showSimi = true
                 } label: {
@@ -566,7 +583,7 @@ struct SeekBar: View {
                     .fill(LinearGradient.beansAccent)
                     .frame(width: thumbX, height: 5)
                 Circle()
-                    .fill(Color.beansAmber)
+                    .fill(Color.beansHighlight)
                     .frame(width: 15, height: 15)
                     .overlay {
                         Circle().strokeBorder(.white.opacity(0.5), lineWidth: 1)
@@ -613,7 +630,7 @@ struct LyricsSection: View {
                     ForEach(Array(lyrics.enumerated()), id: \.element.id) { index, line in
                         Text(line.text.isEmpty ? "♪" : line.text)
                             .font(.system(size: 15, weight: index == currentIndex ? .semibold : .regular))
-                            .foregroundStyle(index == currentIndex ? Color.beansAmber : Color.beansSecondary)
+                            .foregroundStyle(index == currentIndex ? Color.beansHighlight : Color.beansSecondary)
                             .multilineTextAlignment(.center)
                             .id(index)
                             .padding(.vertical, 2)

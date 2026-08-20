@@ -47,12 +47,8 @@ struct SearchView: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 6)
 
-                if keyword.isEmpty {
-                    hotSection
-                } else {
-                    typeTabs
-                    resultsArea
-                }
+                contentArea
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .task(id: provider) {
@@ -87,6 +83,21 @@ struct SearchView: View {
         }
     }
 
+    // MARK: - 内容区（热搜 / 分类+结果 固定占满剩余高度，切换不引起布局跳动）
+
+    @ViewBuilder
+    private var contentArea: some View {
+        if keyword.isEmpty {
+            hotSection
+        } else {
+            VStack(spacing: 0) {
+                typeTabs
+                resultsArea
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
     // MARK: - 搜索框
 
     private var searchField: some View {
@@ -102,10 +113,6 @@ struct SearchView: View {
                 .submitLabel(.search)
                 .onSubmit {
                     submitSearch()
-                    // 键盘搜索键按下时输入法文本已被系统提交，安全收起键盘
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        focused = false
-                    }
                 }
             if searching {
                 ProgressView()
@@ -128,7 +135,7 @@ struct SearchView: View {
                 .buttonStyle(.plain)
             }
             Button {
-                submitSearch()
+                commitSearch()
             } label: {
                 Text("搜索")
                     .font(.system(size: 14, weight: .semibold))
@@ -200,7 +207,16 @@ struct SearchView: View {
                     resultType = type
                     let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmed.isEmpty {
-                        Task { await startSearch(trimmed) }
+                        let hasResult: Bool = {
+                            switch type {
+                            case .song: return !songResults.isEmpty
+                            case .artist: return !artistResults.isEmpty
+                            case .album: return !albumResults.isEmpty
+                            }
+                        }()
+                        if !hasResult {
+                            Task { await startSearch(trimmed) }
+                        }
                     }
                 } label: {
                     Text(type.rawValue)
@@ -454,12 +470,23 @@ struct SearchView: View {
     // MARK: - 动作
 
     private func submitSearch() {
-        // 注意：这里不能设置 focused = false。中文输入法正在拼音组合时立即失焦，
-        // SwiftUI 会丢弃未提交的文本导致输入框被清空；失焦统一交给用户（点结果/滑动列表）。
+        // 键盘搜索键：系统已把输入法文本提交到 binding，直接搜索
         debounceTask?.cancel()
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         Task { await startSearch(trimmed) }
+    }
+
+    /// 点搜索按钮：先让输入法失焦提交拼音，再延迟读取文本，
+    /// 避免中文输入法未提交拼音时读到旧值导致“搜空/搜索键无反应”。
+    private func commitSearch() {
+        focused = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+            let trimmed = self.keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            self.debounceTask?.cancel()
+            Task { await self.startSearch(trimmed) }
+        }
     }
 
     /// 点击歌手 / 专辑：以其名称搜索歌曲

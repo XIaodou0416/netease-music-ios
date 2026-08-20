@@ -8,13 +8,24 @@ func beansTimeString(_ seconds: Double) -> String {
     return String(format: "%d:%02d", total / 60, total % 60)
 }
 
-// MARK: - 触感反馈
+// MARK: - 触感反馈（复用生成器实例，避免每次点击创建新对象造成额外开销/发热）
 
 enum BeansHaptics {
-    static func tap() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
-    static func medium() { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
-    static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
-    static func select() { UISelectionFeedbackGenerator().selectionChanged() }
+    private static let light = UIImpactFeedbackGenerator(style: .light)
+    private static let medium = UIImpactFeedbackGenerator(style: .medium)
+    private static let notification = UINotificationFeedbackGenerator()
+    private static let selection = UISelectionFeedbackGenerator()
+
+    static func prepare() {
+        light.prepare()
+        medium.prepare()
+        selection.prepare()
+    }
+
+    static func tap() { light.impactOccurred() }
+    static func medium() { medium.impactOccurred() }
+    static func success() { notification.notificationOccurred(.success) }
+    static func select() { selection.selectionChanged() }
 }
 
 // MARK: - 按压动效

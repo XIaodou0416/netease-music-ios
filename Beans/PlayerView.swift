@@ -24,14 +24,83 @@ struct PlayerView: View {
     @State private var showAddToPlaylist = false
     @State private var showComments = false
     @AppStorage("beans.lyricFontSize") private var lyricFontSize = 17
+    @AppStorage("beans.lyricColor") private var lyricColorRaw = "accent"
+    @AppStorage("beans.lyricDimColor") private var lyricDimColorRaw = "dim"
+    @AppStorage("beans.lyricGlow") private var lyricGlowLevel = 1
 
     private var song: Song? { player.currentSong }
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+
+    private struct ColorOption: Hashable {
+        let id: String
+        let name: String
+    }
+
+    private let lyricColorOptions: [ColorOption] = [
+        ColorOption(id: "accent", name: "跟随主题"),
+        ColorOption(id: "white", name: "纯白"),
+        ColorOption(id: "amber", name: "琥珀"),
+        ColorOption(id: "cyan", name: "冰蓝"),
+        ColorOption(id: "pink", name: "樱粉"),
+        ColorOption(id: "green", name: "薄荷绿"),
+    ]
+
+    private let lyricDimColorOptions: [ColorOption] = [
+        ColorOption(id: "dim", name: "默认淡灰"),
+        ColorOption(id: "white", name: "柔白"),
+        ColorOption(id: "bluegray", name: "蓝灰"),
+        ColorOption(id: "gray", name: "深灰"),
+        ColorOption(id: "dark", name: "暗黑"),
+    ]
 
     /// 固定调色板：跟随全局主题与深浅模式。
     /// 封面取色必须禁用：任何封面加载触发的 @State 更新都会引起整页重绘，导致“封面加载后布局错乱”。
     private var palette: CoverPalette {
         CoverPalette.fallback(colorScheme: colorScheme)
+    }
+
+    /// 当前行歌词颜色（可自定义，默认跟随主题）
+    private var lyricCurrentColor: Color {
+        switch lyricColorRaw {
+        case "white": return .white
+        case "amber": return Color.beansAmber
+        case "cyan": return Color(red: 0.35, green: 0.85, blue: 0.96)
+        case "pink": return Color(red: 1.0, green: 0.62, blue: 0.82)
+        case "green": return Color(red: 0.42, green: 0.90, blue: 0.62)
+        default: return palette.accent
+        }
+    }
+
+    /// 未播放歌词颜色（可自定义，默认淡灰）
+    private var lyricDimColor: Color {
+        switch lyricDimColorRaw {
+        case "white": return .white.opacity(0.78)
+        case "bluegray": return Color(red: 0.72, green: 0.78, blue: 0.86)
+        case "gray": return Color.gray.opacity(0.85)
+        case "dark": return Color.black.opacity(0.55)
+        default: return palette.secondary
+        }
+    }
+
+    private let glowOptions: [Int] = [0, 1, 2, 3]
+
+    private func glowName(_ level: Int) -> String {
+        switch level {
+        case 0: return "关闭"
+        case 1: return "柔和"
+        case 2: return "标准"
+        default: return "强烈"
+        }
+    }
+
+    /// 发光强度对应的 shadow 半径（0 关闭，最大 14）
+    private var lyricGlowRadius: CGFloat {
+        switch lyricGlowLevel {
+        case 0: return 0
+        case 1: return 5
+        case 2: return 9
+        default: return 14
+        }
     }
 
     var body: some View {
@@ -254,15 +323,6 @@ struct PlayerView: View {
 
                 Spacer(minLength: 0)
 
-                HStack(spacing: 6) {
-                    lyricSizeButton("textformat.size.smaller") {
-                        lyricFontSize = max(12, lyricFontSize - 2)
-                    }
-                    lyricSizeButton("textformat.size.larger") {
-                        lyricFontSize = min(28, lyricFontSize + 2)
-                    }
-                }
-
                 Button {
                     toggleLyrics()
                 } label: {
@@ -288,7 +348,7 @@ struct PlayerView: View {
             if lyrics.isEmpty {
                 emptyLyricsView
             } else {
-                LyricsSection(lyrics: lyrics, accent: palette.accent, secondary: palette.secondary, baseFontSize: CGFloat(lyricFontSize)) { line in
+                LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
                     BeansHaptics.tap()
                     player.seek(to: line.time)
                 }
@@ -360,25 +420,28 @@ struct PlayerView: View {
                 .padding(.top, 5)
 
             progressBlock
-            mainControls
-            utilityRow
+
+            VStack(spacing: 4) {
+                mainControls
+                utilityRow
+            }
+            .simultaneousGesture(
+                // 上滑主控制/工具行区域呼出评论区（进度条区域保留拖动，不误触）
+                DragGesture(minimumDistance: 25)
+                    .onEnded { value in
+                        if value.translation.height < -50, song != nil {
+                            BeansHaptics.medium()
+                            showComments = true
+                        }
+                    }
+            )
         }
         .padding(.horizontal, 20)
         .padding(.top, 6)
         .padding(.bottom, 4)
         .frame(maxWidth: .infinity)
-        .simultaneousGesture(
-            // 上滑底部呼出评论区（替代原评论按钮）
-            DragGesture(minimumDistance: 25)
-                .onEnded { value in
-                    if value.translation.height < -50, song != nil {
-                        BeansHaptics.medium()
-                        showComments = true
-                    }
-                }
-        )
         .background {
-            // iOS 原生液态玻璃面板，延伸到底部安全区贴满屏幕底部，不留空白
+            // 通透液态玻璃面板：清透材质 + 极淡顶光，延伸到底部安全区贴满屏幕底部
             GlassEffectContainer {
                 UnevenRoundedRectangle(
                     topLeadingRadius: 30, bottomLeadingRadius: 0,
@@ -394,11 +457,11 @@ struct PlayerView: View {
             }
             .ignoresSafeArea(edges: .bottom)
             .overlay(alignment: .top) {
-                LinearGradient(colors: [.white.opacity(0.35), .clear], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [.white.opacity(0.18), .clear], startPoint: .top, endPoint: .bottom)
                     .frame(height: 1)
             }
         }
-        .shadow(color: .black.opacity(0.18), radius: 20, y: -5)
+        .shadow(color: .black.opacity(0.10), radius: 18, y: -4)
     }
 
     private var subtitle: String {
@@ -594,6 +657,67 @@ struct PlayerView: View {
                 } label: {
                     Label("添加到歌单", systemImage: "text.badge.plus")
                 }
+                Divider()
+                Menu {
+                    Button {
+                        lyricFontSize = max(12, lyricFontSize - 2)
+                    } label: {
+                        Label("缩小字号", systemImage: "textformat.size.smaller")
+                    }
+                    Button {
+                        lyricFontSize = min(28, lyricFontSize + 2)
+                    } label: {
+                        Label("放大字号", systemImage: "textformat.size.larger")
+                    }
+                    Text("当前 \(lyricFontSize)pt")
+                } label: {
+                    Label("歌词字号", systemImage: "textformat")
+                }
+                Menu {
+                    ForEach(glowOptions, id: \.self) { level in
+                        Button {
+                            lyricGlowLevel = level
+                        } label: {
+                            if lyricGlowLevel == level {
+                                Label(glowName(level), systemImage: "checkmark")
+                            } else {
+                                Text(glowName(level))
+                            }
+                        }
+                    }
+                } label: {
+                    Label("歌词发光", systemImage: "sparkles")
+                }
+                Menu {
+                    ForEach(lyricColorOptions, id: \.self) { opt in
+                        Button {
+                            lyricColorRaw = opt.id
+                        } label: {
+                            if lyricColorRaw == opt.id {
+                                Label(opt.name, systemImage: "checkmark")
+                            } else {
+                                Text(opt.name)
+                            }
+                        }
+                    }
+                } label: {
+                    Label("歌词高亮颜色", systemImage: "paintbrush.fill")
+                }
+                Menu {
+                    ForEach(lyricDimColorOptions, id: \.self) { opt in
+                        Button {
+                            lyricDimColorRaw = opt.id
+                        } label: {
+                            if lyricDimColorRaw == opt.id {
+                                Label(opt.name, systemImage: "checkmark")
+                            } else {
+                                Text(opt.name)
+                            }
+                        }
+                    }
+                } label: {
+                    Label("未播放歌词颜色", systemImage: "paintbrush.pointed.fill")
+                }
             } label: {
                 Image(systemName: "ellipsis.circle")
                     .font(.system(size: 12, weight: .semibold))
@@ -612,27 +736,6 @@ struct PlayerView: View {
     }
 
     // MARK: - 动作
-
-    private func lyricSizeButton(_ icon: String, action: @escaping () -> Void) -> some View {
-        Button {
-            BeansHaptics.tap()
-            action()
-        } label: {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(palette.secondary)
-                .frame(width: 32, height: 32)
-                .background {
-                    GlassEffectContainer {
-                        Circle()
-                            .fill(.clear)
-                            .glassEffect(.clear, in: Circle())
-                    }
-                }
-                .clipShape(Circle())
-        }
-        .buttonStyle(GlassPressButtonStyle())
-    }
 
     private func toggleLyrics() {
         BeansHaptics.tap()
@@ -721,11 +824,25 @@ struct LyricsSection: View {
     let accent: Color
     let secondary: Color
     var baseFontSize: CGFloat = 17
+    var glowRadius: CGFloat = 9
     let onTapLine: (LyricLine) -> Void
 
+    /// 二分查找当前行（歌词按时间升序），避免逐行扫描降低 CPU
     private var currentIndex: Int? {
         guard !lyrics.isEmpty else { return nil }
-        return lyrics.lastIndex { $0.time <= player.progress }
+        var low = 0
+        var high = lyrics.count - 1
+        var answer: Int?
+        while low <= high {
+            let mid = (low + high) / 2
+            if lyrics[mid].time <= player.progress {
+                answer = mid
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+        return answer
     }
 
     var body: some View {
@@ -773,6 +890,10 @@ struct LyricsSection: View {
                 design: .rounded
             ))
             .foregroundStyle(isCurrent ? accent : secondary)
+            .shadow(
+                color: isCurrent ? accent.opacity(glowRadius > 0 ? 0.65 : 0) : .clear,
+                radius: isCurrent ? glowRadius : 0
+            )
             .opacity(max(opacity, 0.15))
             .scaleEffect(isCurrent ? 1.05 : 1)
             .multilineTextAlignment(.center)

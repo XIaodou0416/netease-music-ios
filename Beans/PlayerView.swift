@@ -25,6 +25,7 @@ struct PlayerView: View {
     @State private var showComments = false
     @State private var showDownloadPicker = false
     @State private var showLyricSettings = false
+    @State private var showArtistHome = false
     @State private var dominantColor: RGBColor?
     @AppStorage("beans.lyricFontSize") private var lyricFontSize = 17
     @AppStorage("beans.lyricColor") private var lyricColorRaw = "accent"
@@ -160,6 +161,12 @@ struct PlayerView: View {
                 gradEndRaw: $lyricGradEndRaw,
                 palette: palette
             )
+        }
+        .sheet(isPresented: $showArtistHome) {
+            if !primaryArtistName.isEmpty {
+                ArtistHomeSheet(artistName: primaryArtistName)
+                    .environmentObject(player)
+            }
         }
         .confirmationDialog("下载《\(song?.name ?? "当前歌曲")》", isPresented: $showDownloadPicker, titleVisibility: .visible) {
             ForEach(DownloadQuality.allCases) { quality in
@@ -360,6 +367,8 @@ struct PlayerView: View {
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
+                    .contentShape(Rectangle())
+                    .onTapGesture { openArtistHome() }
             }
             .padding(.horizontal, 36)
 
@@ -395,6 +404,8 @@ struct PlayerView: View {
                         .foregroundStyle(palette.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
+                        .contentShape(Rectangle())
+                        .onTapGesture { openArtistHome() }
                 }
 
                 Spacer(minLength: 0)
@@ -705,6 +716,23 @@ struct PlayerView: View {
     }
 
     // MARK: - 动作
+
+    /// 首位歌手名（用于跳转歌手主页）
+    private var primaryArtistName: String {
+        guard let artists = song?.artists else { return "" }
+        return artists
+            .replacingOccurrences(of: " / ", with: "/")
+            .split(separator: "/")
+            .first?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .description ?? ""
+    }
+
+    private func openArtistHome() {
+        guard !primaryArtistName.isEmpty else { return }
+        BeansHaptics.tap()
+        showArtistHome = true
+    }
 
     private func toggleLyrics() {
         BeansHaptics.tap()

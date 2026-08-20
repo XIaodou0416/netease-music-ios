@@ -339,6 +339,43 @@ final class NetEaseAPI {
         return albums
     }
 
+    // MARK: - 歌手主页
+
+    /// 歌手热门歌曲
+    func artistHotSongs(artistID: Int, limit: Int = 50) async throws -> [Song] {
+        let json = try await request("/api/artist/songs", payload: ["id": artistID, "limit": limit, "offset": 0], crypto: "weapi")
+        let list = json["songs"] as? [[String: Any]] ?? []
+        return list.compactMap { Song(json: $0) }
+    }
+
+    /// 歌手专辑
+    func artistAlbums(artistID: Int, limit: Int = 50) async throws -> [Album] {
+        let json = try await request("/api/artist/albums", payload: ["id": artistID, "limit": limit, "offset": 0], crypto: "weapi")
+        let list = json["hotAlbums"] as? [[String: Any]] ?? []
+        var albums: [Album] = []
+        for item in list {
+            guard let id = item["id"] as? Int else { continue }
+            let artistName = (item["artist"] as? [String: Any])?["name"] as? String ?? ""
+            let pic = item["picUrl"] as? String ?? ""
+            albums.append(Album(
+                id: "netease-\(id)",
+                name: item["name"] as? String ?? "",
+                artistName: artistName,
+                coverURL: pic.isEmpty ? nil : URL(string: pic),
+                source: .netease,
+                trackCount: item["size"] as? Int
+            ))
+        }
+        return albums
+    }
+
+    /// 专辑内歌曲
+    func albumSongs(albumID: Int) async throws -> [Song] {
+        let json = try await request("/api/v1/album/\(albumID)", payload: [:], crypto: "weapi")
+        let list = json["songs"] as? [[String: Any]] ?? []
+        return list.compactMap { Song(json: $0) }
+    }
+
     // MARK: - 收藏
 
     /// 听歌排行（type=1 最近一周 / type=0 所有时间）

@@ -346,7 +346,7 @@ struct SlidingIndicator: View {
             GlassEffectContainer {
                 Capsule()
                     .fill(.clear)
-                    .glassEffect(.thin, in: Capsule())
+                    .glassEffect(.regular, in: Capsule())
             }
             .overlay {
                 Capsule().fill(Color.beansAmber.opacity(0.16))

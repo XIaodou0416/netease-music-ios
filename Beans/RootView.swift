@@ -160,6 +160,24 @@ struct AppStoreTabBar: View {
                     )
             }
         }
+        .overlay(alignment: .leading) {
+            // 液态滑动指示器：跟随选中项平滑移动，触碰滑动时产生液态跟随动画
+            GeometryReader { geo in
+                let count = CGFloat(max(RootTab.allCases.count, 1))
+                let tabWidth = max((geo.size.width - 10 - 4 * (count - 1)) / count, 0)
+                let index = CGFloat(RootTab.allCases.firstIndex(of: selection) ?? 0)
+                Capsule()
+                    .fill(Color.beansAmber.opacity(0.20))
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(Color.beansAmber.opacity(0.35), lineWidth: 0.6)
+                    }
+                    .frame(width: tabWidth, height: geo.size.height - 10)
+                    .offset(x: 5 + index * (tabWidth + 4))
+                    .animation(.spring(response: 0.38, dampingFraction: 0.72), value: selection)
+                    .allowsHitTesting(false)
+            }
+        }
         .clipShape(Capsule())
         .shadow(color: .black.opacity(0.10), radius: 14, y: 6)
     }
@@ -180,9 +198,6 @@ struct AppStoreTabBar: View {
             .scaleEffect(rippleTab == tab ? 1.12 : 1)
             .animation(.spring(response: 0.4, dampingFraction: 0.55), value: rippleTab)
             .background {
-                if selection == tab {
-                    Capsule().fill(Color.beansAmber.opacity(0.18))
-                }
                 if rippleTab == tab {
                     LiquidRippleEffect()
                 }

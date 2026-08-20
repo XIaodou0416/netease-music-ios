@@ -36,6 +36,7 @@ struct CoverBlurBackground: UIViewRepresentable {
 final class CoverBlurView: UIView {
     private let imageView = UIImageView()
     private let gradientLayer = CAGradientLayer()
+    private let gradientHost = UIView()
     private let tintView = UIView()
     private var currentURL: URL?
     private static let imageCache = NSCache<NSURL, UIImage>()
@@ -50,16 +51,17 @@ final class CoverBlurView: UIView {
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         imageView.isUserInteractionEnabled = false
-        // 半透明模糊图叠在封面主色渐变之上，渐变底色透出来形成动态渐变背景
-        imageView.alpha = 0.85
         tintView.isUserInteractionEnabled = false
+        gradientHost.isUserInteractionEnabled = false
 
         gradientLayer.colors = [UIColor.systemGray.cgColor, UIColor.systemGray2.cgColor]
         gradientLayer.startPoint = CGPoint(x: 0.5, y: 0)
         gradientLayer.endPoint = CGPoint(x: 0.5, y: 1)
+        gradientLayer.opacity = 0.62
+        gradientHost.layer.addSublayer(gradientLayer)
 
-        layer.addSublayer(gradientLayer)
         addSubview(imageView)
+        addSubview(gradientHost)
         addSubview(tintView)
     }
 
@@ -67,6 +69,7 @@ final class CoverBlurView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        gradientHost.frame = bounds
         gradientLayer.frame = bounds
         imageView.frame = bounds
         tintView.frame = bounds
@@ -75,8 +78,8 @@ final class CoverBlurView: UIView {
     func updateScheme(_ scheme: ColorScheme) {
         // 深浅遮罩：压暗/提亮背景，保证前景文字与控件始终可读
         tintView.backgroundColor = scheme == .dark
-            ? UIColor.black.withAlphaComponent(0.42)
-            : UIColor.white.withAlphaComponent(0.20)
+            ? UIColor.black.withAlphaComponent(0.30)
+            : UIColor.white.withAlphaComponent(0.10)
     }
 
     func load(url: URL?) {
@@ -139,7 +142,7 @@ final class CoverBlurView: UIView {
             ?? UIColor.systemGray
         let bottom = areaAverage(of: sample, in: CGRect(x: 0, y: 0, width: 1, height: 0.5))
             ?? UIColor.systemGray2
-        return (top.lightened(0.16), bottom.darkened(0.34))
+        return (top.lightened(0.28), bottom.darkened(0.48))
     }
 
     private static func areaAverage(of image: UIImage, in normalizedRect: CGRect) -> UIColor? {

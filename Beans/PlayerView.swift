@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import MediaPlayer
 
 // MARK: - 全屏播放器（全新重写：极简稳定布局）
 // 布局原则：
@@ -44,13 +43,9 @@ struct PlayerView: View {
                 VStack(spacing: 0) {
                     headerBar
                     content(geo: geo)
-                }
-                .foregroundStyle(palette.text)
-
-                VStack(spacing: 0) {
                     controlDeck
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .foregroundStyle(palette.text)
             }
         }
         .task(id: song?.identityKey) {
@@ -108,7 +103,13 @@ struct PlayerView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(palette.text)
                     .frame(width: 38, height: 38)
-                    .background { Circle().fill(.ultraThinMaterial) }
+                    .background {
+                        GlassEffectContainer {
+                            Circle()
+                                .fill(.clear)
+                                .glassEffect(.clear, in: Circle())
+                        }
+                    }
                     .clipShape(Circle())
             }
             .buttonStyle(GlassPressButtonStyle())
@@ -137,7 +138,13 @@ struct PlayerView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(palette.text)
                     .frame(width: 38, height: 38)
-                    .background { Circle().fill(.ultraThinMaterial) }
+                    .background {
+                        GlassEffectContainer {
+                            Circle()
+                                .fill(.clear)
+                                .glassEffect(.clear, in: Circle())
+                        }
+                    }
                     .clipShape(Circle())
             }
             .buttonStyle(GlassPressButtonStyle())
@@ -253,7 +260,13 @@ struct PlayerView: View {
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(palette.secondary)
                         .frame(width: 36, height: 36)
-                        .background { Circle().fill(.ultraThinMaterial) }
+                        .background {
+                            GlassEffectContainer {
+                                Circle()
+                                    .fill(.clear)
+                                    .glassEffect(.clear, in: Circle())
+                            }
+                        }
                         .clipShape(Circle())
                 }
                 .buttonStyle(GlassPressButtonStyle())
@@ -297,7 +310,13 @@ struct PlayerView: View {
                     .foregroundStyle(palette.text)
                     .padding(.horizontal, 26)
                     .padding(.vertical, 10)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .background {
+                        GlassEffectContainer {
+                            Capsule()
+                                .fill(.clear)
+                                .glassEffect(.clear, in: Capsule())
+                        }
+                    }
             }
             .buttonStyle(GlassPressButtonStyle())
         }
@@ -359,11 +378,6 @@ struct PlayerView: View {
                     .frame(height: 1)
             }
         }
-        .clipShape(UnevenRoundedRectangle(
-            topLeadingRadius: 30, bottomLeadingRadius: 0,
-            bottomTrailingRadius: 0, topTrailingRadius: 30,
-            style: .continuous
-        ))
         .shadow(color: .black.opacity(0.18), radius: 20, y: -5)
     }
 
@@ -441,7 +455,13 @@ struct PlayerView: View {
                 .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(accent ? palette.accent : palette.text)
                 .frame(width: 44, height: 44)
-                .background { Circle().fill(.ultraThinMaterial) }
+                .background {
+                    GlassEffectContainer {
+                        Circle()
+                            .fill(.clear)
+                            .glassEffect(.clear, in: Circle())
+                    }
+                }
                 .clipShape(Circle())
         }
         .buttonStyle(GlassPressButtonStyle())
@@ -458,14 +478,22 @@ struct PlayerView: View {
                 .foregroundStyle(Color.white)
                 .frame(width: 58, height: 58)
                 .background {
-                    Circle()
-                        .fill(LinearGradient(
-                            colors: [palette.accent, palette.accentSoft],
-                            startPoint: .top, endPoint: .bottom
-                        ))
-                        .overlay {
-                            Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1)
-                        }
+                    GlassEffectContainer {
+                        Circle()
+                            .fill(.clear)
+                            .glassEffect(.clear, in: Circle())
+                    }
+                    .overlay {
+                        Circle().fill(
+                            LinearGradient(
+                                colors: [palette.accent.opacity(0.55), palette.accentSoft.opacity(0.55)],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                        )
+                    }
+                    .overlay {
+                        Circle().strokeBorder(.white.opacity(0.30), lineWidth: 1)
+                    }
                 }
                 .clipShape(Circle())
                 .shadow(color: palette.accent.opacity(0.4), radius: 14, y: 7)
@@ -501,14 +529,17 @@ struct PlayerView: View {
                 .foregroundStyle(palette.secondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(.ultraThinMaterial, in: Capsule())
+                .background {
+                    GlassEffectContainer {
+                        Capsule()
+                            .fill(.clear)
+                            .glassEffect(.clear, in: Capsule())
+                    }
+                }
                 .clipShape(Capsule())
             }
 
             Spacer(minLength: 4)
-
-            SystemVolumeSlider(tint: palette.accent)
-                .frame(width: 110, height: 24)
 
             Button {
                 toggleLyrics()
@@ -517,7 +548,13 @@ struct PlayerView: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(showLyrics ? palette.accent : palette.secondary)
                     .frame(width: 32, height: 32)
-                    .background { Circle().fill(.ultraThinMaterial) }
+                    .background {
+                        GlassEffectContainer {
+                            Circle()
+                                .fill(.clear)
+                                .glassEffect(.clear, in: Circle())
+                        }
+                    }
                     .clipShape(Circle())
             }
             .buttonStyle(GlassPressButtonStyle())
@@ -543,7 +580,13 @@ struct PlayerView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(palette.secondary)
                     .frame(width: 32, height: 32)
-                    .background { Circle().fill(.ultraThinMaterial) }
+                    .background {
+                        GlassEffectContainer {
+                            Circle()
+                                .fill(.clear)
+                                .glassEffect(.clear, in: Circle())
+                        }
+                    }
                     .clipShape(Circle())
             }
         }
@@ -626,31 +669,6 @@ struct SeekBar: View {
             )
         }
         .frame(height: 30)
-    }
-}
-
-// MARK: - 系统音量条（MPVolumeView 封装，颜色跟随封面主色）
-
-struct SystemVolumeSlider: UIViewRepresentable {
-    var tint: Color
-
-    func makeUIView(context: Context) -> MPVolumeView {
-        let view = MPVolumeView(frame: .zero)
-        view.showsRouteButton = false
-        view.showsVolumeSlider = true
-        return view
-    }
-
-    func updateUIView(_ uiView: MPVolumeView, context: Context) {
-        DispatchQueue.main.async {
-            for sub in uiView.subviews {
-                if let slider = sub as? UISlider {
-                    slider.minimumTrackTintColor = UIColor(tint)
-                    slider.maximumTrackTintColor = UIColor.white.withAlphaComponent(0.28)
-                    slider.thumbTintColor = UIColor.white
-                }
-            }
-        }
     }
 }
 

@@ -13,11 +13,11 @@ struct SongCell: View {
     @State private var showAddToPlaylist = false
 
     private var isCurrent: Bool {
-        player.currentSong?.id == song.id
+        player.currentSong?.identityKey == song.identityKey
     }
 
     private var isLiked: Bool {
-        auth.favoriteTracks.contains { $0.id == song.id }
+        auth.favoriteTracks.contains { $0.identityKey == song.identityKey }
     }
 
     private func likeTapped() {

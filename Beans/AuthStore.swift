@@ -92,11 +92,11 @@ final class AuthStore: ObservableObject {
     /// 收藏/取消收藏：成功后同步更新「我喜欢的音乐」列表与计数
     @MainActor
     func toggleLike(_ song: Song) async throws -> Bool {
-        let isLiked = favoriteTracks.contains { $0.id == song.id }
+        let isLiked = favoriteTracks.contains { $0.identityKey == song.identityKey }
         let ok = try await NetEaseAPI.shared.like(id: song.id, liked: !isLiked)
         guard ok else { return false }
         if isLiked {
-            favoriteTracks.removeAll { $0.id == song.id }
+            favoriteTracks.removeAll { $0.identityKey == song.identityKey }
             likedCount = max(0, likedCount - 1)
         } else {
             favoriteTracks.insert(song, at: 0)
@@ -114,7 +114,7 @@ final class AuthStore: ObservableObject {
 
     /// 某首歌当前是否为已收藏状态（按 id 判断，避免不同来源同一首歌因字段差异误判）
     func isLiked(_ song: Song) -> Bool {
-        favoriteTracks.contains { $0.id == song.id }
+        favoriteTracks.contains { $0.identityKey == song.identityKey }
     }
 
     func logout() {

@@ -39,7 +39,7 @@ final class PlayerManager: NSObject, ObservableObject {
     @Published var sleepTimerEndsAt: Date?
     @Published var sleepTimerRemaining: Int = 0
     @Published var history: [Song] = []
-    @Published var playCounts: [Int: Int] = [:]
+    @Published var playCounts: [String: Int] = [:]
 
     private var player: AVPlayer?
     private var timeObserver: Any?
@@ -49,7 +49,7 @@ final class PlayerManager: NSObject, ObservableObject {
     private var playOrder: [Int] = []
     private var orderPosition = 0
     private var sleepTimer: Timer?
-    private var lastCountedSongID: Int?
+    private var lastCountedSongID: String?
     private var wasPlayingBeforeInterruption = false
 
     private let historyKey = "beans.history"
@@ -295,8 +295,14 @@ final class PlayerManager: NSObject, ObservableObject {
         loadFailed = false
         pushHistory(song)
         Task {
-            let urls = try? await NetEaseAPI.shared.songURLs(ids: [song.id])
-            guard let urlString = urls?[song.id], let url = URL(string: urlString) else {
+            var urlString: String?
+            if song.source == .qq, let mid = song.qqMid {
+                urlString = try? await QQMusicAPI.shared.songURL(songmid: mid)
+            } else {
+                let urls = try? await NetEaseAPI.shared.songURLs(ids: [song.id])
+                urlString = urls?[song.id]
+            }
+            guard let urlString, let url = URL(string: urlString) else {
                 await MainActor.run {
                     self.isBuffering = false
                     self.loadFailed = true
@@ -320,9 +326,9 @@ final class PlayerManager: NSObject, ObservableObject {
         loadFailed = false
         // 修复：播放次数原先在 loadCurrent 里预计数，URL 加载失败/手动重试也会 +1，
         // 导致统计异常；改为真正开始播放时计数，且同一首歌同一会话只计一次。
-        if let song = currentSong, lastCountedSongID != song.id {
+        if let song = currentSong, lastCountedSongID != song.identityKey {
             bumpPlayCount(song)
-            lastCountedSongID = song.id
+            lastCountedSongID = song.identityKey
         }
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] time in
             guard let self, let player = self.player else { return }
@@ -411,7 +417,7 @@ final class PlayerManager: NSObject, ObservableObject {
     // MARK: - 播放历史与统计
 
     private func pushHistory(_ song: Song) {
-        history.removeAll { $0.id == song.id }
+        history.removeAll { $0.identityKey == song.identityKey }
         history.insert(song, at: 0)
         if history.count > 50 {
             history = Array(history.prefix(50))
@@ -428,7 +434,7 @@ final class PlayerManager: NSObject, ObservableObject {
     }
 
     private func bumpPlayCount(_ song: Song) {
-        playCounts[song.id, default: 0] += 1
+        playCounts[song.identityKey, default: 0] += 1
         if let data = try? JSONEncoder().encode(playCounts) {
             defaults.set(data, forKey: countsKey)
         }
@@ -436,15 +442,15 @@ final class PlayerManager: NSObject, ObservableObject {
 
     private func loadPlayCounts() {
         guard let data = defaults.data(forKey: countsKey),
-              let saved = try? JSONDecoder().decode([Int: Int].self, from: data) else { return }
+              let saved = try? JSONDecoder().decode([String: Int].self, from: data) else { return }
         playCounts = saved
     }
 
     /// 听歌排行：按播放次数排序的前几首
     var topPlayed: [(song: Song, count: Int)] {
         var result: [(song: Song, count: Int)] = []
-        for (id, count) in playCounts {
-            if let song = history.first(where: { $0.id == id }) {
+        for (key, count) in playCounts {
+            if let song = history.first(where: { $0.identityKey == key }) {
                 result.append((song, count))
             }
         }

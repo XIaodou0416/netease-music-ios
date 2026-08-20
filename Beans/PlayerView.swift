@@ -37,7 +37,7 @@ struct PlayerView: View {
             }
             .foregroundStyle(Color.beansLabel)
         }
-        .task(id: song?.id) {
+        .task(id: song?.identityKey) {
             await loadLyrics()
         }
         .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
@@ -547,7 +547,7 @@ struct PlayerView: View {
     }
 
     private func isLiked(_ song: Song) -> Bool {
-        auth.favoriteTracks.contains { $0.id == song.id }
+        auth.favoriteTracks.contains { $0.identityKey == song.identityKey }
     }
 
     private func likeTapped(_ song: Song) {
@@ -571,7 +571,13 @@ struct PlayerView: View {
     private func loadLyrics() async {
         lyrics = []
         guard let song else { return }
-        guard let raw = try? await NetEaseAPI.shared.lyric(id: song.id) else { return }
+        var raw: String?
+        if song.source == .qq, let mid = song.qqMid {
+            raw = try? await QQMusicAPI.shared.lyric(songmid: mid)
+        } else {
+            raw = try? await NetEaseAPI.shared.lyric(id: song.id)
+        }
+        guard let raw else { return }
         lyrics = LyricParser.parse(raw)
     }
 }

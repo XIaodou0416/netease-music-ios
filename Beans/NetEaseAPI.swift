@@ -315,6 +315,47 @@ final class NetEaseAPI {
         return songs.compactMap(Song.init(json:))
     }
 
+    /// 搜索歌手（type=100）
+    func searchArtists(keyword: String, limit: Int = 30) async throws -> [Artist] {
+        let json = try await request("/api/cloudsearch/pc", payload: ["s": keyword, "type": 100, "limit": limit, "offset": 0, "total": true], crypto: "weapi")
+        let result = json["result"] as? [String: Any] ?? [:]
+        let list = result["artists"] as? [[String: Any]] ?? []
+        var artists: [Artist] = []
+        for item in list {
+            guard let id = item["id"] as? Int else { continue }
+            let pic = item["picUrl"] as? String ?? (item["img1v1Url"] as? String ?? "")
+            artists.append(Artist(
+                id: "netease-\(id)",
+                name: item["name"] as? String ?? "",
+                coverURL: pic.isEmpty ? nil : URL(string: pic),
+                source: .netease
+            ))
+        }
+        return artists
+    }
+
+    /// 搜索专辑（type=10）
+    func searchAlbums(keyword: String, limit: Int = 30) async throws -> [Album] {
+        let json = try await request("/api/cloudsearch/pc", payload: ["s": keyword, "type": 10, "limit": limit, "offset": 0, "total": true], crypto: "weapi")
+        let result = json["result"] as? [String: Any] ?? [:]
+        let list = result["albums"] as? [[String: Any]] ?? []
+        var albums: [Album] = []
+        for item in list {
+            guard let id = item["id"] as? Int else { continue }
+            let artist = (item["artist"] as? [String: Any])?["name"] as? String ?? ""
+            let pic = item["picUrl"] as? String ?? ""
+            albums.append(Album(
+                id: "netease-\(id)",
+                name: item["name"] as? String ?? "",
+                artistName: artist,
+                coverURL: pic.isEmpty ? nil : URL(string: pic),
+                source: .netease,
+                trackCount: item["size"] as? Int
+            ))
+        }
+        return albums
+    }
+
     // MARK: - 收藏
 
     func like(id: Int, liked: Bool) async throws -> Bool {

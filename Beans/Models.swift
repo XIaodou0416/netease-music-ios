@@ -1,5 +1,11 @@
 import Foundation
 
+/// 歌曲来源（网易云 / QQ音乐）
+enum SongSource: String, Codable {
+    case netease
+    case qq
+}
+
 struct Song: Identifiable, Hashable, Codable {
     let id: Int
     let name: String
@@ -7,10 +13,30 @@ struct Song: Identifiable, Hashable, Codable {
     let album: String
     let coverURL: URL?
     let duration: TimeInterval
+    /// 歌曲来源（网易云 / QQ音乐）
+    let source: SongSource
+    /// QQ 音乐 songmid（source == .qq 时用于获取播放地址与歌词）
+    let qqMid: String?
 
     var formattedDuration: String {
         let total = max(0, Int(duration))
         return String(format: "%d:%02d", total / 60, total % 60)
+    }
+
+    /// 跨平台唯一标识（避免网易云与 QQ 音乐歌曲 id 撞车）
+    var identityKey: String {
+        source == .qq ? "qq-\(id)" : "netease-\(id)"
+    }
+
+    init(id: Int, name: String, artists: String, album: String, coverURL: URL?, duration: TimeInterval, source: SongSource = .netease, qqMid: String? = nil) {
+        self.id = id
+        self.name = name
+        self.artists = artists
+        self.album = album
+        self.coverURL = coverURL
+        self.duration = duration
+        self.source = source
+        self.qqMid = qqMid
     }
 
     init?(json: [String: Any]) {
@@ -33,7 +59,53 @@ struct Song: Identifiable, Hashable, Codable {
         }
         let ms = json["duration"] as? Int ?? (json["dt"] as? Int) ?? 0
         duration = Double(ms) / 1000.0
+        source = .netease
+        qqMid = nil
     }
+
+    private enum CodingKeys: String, CodingKey { case id, name, artists, album, coverURL, duration, source, qqMid }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(Int.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        artists = try c.decodeIfPresent(String.self, forKey: .artists) ?? ""
+        album = try c.decodeIfPresent(String.self, forKey: .album) ?? ""
+        coverURL = try c.decodeIfPresent(URL.self, forKey: .coverURL)
+        duration = try c.decodeIfPresent(TimeInterval.self, forKey: .duration) ?? 0
+        source = try c.decodeIfPresent(SongSource.self, forKey: .source) ?? .netease
+        qqMid = try c.decodeIfPresent(String.self, forKey: .qqMid)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(artists, forKey: .artists)
+        try c.encode(album, forKey: .album)
+        try c.encodeIfPresent(coverURL, forKey: .coverURL)
+        try c.encode(duration, forKey: .duration)
+        try c.encode(source, forKey: .source)
+        try c.encodeIfPresent(qqMid, forKey: .qqMid)
+    }
+}
+
+/// 歌手搜索结果（网易云 / QQ音乐通用）
+struct Artist: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let coverURL: URL?
+    let source: SongSource
+}
+
+/// 专辑搜索结果（网易云 / QQ音乐通用）
+struct Album: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let artistName: String
+    let coverURL: URL?
+    let source: SongSource
+    var trackCount: Int?
 }
 
 struct Playlist: Identifiable, Hashable {

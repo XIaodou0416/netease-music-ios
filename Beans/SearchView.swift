@@ -1,10 +1,27 @@
 import SwiftUI
 
 enum SearchProvider: String, CaseIterable, Identifiable {
-    case netease = "网易云音乐"
+    case netease = "网易云"
     case qq = "QQ音乐"
 
     var id: String { rawValue }
+
+    /// 主题色渐变：网易云红 / QQ 绿
+    var tint: LinearGradient {
+        switch self {
+        case .netease: return LinearGradient.beansAccent
+        case .qq: return LinearGradient(
+            colors: [Color(red: 0.15, green: 0.78, blue: 0.55), Color(red: 0.05, green: 0.58, blue: 0.42)],
+            startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .netease: return "cloud.fill"
+        case .qq: return "play.rectangle.fill"
+        }
+    }
 }
 
 enum SearchResultType: String, CaseIterable, Identifiable {
@@ -19,6 +36,7 @@ struct SearchView: View {
     @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var player: PlayerManager
     @EnvironmentObject private var auth: AuthStore
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var keyword = ""
     @State private var provider: SearchProvider = .netease
@@ -38,14 +56,18 @@ struct SearchView: View {
         let _ = theme.accent
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
-                searchField
-                    .padding(.horizontal, 16)
+                headerTitle
+                    .padding(.horizontal, 20)
                     .padding(.top, 8)
                     .padding(.bottom, 10)
 
+                searchField
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 10)
+
                 providerPicker
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 6)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
 
                 contentArea
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -83,6 +105,26 @@ struct SearchView: View {
         }
     }
 
+    // MARK: - 顶部标题
+
+    private var headerTitle: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text("搜索")
+                .font(.system(size: 30, weight: .bold))
+                .foregroundStyle(Color.beansLabel)
+            Spacer(minLength: 0)
+            Label(provider.rawValue, systemImage: provider.icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.beansSecondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay {
+                    Capsule().strokeBorder(.white.opacity(0.15), lineWidth: 0.8)
+                }
+        }
+    }
+
     // MARK: - 内容区（热搜 / 分类+结果 固定占满剩余高度，切换不引起布局跳动）
 
     @ViewBuilder
@@ -98,12 +140,12 @@ struct SearchView: View {
         }
     }
 
-    // MARK: - 搜索框
+    // MARK: - 搜索框（液态玻璃胶囊）
 
     private var searchField: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 15))
+                .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(Color.beansSecondary)
             TextField("搜索歌曲、歌手、专辑", text: $keyword)
                 .font(.system(size: 15))
@@ -130,7 +172,7 @@ struct SearchView: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 15))
-                        .foregroundStyle(Color.beansSecondary)
+                        .foregroundStyle(Color.beansSecondary.opacity(0.85))
                 }
                 .buttonStyle(.plain)
             }
@@ -138,68 +180,75 @@ struct SearchView: View {
                 commitSearch()
             } label: {
                 Text("搜索")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.beansAmber)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 13)
                     .padding(.vertical, 6)
                     .background(.ultraThinMaterial, in: Capsule())
-                    .clipShape(Capsule())
+                    .overlay {
+                        Capsule().strokeBorder(.white.opacity(0.15), lineWidth: 0.8)
+                    }
             }
             .buttonStyle(GlassPressButtonStyle(scale: 0.9))
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.vertical, 11)
-                .background {
+        .background {
             GlassEffectContainer {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(.clear)
-                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .beansCardShadow(radius: 6, y: 2)
-        .padding(.bottom, 6)
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.white.opacity(0.18), lineWidth: 0.8)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .beansCardShadow(radius: 8, y: 3)
     }
 
-    // MARK: - 平台选择（网易云 / QQ音乐）
+    // MARK: - 平台选择（等宽分段控件）
 
     private var providerPicker: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             ForEach(SearchProvider.allCases) { p in
                 Button {
                     BeansHaptics.tap()
                     if provider != p { provider = p }
                 } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: p == .netease ? "cloud" : "play.rectangle.fill")
+                    HStack(spacing: 6) {
+                        Image(systemName: p.icon)
                             .font(.system(size: 11, weight: .semibold))
                         Text(p.rawValue)
                             .font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundStyle(provider == p ? Color.white : Color.beansSecondary)
-                    .padding(.horizontal, 15)
-                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
                     .background {
-                        GlassEffectContainer {
                         if provider == p {
-                            Capsule().fill(p == .netease ? LinearGradient.beansAccent : LinearGradient(colors: [Color(red: 0.15, green: 0.78, blue: 0.55), Color(red: 0.05, green: 0.58, blue: 0.42)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            Capsule().fill(p.tint)
                         } else {
-                            Capsule().fill(.clear).glassEffect(.clear, in: Capsule())
-                        }
+                            Capsule().fill(.clear)
                         }
                     }
-                    .clipShape(Capsule())
                 }
-                .buttonStyle(GlassPressButtonStyle())
+                .buttonStyle(.plain)
             }
-            Spacer(minLength: 0)
         }
+        .padding(4)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay {
+            Capsule().strokeBorder(.white.opacity(0.16), lineWidth: 0.8)
+        }
+        .clipShape(Capsule())
     }
 
     // MARK: - 分类选择（歌曲 / 歌手 / 专辑）
 
     private var typeTabs: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             ForEach(SearchResultType.allCases) { type in
                 Button {
                     BeansHaptics.tap()
@@ -222,75 +271,89 @@ struct SearchView: View {
                     Text(type.rawValue)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(resultType == type ? Color.beansLabel : Color.beansSecondary)
-                        .padding(.horizontal, 15)
-                        .padding(.vertical, 7)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
                         .background {
-                            GlassEffectContainer {
                             if resultType == type {
-                                Capsule().fill(.clear).glassEffect(.clear, in: Capsule())
-                            }
+                                Capsule().fill(.ultraThinMaterial)
                             }
                         }
-                        .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
             }
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 6)
+        .padding(4)
+        .background(Color.black.opacity(colorScheme == .dark ? 0.18 : 0.05), in: Capsule())
+        .clipShape(Capsule())
+        .padding(.horizontal, 20)
+        .padding(.bottom, 4)
     }
 
-    // MARK: - 热搜
+    // MARK: - 热搜（排名卡片）
 
     private var hotSection: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                SectionHeader(title: "\(provider.rawValue)热搜")
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    SectionHeader(title: "\(provider.rawValue)热搜")
+                    Spacer()
+                    Text("点击直接搜索")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.beansSecondary)
+                }
+                .padding(.top, 6)
+
                 if hotWords.isEmpty {
                     LoadingStateView()
                 } else {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    LazyVStack(spacing: 10) {
                         ForEach(Array(hotWords.enumerated()), id: \.offset) { index, word in
-                            Button {
-                                BeansHaptics.tap()
-                                keyword = word
-                                focused = false
-                                debounceTask?.cancel()
-                                Task { await startSearch(word) }
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Text("\(index + 1)")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                                        .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
-                                    Text(word)
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundStyle(Color.beansLabel)
-                                        .lineLimit(1)
-                                    Spacer(minLength: 0)
-                                }
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 13)
-                                                                .background {
-                                    GlassEffectContainer {
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .fill(.clear)
-                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                    }
-                                }
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            }
-                            .buttonStyle(GlassPressButtonStyle())
+                            hotRow(index: index, word: word)
                         }
                     }
                 }
-                Spacer().frame(height: 120)
+                Spacer().frame(height: 130)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
+            .padding(.horizontal, 20)
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
+    }
+
+    private func hotRow(index: Int, word: String) -> some View {
+        Button {
+            BeansHaptics.tap()
+            keyword = word
+            focused = false
+            debounceTask?.cancel()
+            Task { await startSearch(word) }
+        } label: {
+            HStack(spacing: 12) {
+                Text("\(index + 1)")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
+                    .frame(width: 26, alignment: .leading)
+                Text(word)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.beansLabel)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.beansSecondary.opacity(0.7))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background {
+                GlassEffectContainer {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .buttonStyle(GlassPressButtonStyle(scale: 0.97))
     }
 
     // MARK: - 结果区
@@ -320,6 +383,18 @@ struct SearchView: View {
                                 .font(.system(size: 12))
                                 .foregroundStyle(Color.beansSecondary)
                             Spacer()
+                            Button {
+                                BeansHaptics.tap()
+                                player.play(songs: songResults, startAt: 0)
+                            } label: {
+                                Label("播放全部", systemImage: "play.fill")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Color.beansAmber)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(.ultraThinMaterial, in: Capsule())
+                            }
+                            .buttonStyle(.plain)
                         }
                         .padding(.vertical, 8)
                         ForEach(Array(songResults.enumerated()), id: \.element.id) { index, song in
@@ -330,7 +405,7 @@ struct SearchView: View {
                             Divider().overlay(Color.beansSecondary.opacity(0.15))
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 20)
                     .padding(.top, 4)
                     .padding(.bottom, 180)
                 }
@@ -359,6 +434,13 @@ struct SearchView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
+                        HStack {
+                            Text("找到 \(artistResults.count) 位 · \(provider.rawValue)")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.beansSecondary)
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
                         ForEach(artistResults) { artist in
                             Button {
                                 searchBy(artist.name)
@@ -367,7 +449,7 @@ struct SearchView: View {
                                     CoverImage(url: artist.coverURL, size: 46, cornerRadius: 23)
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(artist.name)
-                                            .font(.system(size: 15))
+                                            .font(.system(size: 15, weight: .medium))
                                             .foregroundStyle(Color.beansLabel)
                                             .lineLimit(1)
                                         Text("搜索该歌手的歌曲")
@@ -386,7 +468,7 @@ struct SearchView: View {
                             Divider().overlay(Color.beansSecondary.opacity(0.15))
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 20)
                     .padding(.top, 4)
                     .padding(.bottom, 180)
                 }
@@ -415,6 +497,13 @@ struct SearchView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
+                        HStack {
+                            Text("找到 \(albumResults.count) 张 · \(provider.rawValue)")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.beansSecondary)
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
                         ForEach(albumResults) { album in
                             Button {
                                 searchBy(album.name)
@@ -423,24 +512,17 @@ struct SearchView: View {
                                     CoverImage(url: album.coverURL, size: 46, cornerRadius: 10)
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(album.name)
-                                            .font(.system(size: 15))
+                                            .font(.system(size: 15, weight: .medium))
                                             .foregroundStyle(Color.beansLabel)
                                             .lineLimit(1)
-                                        Text(album.artistName)
+                                        Text(album.artistName.isEmpty ? "未知歌手" : album.artistName)
                                             .font(.system(size: 12))
                                             .foregroundStyle(Color.beansSecondary)
-                                            .lineLimit(1)
                                     }
                                     Spacer(minLength: 8)
-                                    if let count = album.trackCount, count > 0 {
-                                        Text("\(count) 首")
-                                            .font(.system(size: 12))
-                                            .foregroundStyle(Color.beansSecondary)
-                                    } else {
-                                        Image(systemName: "magnifyingglass")
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .foregroundStyle(Color.beansSecondary)
-                                    }
+                                    Image(systemName: "magnifyingglass")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(Color.beansSecondary)
                                 }
                                 .padding(.vertical, 6)
                                 .contentShape(Rectangle())
@@ -449,7 +531,7 @@ struct SearchView: View {
                             Divider().overlay(Color.beansSecondary.opacity(0.15))
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 20)
                     .padding(.top, 4)
                     .padding(.bottom, 180)
                 }

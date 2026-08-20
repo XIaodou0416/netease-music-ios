@@ -24,15 +24,14 @@ struct PlayerView: View {
     @State private var showSimi = false
     @State private var showAddToPlaylist = false
     @State private var showComments = false
-    /// 封面主色：无封面或加载中为 nil → 回退全局主题色（一次性非动画更新，不影响布局）
-    @State private var dominant: RGBColor?
 
     private var song: Song? { player.currentSong }
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
 
-    /// 动态调色板：跟随封面主色，无封面时回退全局主题
+    /// 固定调色板：跟随全局主题与深浅模式。
+    /// 封面取色必须禁用：任何封面加载触发的 @State 更新都会引起整页重绘，导致“封面加载后布局错乱”。
     private var palette: CoverPalette {
-        CoverPalette.make(dominant: dominant, colorScheme: colorScheme)
+        CoverPalette.fallback(colorScheme: colorScheme)
     }
 
     var body: some View {
@@ -52,7 +51,6 @@ struct PlayerView: View {
         }
         .task(id: song?.identityKey) {
             await loadLyrics()
-            await loadDominant()
         }
         .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
         .sheet(isPresented: $showSleepTimer) { SleepTimerSheet().environmentObject(player) }
@@ -72,7 +70,7 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - 背景（封面取色渐变 + 封面毛玻璃模糊 + 深浅遮罩）
+    // MARK: - 背景（全局主题渐变 + 封面毛玻璃模糊 + 深浅遮罩）
 
     private var background: some View {
         ZStack {
@@ -80,7 +78,7 @@ struct PlayerView: View {
                 colors: [palette.backgroundTop, palette.backgroundBottom],
                 startPoint: .top, endPoint: .bottom
             )
-            // 封面毛玻璃：AsyncImage 在背景层独立渲染，封面加载不影响主布局
+            // 封面毛玻璃：AsyncImage 在背景层独立渲染，显式占满全屏，加载前后尺寸恒定，不影响主布局
             if let coverURL = song?.coverURL {
                 AsyncImage(url: coverURL) { phase in
                     if case .success(let image) = phase {
@@ -90,9 +88,11 @@ struct PlayerView: View {
                             .blur(radius: 46)
                             .saturation(1.15)
                             .opacity(colorScheme == .dark ? 0.40 : 0.50)
-                            .clipped()
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+                .allowsHitTesting(false)
                 .ignoresSafeArea()
             }
             LinearGradient(
@@ -576,29 +576,6 @@ struct PlayerView: View {
         lyrics = LyricParser.parse(raw)
     }
 
-    // MARK: - 封面主色提取（一次性非动画更新，仅影响配色，不影响布局）
-
-    private func loadDominant() async {
-        guard let coverURL = song?.coverURL else {
-            dominant = nil
-            return
-        }
-        guard let data = try? await fetchCover(coverURL),
-              !Task.isCancelled,
-              let img = UIImage(data: data) else { return }
-        let rgb = PaletteExtractor.dominantColor(in: img)
-        guard !Task.isCancelled, let rgb else { return }
-        dominant = rgb
-    }
-
-    private func fetchCover(_ url: URL) async throws -> Data {
-        let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)
-        if let cached = URLCache.shared.cachedResponse(for: request)?.data {
-            return cached
-        }
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return data
-    }
 }
 
 // MARK: - 自定义进度条（点击 / 拖动均可跳转，配色跟随封面主色）

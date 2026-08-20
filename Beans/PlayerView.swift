@@ -66,19 +66,6 @@ struct PlayerView: View {
                 ],
                 startPoint: .top, endPoint: .bottom
             )
-            if let coverURL = song?.coverURL {
-                AsyncImage(url: coverURL) { phase in
-                    if case .success(let image) = phase {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .blur(radius: 34)
-                            .saturation(1.2)
-                            .opacity(0.6)
-                    }
-                }
-                .ignoresSafeArea()
-            }
             LinearGradient(
                 colors: colorScheme == .dark
                     ? [.black.opacity(0.55), .black.opacity(0.16), .black.opacity(0.6)]
@@ -96,6 +83,23 @@ struct PlayerView: View {
                 .frame(width: 320, height: 320)
                 .blur(radius: 110)
                 .offset(x: -170, y: 380)
+        }
+        // 封面模糊背景挂在固定全屏容器的 background 层：加载完成不会影响任何布局
+        .background {
+            if let coverURL = song?.coverURL {
+                AsyncImage(url: coverURL) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .blur(radius: 34)
+                            .saturation(1.2)
+                            .opacity(0.6)
+                            .clipped()
+                    }
+                }
+            }
         }
     }
 
@@ -195,6 +199,7 @@ struct PlayerView: View {
                 }
                 .buttonStyle(GlassPressButtonStyle(scale: 0.95))
             }
+            .frame(width: coverSize * 1.34, height: coverSize * 1.34)
 
             Label("轻点封面查看歌词", systemImage: "quote.bubble")
                 .font(.system(size: 11))

@@ -77,29 +77,37 @@ struct CoverImage: View {
     var size: CGFloat
     var cornerRadius: CGFloat = 12
 
+    // 布局尺寸完全由外层固定容器决定；AsyncImage 只放在 overlay 中渲染，
+    // 图片加载完成与否都不会改变任何布局尺寸（根治"封面加载后错乱"）。
     var body: some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image):
-                image.resizable().scaledToFill()
-                    .frame(width: size, height: size)
-                    .clipped()
-            case .failure:
-                placeholder
-            case .empty:
-                placeholder
-                    .overlay {
-                        ProgressView().tint(Color.beansAmber)
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(Color.beansGlassFill)
+            .frame(width: size, height: size)
+            .overlay {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                            .frame(width: size, height: size)
+                            .clipped()
+                    case .failure:
+                        placeholderIcon
+                    case .empty:
+                        ZStack {
+                            placeholderIcon
+                            ProgressView().tint(Color.beansAmber)
+                        }
+                    @unknown default:
+                        placeholderIcon
                     }
-            @unknown default:
-                placeholder
+                }
+                .frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             }
-        }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 
-    private var placeholder: some View {
+    private var placeholderIcon: some View {
         ZStack {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(Color.beansGlassFill)

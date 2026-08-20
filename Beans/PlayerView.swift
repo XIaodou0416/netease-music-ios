@@ -115,7 +115,7 @@ struct PlayerView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.custom(BeansFont.name, size: 15).weight(.semibold))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 38, height: 38)
                     .background { Circle().fill(.ultraThinMaterial) }
@@ -127,11 +127,11 @@ struct PlayerView: View {
 
             VStack(spacing: 2) {
                 Text(player.isBuffering ? "加载中…" : (player.isPlaying ? "正在播放" : "已暂停"))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.custom(BeansFont.name, size: 12).weight(.semibold))
                     .foregroundStyle(Color.beansSecondary)
                     .lineLimit(1)
                 Text(song?.album ?? "Beans 音乐")
-                    .font(.system(size: 10))
+                    .font(.custom(BeansFont.name, size: 10))
                     .foregroundStyle(Color.beansSecondary.opacity(0.8))
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -144,7 +144,7 @@ struct PlayerView: View {
                 showQueue = true
             } label: {
                 Image(systemName: "list.bullet")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.custom(BeansFont.name, size: 14).weight(.semibold))
                     .foregroundStyle(Color.beansLabel)
                     .frame(width: 38, height: 38)
                     .background { Circle().fill(.ultraThinMaterial) }
@@ -205,7 +205,7 @@ struct PlayerView: View {
             .frame(width: coverSize * 1.34, height: coverSize * 1.34)
 
             Label("轻点封面查看歌词", systemImage: "quote.bubble")
-                .font(.system(size: 11))
+                .font(.custom(BeansFont.name, size: 11))
                 .foregroundStyle(Color.beansSecondary.opacity(0.85))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -216,20 +216,20 @@ struct PlayerView: View {
     private var placeholderView: some View {
         VStack(spacing: 14) {
             Image(systemName: "music.note")
-                .font(.system(size: 44, weight: .light))
+                .font(.custom(BeansFont.name, size: 44).weight(.light))
                 .foregroundStyle(Color.beansSecondary)
             Text("暂无播放内容")
-                .font(.system(size: 16, weight: .medium))
+                .font(.custom(BeansFont.name, size: 16).weight(.medium))
                 .foregroundStyle(Color.beansLabel)
             Text("返回选择一首歌曲即可开始播放")
-                .font(.system(size: 13))
+                .font(.custom(BeansFont.name, size: 13))
                 .foregroundStyle(Color.beansSecondary)
             Button {
                 BeansHaptics.tap()
                 dismiss()
             } label: {
                 Text("返回")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.custom(BeansFont.name, size: 14).weight(.semibold))
                     .foregroundStyle(Color.beansLabel)
                     .padding(.horizontal, 26)
                     .padding(.vertical, 10)
@@ -246,14 +246,14 @@ struct PlayerView: View {
         VStack(spacing: 0) {
             HStack {
                 Text("歌词")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.custom(BeansFont.name, size: 13).weight(.semibold))
                     .foregroundStyle(Color.beansSecondary)
                 Spacer(minLength: 0)
                 Button {
                     withAnimation(.spring(duration: 0.35)) { showLyrics = false }
                 } label: {
                     Image(systemName: "chevron.up")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.custom(BeansFont.name, size: 12).weight(.semibold))
                         .foregroundStyle(Color.beansSecondary)
                         .frame(width: 32, height: 32)
                         .background { Circle().fill(.ultraThinMaterial) }
@@ -268,13 +268,13 @@ struct PlayerView: View {
             if lyrics.isEmpty {
                 VStack(spacing: 10) {
                     Image(systemName: "quote.bubble")
-                        .font(.system(size: 30, weight: .light))
+                        .font(.custom(BeansFont.name, size: 30).weight(.light))
                         .foregroundStyle(Color.beansSecondary.opacity(0.7))
                     Text("暂无歌词")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.custom(BeansFont.name, size: 14).weight(.medium))
                         .foregroundStyle(Color.beansSecondary)
                     Text("点击封面可返回专辑视图")
-                        .font(.system(size: 11))
+                        .font(.custom(BeansFont.name, size: 11))
                         .foregroundStyle(Color.beansSecondary.opacity(0.7))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -331,12 +331,12 @@ struct PlayerView: View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(song?.name ?? "未在播放")
-                    .font(.system(size: 19, weight: .bold))
+                    .font(.custom(BeansFont.name, size: 19).weight(.bold))
                     .foregroundStyle(Color.beansLabel)
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
                 Text(subtitle)
-                    .font(.system(size: 12))
+                    .font(.custom(BeansFont.name, size: 12))
                     .foregroundStyle(Color.beansSecondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -348,7 +348,7 @@ struct PlayerView: View {
                     likeTapped(song)
                 } label: {
                     Image(systemName: isLiked(song) ? "heart.fill" : "heart")
-                        .font(.system(size: 15))
+                        .font(.custom(BeansFont.name, size: 15))
                         .foregroundStyle(isLiked(song) ? Color.beansHighlight : Color.beansLabel)
                         .frame(width: 38, height: 38)
                         .background { Circle().fill(.ultraThinMaterial) }
@@ -392,7 +392,7 @@ struct PlayerView: View {
             action()
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.custom(BeansFont.name, size: 11).weight(.semibold))
                 .foregroundStyle(Color.beansSecondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
@@ -432,7 +432,7 @@ struct PlayerView: View {
             action()
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 19, weight: .medium))
+                .font(.custom(BeansFont.name, size: 19).weight(.medium))
                 .foregroundStyle(accent ? Color.beansHighlight : Color.beansLabel)
                 .frame(width: 46, height: 46)
                 .background { Circle().fill(.ultraThinMaterial) }
@@ -448,7 +448,7 @@ struct PlayerView: View {
             player.togglePlayPause()
         } label: {
             Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                .font(.system(size: 26, weight: .semibold))
+                .font(.custom(BeansFont.name, size: 26).weight(.semibold))
                 .foregroundStyle(Color.black)
                 .frame(width: 62, height: 62)
                 .background {
@@ -485,7 +485,7 @@ struct PlayerView: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "speedometer")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.custom(BeansFont.name, size: 12).weight(.semibold))
                     Text(String(format: "%.2gx", player.rate))
                         .font(.system(size: 12, weight: .semibold, design: .monospaced))
                 }
@@ -502,7 +502,7 @@ struct PlayerView: View {
                 toggleLyrics()
             } label: {
                 Label(showLyrics ? "收起歌词" : "歌词", systemImage: showLyrics ? "quote.bubble.fill" : "quote.bubble")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.custom(BeansFont.name, size: 12).weight(.semibold))
                     .foregroundStyle(showLyrics ? Color.beansHighlight : Color.beansSecondary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)
@@ -529,7 +529,7 @@ struct PlayerView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.custom(BeansFont.name, size: 16).weight(.semibold))
                     .foregroundStyle(Color.beansSecondary)
                     .frame(width: 36, height: 36)
                     .background { Circle().fill(.ultraThinMaterial) }
@@ -653,8 +653,7 @@ struct LyricsSection: View {
                                 .frame(width: 3, height: 16)
                                 .padding(.top, 4)
                             Text(line.text.isEmpty ? "♪" : line.text)
-                                .font(.system(size: index == currentIndex ? 16 : 14,
-                                              weight: index == currentIndex ? .bold : .regular))
+                                .font(.custom(BeansFont.name, size: index == currentIndex ? 16 : 14).weight(index == currentIndex ? .bold : .regular))
                                 .foregroundStyle(index == currentIndex ? Color.beansHighlight : Color.beansSecondary)
                                 .multilineTextAlignment(.leading)
                                 .lineLimit(nil)

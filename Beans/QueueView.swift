@@ -52,11 +52,11 @@ struct QueueView: View {
             CoverImage(url: song.coverURL, size: 42, cornerRadius: 9)
             VStack(alignment: .leading, spacing: 3) {
                 Text(song.name)
-                    .font(.system(size: 15, weight: isCurrent ? .semibold : .regular))
+                    .font(.custom(BeansFont.name, size: 15).weight(isCurrent ? .semibold : .regular))
                     .foregroundStyle(isCurrent ? Color.beansAmber : Color.beansLabel)
                     .lineLimit(1)
                 Text(song.artists)
-                    .font(.system(size: 12))
+                    .font(.custom(BeansFont.name, size: 12))
                     .foregroundStyle(Color.beansSecondary)
                     .lineLimit(1)
             }
@@ -66,7 +66,7 @@ struct QueueView: View {
                     NowPlayingIndicator()
                 } else {
                     Image(systemName: "pause.fill")
-                        .font(.system(size: 12))
+                        .font(.custom(BeansFont.name, size: 12))
                         .foregroundStyle(Color.beansAmber)
                 }
             } else {

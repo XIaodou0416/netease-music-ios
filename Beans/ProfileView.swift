@@ -55,7 +55,7 @@ struct ProfileView: View {
                     image.resizable().scaledToFill()
                 } else {
                     Image(systemName: "person.fill")
-                        .font(.system(size: 26))
+                        .font(.custom(BeansFont.name, size: 26))
                         .foregroundStyle(Color.beansSecondary)
                 }
             }
@@ -65,7 +65,7 @@ struct ProfileView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(auth.user?.nickname ?? "未登录")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.custom(BeansFont.name, size: 20).weight(.bold))
                     .foregroundStyle(Color.beansLabel)
                 Text("UID \(auth.user?.uid ?? 0)")
                     .font(.system(size: 12, design: .monospaced))
@@ -89,13 +89,13 @@ struct ProfileView: View {
     private func statCard(title: String, value: String, icon: String) -> some View {
         VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.custom(BeansFont.name, size: 16))
                 .foregroundStyle(Color.beansAmber)
             Text(value)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.custom(BeansFont.name, size: 20).weight(.bold))
                 .foregroundStyle(Color.beansLabel)
             Text(title)
-                .font(.system(size: 11))
+                .font(.custom(BeansFont.name, size: 11))
                 .foregroundStyle(Color.beansSecondary)
         }
         .frame(maxWidth: .infinity)
@@ -110,11 +110,11 @@ struct ProfileView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     Image(systemName: "paintpalette.fill")
-                        .font(.system(size: 14))
+                        .font(.custom(BeansFont.name, size: 14))
                         .foregroundStyle(Color.beansAmber)
                         .frame(width: 28)
                     Text("主题模式")
-                        .font(.system(size: 15))
+                        .font(.custom(BeansFont.name, size: 15))
                         .foregroundStyle(Color.beansLabel)
                     Spacer()
                 }
@@ -129,11 +129,11 @@ struct ProfileView: View {
 
                 HStack {
                     Image(systemName: "paintbrush.pointed.fill")
-                        .font(.system(size: 14))
+                        .font(.custom(BeansFont.name, size: 14))
                         .foregroundStyle(Color.beansAmber)
                         .frame(width: 28)
                     Text("播放器配色")
-                        .font(.system(size: 15))
+                        .font(.custom(BeansFont.name, size: 15))
                         .foregroundStyle(Color.beansLabel)
                     Spacer()
                 }
@@ -152,7 +152,7 @@ struct ProfileView: View {
                                     }
                                 if accent == theme.accent {
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(.custom(BeansFont.name, size: 12).weight(.bold))
                                         .foregroundStyle(.white)
                                 }
                             }
@@ -198,20 +198,20 @@ struct ProfileView: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 15))
+                    .font(.custom(BeansFont.name, size: 15))
                     .foregroundStyle(Color.beansAmber)
                     .frame(width: 28)
                 Text(title)
-                    .font(.system(size: 15))
+                    .font(.custom(BeansFont.name, size: 15))
                     .foregroundStyle(Color.beansLabel)
                 Spacer()
                 if !value.isEmpty {
                     Text(value)
-                        .font(.system(size: 13))
+                        .font(.custom(BeansFont.name, size: 13))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.custom(BeansFont.name, size: 11).weight(.semibold))
                     .foregroundStyle(Color.beansSecondary.opacity(0.6))
             }
             .padding(.vertical, 14)
@@ -225,10 +225,10 @@ struct ProfileView: View {
             SectionHeader(title: "关于")
             VStack(spacing: 8) {
                 Label(appVersionText, systemImage: "beats.headphones")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.custom(BeansFont.name, size: 14).weight(.semibold))
                     .foregroundStyle(Color.beansLabel)
                 Text("接入网易云音乐非官方接口，仅供个人自用\n部分 VIP / 版权受限歌曲可能无法播放")
-                    .font(.system(size: 12))
+                    .font(.custom(BeansFont.name, size: 12))
                     .foregroundStyle(Color.beansSecondary)
                     .multilineTextAlignment(.center)
             }
@@ -241,7 +241,7 @@ struct ProfileView: View {
                 confirmLogout = true
             } label: {
                 Text("退出登录")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.custom(BeansFont.name, size: 15).weight(.semibold))
                     .foregroundStyle(Color.red)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

@@ -71,10 +71,10 @@ struct DiscoverView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(greeting)
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.custom(BeansFont.name, size: 26).weight(.bold))
                     .foregroundStyle(Color.beansLabel)
                 Text(auth.user?.nickname ?? "")
-                    .font(.system(size: 13))
+                    .font(.custom(BeansFont.name, size: 13))
                     .foregroundStyle(Color.beansSecondary)
             }
             Spacer()
@@ -106,7 +106,7 @@ struct DiscoverView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 CoverImage(url: topList.coverURL, size: 120, cornerRadius: 16)
                                 Text(topList.name)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(.custom(BeansFont.name, size: 12).weight(.medium))
                                     .foregroundStyle(Color.beansLabel)
                                     .lineLimit(1)
                                     .frame(width: 120, alignment: .leading)
@@ -134,15 +134,15 @@ struct DiscoverView: View {
                     CoverImage(url: dailySongs.first?.coverURL, size: 58, cornerRadius: 13)
                     VStack(alignment: .leading, spacing: 3) {
                         Text("为你精选 \(dailySongs.count) 首")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.custom(BeansFont.name, size: 16).weight(.semibold))
                             .foregroundStyle(Color.beansLabel)
                         Text("每日更新 · 按你的口味推荐")
-                            .font(.system(size: 12))
+                            .font(.custom(BeansFont.name, size: 12))
                             .foregroundStyle(Color.beansSecondary)
                     }
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.custom(BeansFont.name, size: 13).weight(.semibold))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 .padding(14)
@@ -198,7 +198,7 @@ struct DiscoverView: View {
                             CoverImage(url: playlist.coverURL, size: 160, cornerRadius: 16)
                                 .frame(maxWidth: .infinity)
                             Text(playlist.name)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.custom(BeansFont.name, size: 12).weight(.medium))
                                 .foregroundStyle(Color.beansLabel)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
@@ -223,7 +223,7 @@ struct DiscoverView: View {
                             CoverImage(url: playlist.coverURL, size: 160, cornerRadius: 16)
                                 .frame(maxWidth: .infinity)
                             Text(playlist.name)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.custom(BeansFont.name, size: 12).weight(.medium))
                                 .foregroundStyle(Color.beansLabel)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
@@ -270,10 +270,11 @@ struct DailySongsSheet: View {
     var body: some View {
         let _ = theme.accent
         NavigationStack {
-            if songs.isEmpty {
-                EmptyStateView(icon: "sparkles", text: "今日推荐加载中，下拉刷新试试")
-            } else {
-                List {
+            Group {
+                if songs.isEmpty {
+                    EmptyStateView(icon: "sparkles", text: "今日推荐加载中，下拉刷新试试")
+                } else {
+                    List {
                     Section {
                         HStack(spacing: 12) {
                             GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
@@ -296,6 +297,7 @@ struct DailySongsSheet: View {
                             }
                         }
                     }
+                }
                 }
             }
             .navigationTitle("今日推荐")
@@ -348,13 +350,13 @@ struct TopListDetailView: View {
             CoverImage(url: topList.coverURL, size: 88, cornerRadius: 16)
             VStack(alignment: .leading, spacing: 6) {
                 Text(topList.name)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.custom(BeansFont.name, size: 18).weight(.bold))
                     .foregroundStyle(Color.beansLabel)
                 Text(topList.updateFrequency)
-                    .font(.system(size: 12))
+                    .font(.custom(BeansFont.name, size: 12))
                     .foregroundStyle(Color.beansSecondary)
                 Text("\(tracks.count) 首")
-                    .font(.system(size: 12))
+                    .font(.custom(BeansFont.name, size: 12))
                     .foregroundStyle(Color.beansSecondary)
             }
             Spacer()

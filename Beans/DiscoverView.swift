@@ -424,7 +424,7 @@ struct QQTopListDetailView: View {
                 } else {
                     List {
                         Section {
-                            ForEach(Array(tracks.enumerated()), id: .element.id) { index, song in
+                            ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
                                 SongCell(song: song) {
                                     player.play(songs: tracks, startAt: index)
                                 }
@@ -475,7 +475,7 @@ struct QQPlaylistSongsSheet: View {
                 } else {
                     List {
                         Section {
-                            ForEach(Array(tracks.enumerated()), id: .element.id) { index, song in
+                            ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
                                 SongCell(song: song) {
                                     player.play(songs: tracks, startAt: index)
                                 }

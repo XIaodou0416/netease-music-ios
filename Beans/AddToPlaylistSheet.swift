@@ -27,11 +27,11 @@ struct AddToPlaylistSheet: View {
                                     CoverImage(url: playlist.coverURL, size: 38, cornerRadius: 8)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(playlist.name)
-                                            .font(.custom(BeansFont.name, size: 15))
+                                            .font(.system(size: 15))
                                             .foregroundStyle(Color.beansLabel)
                                             .lineLimit(1)
                                         Text("\(playlist.trackCount) 首")
-                                            .font(.custom(BeansFont.name, size: 11))
+                                            .font(.system(size: 11))
                                             .foregroundStyle(Color.beansSecondary)
                                     }
                                     Spacer()
@@ -49,7 +49,7 @@ struct AddToPlaylistSheet: View {
                             Task { await createAndAdd() }
                         } label: {
                             Text("创建并添加")
-                                .font(.custom(BeansFont.name, size: 15).weight(.semibold))
+                                .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(Color.beansAmber)
                         }
                     }
@@ -64,7 +64,7 @@ struct AddToPlaylistSheet: View {
                 if let message {
                     Section {
                         Text(message)
-                            .font(.custom(BeansFont.name, size: 13))
+                            .font(.system(size: 13))
                             .foregroundStyle(Color.beansSage)
                     }
                 }

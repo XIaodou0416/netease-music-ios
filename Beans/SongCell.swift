@@ -46,11 +46,11 @@ struct SongCell: View {
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(song.name)
-                    .font(.custom(BeansFont.name, size: 15).weight(isCurrent ? .semibold : .regular))
+                    .font(.system(size: 15, weight: isCurrent ? .semibold : .regular))
                     .foregroundStyle(isCurrent ? Color.beansAmber : Color.beansLabel)
                     .lineLimit(1)
                 Text(song.artists.isEmpty ? song.album : song.artists)
-                    .font(.custom(BeansFont.name, size: 12))
+                    .font(.system(size: 12))
                     .foregroundStyle(Color.beansSecondary)
                     .lineLimit(1)
             }
@@ -68,7 +68,7 @@ struct SongCell: View {
                     likeTapped()
                 } label: {
                     Image(systemName: isLiked ? "heart.fill" : "heart")
-                        .font(.custom(BeansFont.name, size: 15))
+                        .font(.system(size: 15))
                         .foregroundStyle(isLiked ? Color.beansAmber : Color.beansSecondary)
                         .frame(width: 30, height: 30)
                         .contentShape(Rectangle())

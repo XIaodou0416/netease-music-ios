@@ -62,10 +62,10 @@ struct LibraryView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("音乐库")
-                    .font(.custom(BeansFont.name, size: 26).weight(.bold))
+                    .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(Color.beansLabel)
                 Text("\(auth.playlists.count) 个歌单 · \(auth.displayedFavoriteCount) 首收藏")
-                    .font(.custom(BeansFont.name, size: 13))
+                    .font(.system(size: 13))
                     .foregroundStyle(Color.beansSecondary)
             }
             Spacer()
@@ -85,22 +85,22 @@ struct LibraryView: View {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(LinearGradient.beansAccent)
                     Image(systemName: "heart.fill")
-                        .font(.custom(BeansFont.name, size: 22))
+                        .font(.system(size: 22))
                         .foregroundStyle(Color.black.opacity(0.6))
                 }
                 .frame(width: 58, height: 58)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("我喜欢的音乐")
-                        .font(.custom(BeansFont.name, size: 16).weight(.semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color.beansLabel)
                     Text("\(auth.displayedFavoriteCount) 首")
-                        .font(.custom(BeansFont.name, size: 12))
+                        .font(.system(size: 12))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.custom(BeansFont.name, size: 13).weight(.semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.beansSecondary)
             }
             .padding(14)
@@ -130,11 +130,11 @@ struct LibraryView: View {
                                 CoverImage(url: playlist.coverURL, size: 160, cornerRadius: 16)
                                     .frame(maxWidth: .infinity)
                                 Text(playlist.name)
-                                    .font(.custom(BeansFont.name, size: 12).weight(.medium))
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(Color.beansLabel)
                                     .lineLimit(1)
                                 Text("\(playlist.trackCount) 首")
-                                    .font(.custom(BeansFont.name, size: 11))
+                                    .font(.system(size: 11))
                                     .foregroundStyle(Color.beansSecondary)
                             }
                         }
@@ -167,11 +167,11 @@ struct LibraryView: View {
                         .foregroundStyle(Color.beansSecondary.opacity(0.45))
                         .frame(width: 160, height: 160)
                     Image(systemName: "plus")
-                        .font(.custom(BeansFont.name, size: 26).weight(.medium))
+                        .font(.system(size: 26, weight: .medium))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 Text("新建歌单")
-                    .font(.custom(BeansFont.name, size: 12).weight(.medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Color.beansSecondary)
             }
         }
@@ -209,17 +209,17 @@ struct LibraryView: View {
                     ForEach(Array(top.enumerated()), id: \.element.song.id) { index, entry in
                         HStack(spacing: 12) {
                             Text("\(index + 1)")
-                                .font(.custom(BeansFont.name, size: 15).weight(.bold))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
                                 .frame(width: 22)
                             CoverImage(url: entry.song.coverURL, size: 44, cornerRadius: 10)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(entry.song.name)
-                                    .font(.custom(BeansFont.name, size: 15))
+                                    .font(.system(size: 15))
                                     .foregroundStyle(Color.beansLabel)
                                     .lineLimit(1)
                                 Text("播放 \(entry.count) 次")
-                                    .font(.custom(BeansFont.name, size: 12))
+                                    .font(.system(size: 12))
                                     .foregroundStyle(Color.beansSecondary)
                             }
                             Spacer()

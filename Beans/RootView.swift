@@ -165,9 +165,9 @@ struct AppStoreTabBar: View {
         } label: {
             VStack(spacing: 3) {
                 Image(systemName: tab.icon)
-                    .font(.custom(BeansFont.name, size: 17).weight(.medium))
+                    .font(.system(size: 17, weight: .medium))
                 Text(tab.title)
-                    .font(.custom(BeansFont.name, size: 10).weight(.medium))
+                    .font(.system(size: 10, weight: .medium))
             }
             .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
             .frame(maxWidth: .infinity)
@@ -209,9 +209,9 @@ struct AppStoreTabBar: View {
         VStack(spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: tab.icon)
-                    .font(.custom(BeansFont.name, size: 11).weight(.semibold))
+                    .font(.system(size: 11, weight: .semibold))
                 Text(tab.title)
-                    .font(.custom(BeansFont.name, size: 12).weight(.bold))
+                    .font(.system(size: 12, weight: .bold))
             }
             .foregroundStyle(Color.beansSecondary)
             .padding(.bottom, 3)
@@ -260,9 +260,9 @@ struct AppStoreTabBar: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.custom(BeansFont.name, size: 13).weight(.semibold))
+                    .font(.system(size: 13, weight: .semibold))
                 Text(title)
-                    .font(.custom(BeansFont.name, size: 14).weight(.medium))
+                    .font(.system(size: 14, weight: .medium))
                 Spacer(minLength: 0)
             }
             .foregroundStyle(Color.beansLabel)

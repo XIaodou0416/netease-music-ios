@@ -71,10 +71,10 @@ struct DiscoverView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(greeting)
-                    .font(.custom(BeansFont.name, size: 26).weight(.bold))
+                    .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(Color.beansLabel)
                 Text(auth.user?.nickname ?? "")
-                    .font(.custom(BeansFont.name, size: 13))
+                    .font(.system(size: 13))
                     .foregroundStyle(Color.beansSecondary)
             }
             Spacer()
@@ -106,7 +106,7 @@ struct DiscoverView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 CoverImage(url: topList.coverURL, size: 120, cornerRadius: 16)
                                 Text(topList.name)
-                                    .font(.custom(BeansFont.name, size: 12).weight(.medium))
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(Color.beansLabel)
                                     .lineLimit(1)
                                     .frame(width: 120, alignment: .leading)
@@ -134,15 +134,15 @@ struct DiscoverView: View {
                     CoverImage(url: dailySongs.first?.coverURL, size: 58, cornerRadius: 13)
                     VStack(alignment: .leading, spacing: 3) {
                         Text("为你精选 \(dailySongs.count) 首")
-                            .font(.custom(BeansFont.name, size: 16).weight(.semibold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(Color.beansLabel)
                         Text("每日更新 · 按你的口味推荐")
-                            .font(.custom(BeansFont.name, size: 12))
+                            .font(.system(size: 12))
                             .foregroundStyle(Color.beansSecondary)
                     }
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.right")
-                        .font(.custom(BeansFont.name, size: 13).weight(.semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 .padding(14)
@@ -198,7 +198,7 @@ struct DiscoverView: View {
                             CoverImage(url: playlist.coverURL, size: 160, cornerRadius: 16)
                                 .frame(maxWidth: .infinity)
                             Text(playlist.name)
-                                .font(.custom(BeansFont.name, size: 12).weight(.medium))
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(Color.beansLabel)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
@@ -223,7 +223,7 @@ struct DiscoverView: View {
                             CoverImage(url: playlist.coverURL, size: 160, cornerRadius: 16)
                                 .frame(maxWidth: .infinity)
                             Text(playlist.name)
-                                .font(.custom(BeansFont.name, size: 12).weight(.medium))
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(Color.beansLabel)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
@@ -350,13 +350,13 @@ struct TopListDetailView: View {
             CoverImage(url: topList.coverURL, size: 88, cornerRadius: 16)
             VStack(alignment: .leading, spacing: 6) {
                 Text(topList.name)
-                    .font(.custom(BeansFont.name, size: 18).weight(.bold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(Color.beansLabel)
                 Text(topList.updateFrequency)
-                    .font(.custom(BeansFont.name, size: 12))
+                    .font(.system(size: 12))
                     .foregroundStyle(Color.beansSecondary)
                 Text("\(tracks.count) 首")
-                    .font(.custom(BeansFont.name, size: 12))
+                    .font(.system(size: 12))
                     .foregroundStyle(Color.beansSecondary)
             }
             Spacer()

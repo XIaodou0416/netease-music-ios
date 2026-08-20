@@ -61,10 +61,10 @@ struct SearchView: View {
     private var searchField: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(.custom(BeansFont.name, size: 15))
+                .font(.system(size: 15))
                 .foregroundStyle(Color.beansSecondary)
             TextField("搜索歌曲、歌手、专辑", text: $keyword)
-                .font(.custom(BeansFont.name, size: 15))
+                .font(.system(size: 15))
                 .foregroundStyle(Color.beansLabel)
                 .focused($focused)
                 .autocorrectionDisabled()
@@ -85,7 +85,7 @@ struct SearchView: View {
                     debounceTask?.cancel()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.custom(BeansFont.name, size: 15))
+                        .font(.system(size: 15))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 .buttonStyle(.plain)
@@ -94,7 +94,7 @@ struct SearchView: View {
                 submitSearch()
             } label: {
                 Text("搜索")
-                    .font(.custom(BeansFont.name, size: 14).weight(.semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color.beansAmber)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -129,10 +129,10 @@ struct SearchView: View {
                             } label: {
                                 HStack(spacing: 10) {
                                     Text("\(index + 1)")
-                                        .font(.custom(BeansFont.name, size: 13).weight(.bold))
+                                        .font(.system(size: 13, weight: .bold, design: .rounded))
                                         .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
                                     Text(word)
-                                        .font(.custom(BeansFont.name, size: 14).weight(.medium))
+                                        .font(.system(size: 14, weight: .medium))
                                         .foregroundStyle(Color.beansLabel)
                                         .lineLimit(1)
                                     Spacer(minLength: 0)
@@ -170,7 +170,7 @@ struct SearchView: View {
                     LazyVStack(spacing: 0) {
                         HStack {
                             Text("找到 \(results.count) 首")
-                                .font(.custom(BeansFont.name, size: 12))
+                                .font(.system(size: 12))
                                 .foregroundStyle(Color.beansSecondary)
                             Spacer()
                         }

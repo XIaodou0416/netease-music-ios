@@ -15,11 +15,11 @@ struct MiniPlayerView: View {
                 CoverImage(url: player.currentSong?.coverURL, size: 40, cornerRadius: 8)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(player.currentSong?.name ?? "")
-                        .font(.custom(BeansFont.name, size: 14).weight(.semibold))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.beansLabel)
                         .lineLimit(1)
                     Text(player.currentSong?.artists ?? "")
-                        .font(.custom(BeansFont.name, size: 12))
+                        .font(.system(size: 12))
                         .foregroundStyle(Color.beansSecondary)
                         .lineLimit(1)
                 }
@@ -29,7 +29,7 @@ struct MiniPlayerView: View {
                     player.togglePlayPause()
                 } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.custom(BeansFont.name, size: 16).weight(.semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color.beansLabel)
                         .frame(width: 38, height: 38)
                         .contentShape(Circle())
@@ -40,7 +40,7 @@ struct MiniPlayerView: View {
                     player.next()
                 } label: {
                     Image(systemName: "forward.fill")
-                        .font(.custom(BeansFont.name, size: 13).weight(.semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Color.beansLabel)
                         .frame(width: 38, height: 38)
                         .contentShape(Circle())

@@ -112,7 +112,7 @@ struct CoverImage: View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(Color.beansGlassFill)
             Image(systemName: "music.note")
-                .font(.custom(BeansFont.name, size: size * 0.32).weight(.medium))
+                .font(.system(size: size * 0.32, weight: .medium))
                 .foregroundStyle(Color.beansSecondary)
         }
         .frame(width: size, height: size)
@@ -132,7 +132,7 @@ struct GlassIconButton: View {
         let _ = theme.accent
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.custom(BeansFont.name, size: size * 0.38).weight(.semibold))
+                .font(.system(size: size * 0.38, weight: .semibold))
                 .foregroundStyle(active ? Color.beansAmber : Color.beansLabel)
                 .frame(width: size, height: size)
                 .background {
@@ -167,7 +167,7 @@ struct GlassButton: View {
                 }
                 Text(title)
             }
-            .font(.custom(BeansFont.name, size: 15).weight(.semibold))
+            .font(.system(size: 15, weight: .semibold))
             .foregroundStyle(prominent ? Color.black : Color.beansLabel)
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
@@ -192,7 +192,7 @@ struct SectionHeader: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.custom(BeansFont.name, size: 20).weight(.bold))
+                .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(Color.beansLabel)
             Spacer()
             if let trailing {
@@ -200,7 +200,7 @@ struct SectionHeader: View {
                     onTrailingTap?()
                 } label: {
                     Text(trailing)
-                        .font(.custom(BeansFont.name, size: 13).weight(.medium))
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 .buttonStyle(.plain)
@@ -218,10 +218,10 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.custom(BeansFont.name, size: 44).weight(.light))
+                .font(.system(size: 44, weight: .light))
                 .foregroundStyle(Color.beansSecondary)
             Text(text)
-                .font(.custom(BeansFont.name, size: 14))
+                .font(.system(size: 14))
                 .foregroundStyle(Color.beansSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -237,10 +237,10 @@ struct ErrorStateView: View {
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: "wifi.exclamationmark")
-                .font(.custom(BeansFont.name, size: 40).weight(.light))
+                .font(.system(size: 40, weight: .light))
                 .foregroundStyle(Color.beansSecondary)
             Text(message)
-                .font(.custom(BeansFont.name, size: 14))
+                .font(.system(size: 14))
                 .foregroundStyle(Color.beansSecondary)
                 .multilineTextAlignment(.center)
             GlassButton(title: "重试", systemName: "arrow.clockwise", action: retry)
@@ -373,7 +373,7 @@ struct ToastView: View {
     var body: some View {
         let _ = theme.accent
         Text(center.message ?? "")
-            .font(.custom(BeansFont.name, size: 14).weight(.medium))
+            .font(.system(size: 14, weight: .medium))
             .foregroundStyle(Color.beansLabel)
             .lineLimit(2)
             .multilineTextAlignment(.center)

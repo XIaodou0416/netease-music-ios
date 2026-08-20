@@ -55,13 +55,6 @@ extension Color {
     static var beansHighlight: Color { AccentTheme.current.highlight }
 }
 
-// MARK: - 全局字体（周字方体 ZhouZiFangTi2021）
-
-enum BeansFont {
-    /// UIAppFonts 注册后的 PostScript 字体名
-    static let name = "ZhouZiFangTi2021"
-}
-
 // MARK: - 主题偏好
 
 enum BeansThemeMode: String, CaseIterable, Identifiable {

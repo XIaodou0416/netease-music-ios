@@ -44,8 +44,8 @@ final class QQMusicAPI {
         return json
     }
 
-    /// musicu.fcg 统一入口：POST JSON body（与 wp_MusicApi 一致）
-    private func musicu(_ payload: [String: Any]) async throws -> [String: Any] {
+    /// musicu.fcg 统一入口：POST JSON body（与 wp_MusicApi 一致）；登录后附加 QQ Cookie
+    private func musicu(_ payload: [String: Any], cookie: String = "") async throws -> [String: Any] {
         guard let body = try? JSONSerialization.data(withJSONObject: payload),
               let url = URL(string: base) else {
             throw NetEaseError.unknown("请求参数错误")
@@ -54,6 +54,10 @@ final class QQMusicAPI {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)", forHTTPHeaderField: "User-Agent")
+        request.setValue("https://y.qq.com/", forHTTPHeaderField: "Referer")
+        if !cookie.isEmpty {
+            request.setValue(cookie, forHTTPHeaderField: "Cookie")
+        }
         request.httpBody = body
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
@@ -235,24 +239,32 @@ final class QQMusicAPI {
 
     // MARK: - 播放 / 歌词
 
-    /// 通过 vkey 获取 QQ 音乐播放地址（免费歌曲返回可播 URL，VIP 歌曲返回 nil）
+    /// 通过 vkey 获取 QQ 音乐播放地址（登录后携带 uin/loginKey/Cookie，免费与 VIP 试听均可播放）
     func songURL(songmid: String) async throws -> String? {
+        let qqAuth = QQMusicAuth.shared
+        let uin = qqAuth.isLoggedIn ? qqAuth.uin : "0"
+        let loginKey = qqAuth.isLoggedIn ? qqAuth.loginKey : ""
+        var param: [String: Any] = [
+            "guid": "\(Int.random(in: 10000...99999999))",
+            "songmid": [songmid],
+            "songtype": [0],
+            "uin": uin,
+            "loginflag": 1,
+            "platform": "20",
+        ]
+        if !loginKey.isEmpty {
+            param["loginUin"] = uin
+            param["loginKey"] = loginKey
+        }
         let payload: [String: Any] = [
-            "comm": ["uin": 0, "format": "json", "ct": 24, "cv": 0],
+            "comm": ["uin": Int(uin) ?? 0, "format": "json", "ct": 24, "cv": 0],
             "req": [
                 "module": "vkey.GetVkeyServer",
                 "method": "CgiGetVkey",
-                "param": [
-                    "guid": "\(Int.random(in: 10000...99999999))",
-                    "songmid": [songmid],
-                    "songtype": [0],
-                    "uin": "0",
-                    "loginflag": 1,
-                    "platform": "20",
-                ],
+                "param": param,
             ],
         ]
-        let json = try await musicu(payload)
+        let json = try await musicu(payload, cookie: qqAuth.isLoggedIn ? qqAuth.cookieHeader : "")
         guard let req = json["req"] as? [String: Any],
               let data = req["data"] as? [String: Any],
               let infos = data["midurlinfo"] as? [[String: Any]],

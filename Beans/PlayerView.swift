@@ -2,11 +2,13 @@ import SwiftUI
 import UIKit
 import MediaPlayer
 
-// MARK: - 全屏播放器（Apple Music 风格：封面动态取色 + 封面飞行歌词视图 + 液态玻璃控制坞）
-// 说明：本文件为 UI 层整体重写，播放/暂停/切歌/进度/倍速/定时/歌词/评论/收藏等业务调用与旧版完全一致；
-// 不修改 PlayerManager / NetEaseAPI / AuthStore 任何逻辑；新增封面主色提取（CoverPalette.swift）。
-// 布局说明：封面始终使用固定尺寸 CoverImage（AsyncImage 只渲染在 overlay 中），
-// 位置由 position 驱动、随 showLyrics 平滑移动缩放，从根源上避免"封面加载后布局错乱"。
+// MARK: - 全屏播放器（Apple Music 风格：封面动态取色 + 专辑/歌词双模式 + 液态玻璃控制坞）
+// 布局策略（v3 重构）：
+// - 彻底移除 position/GeometryReader 依赖定位：专辑模式与歌词模式是两个独立视图，
+//   通过 if/else + transition 切换，全部使用 SwiftUI 自动布局，任何屏幕/任何加载时序下都稳定居中。
+// - 封面尺寸固定由 coverSize 计算，AsyncImage 只渲染在 overlay 中，加载完成不影响布局。
+// - 底部控制坞为固定内容高度的玻璃面板（进度 / 主控制 5 键对称 / 工具行），样式与 MiniPlayer 一致。
+// 音频播放 / 网络 / 登录业务逻辑保持不变。
 
 struct PlayerView: View {
     @EnvironmentObject private var theme: ThemeStore
@@ -23,7 +25,7 @@ struct PlayerView: View {
     @State private var showAddToPlaylist = false
     @State private var showComments = false
 
-    /// 封面图片：仅用于背景毛玻璃与主色提取（不参与封面卡片布局，避免加载后布局变化）
+    /// 封面图片：仅用于背景毛玻璃与主色提取（不参与封面卡片布局）
     @State private var coverImage: UIImage?
     /// 封面主色：无封面或加载中为 nil → 回退全局主题色
     @State private var dominant: RGBColor?
@@ -45,7 +47,7 @@ struct PlayerView: View {
 
                 VStack(spacing: 0) {
                     headerBar
-                    stage(geo: geo)
+                    contentArea(geo: geo)
                     controlDeck
                 }
                 .foregroundStyle(palette.text)
@@ -73,7 +75,7 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - 背景（封面主色渐变 + 封面毛玻璃模糊 + 深浅遮罩 + 主题光斑，零逐帧渲染）
+    // MARK: - 背景（封面主色渐变 + 封面毛玻璃模糊 + 深浅遮罩 + 主题光斑）
 
     private var background: some View {
         ZStack {
@@ -176,123 +178,125 @@ struct PlayerView: View {
         .padding(.bottom, 4)
     }
 
-    // MARK: - 中间舞台（同一封面视图随 showLyrics 平移缩放；歌词内容淡入；无几何匹配，布局恒定）
+    // MARK: - 中间内容区（专辑模式 / 歌词模式 独立视图，transition 切换，纯自动布局）
 
-    private func stage(geo: GeometryProxy) -> some View {
-        ZStack(alignment: .topLeading) {
+    @ViewBuilder
+    private func contentArea(geo: GeometryProxy) -> some View {
+        ZStack {
             if song == nil {
                 placeholderView
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(.opacity)
+            } else if showLyrics {
+                lyricsMode
+                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
             } else {
-                if showLyrics {
-                    lyricsContent
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .transition(.opacity)
-                }
-                coverButton(geo: geo)
-                if !showLyrics {
-                    albumInfo(geo: geo)
-                        .transition(.opacity)
-                    Label("轻点封面查看歌词", systemImage: "quote.bubble")
-                        .font(.system(size: 11))
-                        .foregroundStyle(palette.secondary.opacity(0.9))
-                        .position(x: geo.size.width / 2, y: max(geo.size.height - 44, 44))
-                }
+                albumMode(geo: geo)
+                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showLyrics)
+        .animation(.spring(response: 0.42, dampingFraction: 0.84), value: showLyrics)
     }
 
-    /// 封面尺寸：专辑模式大图（居中偏上），歌词模式左上角小图
+    /// 封面尺寸：固定算法，不依赖布局时序
     private func coverSize(in geo: GeometryProxy) -> CGFloat {
-        min(300, min(geo.size.width * 0.62, geo.size.height * 0.48))
+        min(280, min(geo.size.width * 0.62, geo.size.height * 0.46))
     }
 
-    /// 封面按钮：始终同一视图（CoverImage 固定尺寸），只改 frame 与 position
-    private func coverButton(geo: GeometryProxy) -> some View {
-        let size = showLyrics ? 54.0 : coverSize(in: geo)
-        let radius = showLyrics ? 13.0 : min(26, size * 0.09)
-        return Button {
-            toggleLyrics()
-        } label: {
-            ZStack {
-                if !showLyrics {
-                    Circle()
-                        .fill(palette.accent.opacity(0.22))
-                        .frame(width: size * 1.30, height: size * 1.30)
-                        .blur(radius: 46)
-                    Circle()
-                        .strokeBorder(palette.accent.opacity(0.35), lineWidth: 1)
-                        .frame(width: size * 1.12, height: size * 1.12)
-                }
-                CoverImage(url: song?.coverURL, size: size, cornerRadius: radius)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .strokeBorder(.white.opacity(0.22), lineWidth: 1)
-                    }
-                    .shadow(color: .black.opacity(0.35), radius: 24, y: 12)
-            }
-            .frame(width: size, height: size)
-        }
-        .buttonStyle(GlassPressButtonStyle(scale: 0.96))
-        .position(
-            x: showLyrics ? 20 + size / 2 : geo.size.width / 2,
-            y: showLyrics ? 20 + size / 2 : geo.size.height * 0.40
-        )
-    }
-
-    /// 专辑模式：封面下方居中歌名 / 歌手（防截断自适应缩字）
-    private func albumInfo(geo: GeometryProxy) -> some View {
+    /// 专辑模式：封面居中 + 歌名/歌手 + 轻点提示（全部自动布局，无 position）
+    private func albumMode(geo: GeometryProxy) -> some View {
         let size = coverSize(in: geo)
-        return VStack(spacing: 6) {
-            Text(song?.name ?? "未在播放")
-                .font(.system(size: 21, weight: .bold))
-                .foregroundStyle(palette.text)
-                .lineLimit(2)
-                .minimumScaleFactor(0.6)
-                .multilineTextAlignment(.center)
-            Text(subtitle)
-                .font(.system(size: 13.5))
-                .foregroundStyle(palette.secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
+        return VStack(spacing: 16) {
+            Spacer(minLength: 6)
+
+            Button {
+                toggleLyrics()
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(palette.accent.opacity(0.20))
+                        .frame(width: size * 1.18, height: size * 1.18)
+                        .blur(radius: 40)
+                    CoverImage(url: song?.coverURL, size: size, cornerRadius: min(26, size * 0.09))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: min(26, size * 0.09), style: .continuous)
+                                .strokeBorder(.white.opacity(0.22), lineWidth: 1)
+                        }
+                        .shadow(color: .black.opacity(0.35), radius: 22, y: 10)
+                }
+                .frame(width: size, height: size)
+            }
+            .buttonStyle(GlassPressButtonStyle(scale: 0.96))
+
+            VStack(spacing: 6) {
+                Text(song?.name ?? "未在播放")
+                    .font(.system(size: 21, weight: .bold))
+                    .foregroundStyle(palette.text)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                    .multilineTextAlignment(.center)
+                Text(subtitle)
+                    .font(.system(size: 13.5))
+                    .foregroundStyle(palette.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .padding(.horizontal, 32)
+
+            Label("轻点封面查看歌词", systemImage: "quote.bubble")
+                .font(.system(size: 11))
+                .foregroundStyle(palette.secondary.opacity(0.9))
+                .padding(.bottom, 10)
+
+            Spacer(minLength: 6)
         }
-        .padding(.horizontal, 32)
-        .position(x: geo.size.width / 2, y: geo.size.height * 0.40 + size / 2 + 36)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    /// 歌词模式：封面飞走后顶部保留歌名信息条 + 居中歌词
-    private var lyricsContent: some View {
+
+    /// 歌词模式：左上小封面 + 歌名信息条 + 居中歌词（自动布局，无 position）
+    private var lyricsMode: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                // 与左上角封面（20,20 处 54x54）占位对齐，避免信息条与封面重叠
-                Color.clear
-                    .frame(width: 54, height: 54)
+            HStack(spacing: 12) {
+                Button {
+                    toggleLyrics()
+                } label: {
+                    CoverImage(url: song?.coverURL, size: 48, cornerRadius: 12)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(.white.opacity(0.2), lineWidth: 1)
+                        }
+                }
+                .buttonStyle(GlassPressButtonStyle(scale: 0.9))
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(song?.name ?? "")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(palette.text)
                         .lineLimit(1)
+                        .truncationMode(.tail)
                     Text(song?.artists ?? "")
-                        .font(.system(size: 11))
+                        .font(.system(size: 11.5))
                         .foregroundStyle(palette.secondary)
                         .lineLimit(1)
+                        .truncationMode(.tail)
                 }
+
                 Spacer(minLength: 0)
+
                 Button {
                     toggleLyrics()
                 } label: {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(palette.secondary)
-                        .frame(width: 34, height: 34)
+                        .frame(width: 36, height: 36)
                         .background { Circle().fill(.ultraThinMaterial) }
                         .clipShape(Circle())
                 }
                 .buttonStyle(GlassPressButtonStyle())
             }
             .padding(.horizontal, 20)
-            .padding(.top, 20)
+            .padding(.top, 10)
             .padding(.bottom, 4)
 
             if lyrics.isEmpty {
@@ -354,46 +358,62 @@ struct PlayerView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - 底部控制坞（液态玻璃圆角坞：进度 / 主控制 / 工具+音量）
+    // MARK: - 底部控制坞（液态玻璃面板：进度 / 主控制 / 工具行，固定紧凑布局）
 
     private var controlDeck: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 10) {
             Capsule()
                 .fill(palette.secondary.opacity(0.4))
                 .frame(width: 34, height: 4)
-                .padding(.top, 8)
+                .padding(.top, 10)
 
-            VStack(spacing: 12) {
-                progressBlock
-                mainControls
-                utilityRow
-            }
-            .padding(.horizontal, 18)
-            .padding(.top, 8)
-            .padding(.bottom, 10)
+            progressBlock
+            mainControls
+            utilityRow
         }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 14)
         .frame(maxWidth: .infinity)
-        .background {
-            GlassEffectContainer {
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 34, bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0, topTrailingRadius: 34,
-                    style: .continuous
-                )
-                .fill(.clear)
-                .glassEffect(.clear, in: UnevenRoundedRectangle(
-                    topLeadingRadius: 34, bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0, topTrailingRadius: 34,
-                    style: .continuous
-                ))
-            }
-            .overlay(alignment: .top) {
-                LinearGradient(colors: [.white.opacity(0.35), .clear], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 1.2)
-            }
+        .background { deckGlass }
+        .shadow(color: .black.opacity(0.18), radius: 22, y: -6)
+    }
+
+    /// 玻璃面板：与 MiniPlayer/底栏一致的三层（玻璃 + 高光 + 描边），顶部大圆角
+    private var deckGlass: some View {
+        GlassEffectContainer {
+            UnevenRoundedRectangle(
+                topLeadingRadius: 30, bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0, topTrailingRadius: 30,
+                style: .continuous
+            )
+            .fill(.clear)
+            .glassEffect(.clear, in: UnevenRoundedRectangle(
+                topLeadingRadius: 30, bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0, topTrailingRadius: 30,
+                style: .continuous
+            ))
+        }
+        .overlay {
+            LinearGradient(
+                colors: [.white.opacity(0.28), .clear, .white.opacity(0.05)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        }
+        .overlay {
+            UnevenRoundedRectangle(
+                topLeadingRadius: 30, bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0, topTrailingRadius: 30,
+                style: .continuous
+            )
+            .strokeBorder(
+                LinearGradient(
+                    colors: [.white.opacity(0.4), .white.opacity(0.08)],
+                    startPoint: .top, endPoint: .bottom
+                ),
+                lineWidth: 0.8
+            )
         }
         .ignoresSafeArea(edges: .bottom)
-        .shadow(color: .black.opacity(0.18), radius: 22, y: -6)
     }
 
     private var subtitle: String {
@@ -403,6 +423,7 @@ struct PlayerView: View {
     }
 
     // MARK: - 进度区块（可点按 / 拖动的进度条 + 当前时间 / 总时长 + ±15 秒）
+
     private var progressBlock: some View {
         VStack(spacing: 2) {
             SeekBar(accent: palette.accent, track: palette.secondary.opacity(0.3))
@@ -421,29 +442,28 @@ struct PlayerView: View {
             }
         }
     }
+
     private func seekPillButton(_ icon: String, action: @escaping () -> Void) -> some View {
         Button {
             BeansHaptics.tap()
             action()
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(palette.secondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(.ultraThinMaterial, in: Capsule())
-                .clipShape(Capsule())
+                .frame(width: 30, height: 26)
+                .contentShape(Rectangle())
         }
         .buttonStyle(GlassPressButtonStyle())
     }
 
-    // MARK: - 主控制行（循环 / 上一曲 / 播放暂停 / 下一曲 / 评论，尺寸统一水平居中）
+    // MARK: - 主控制（5 键等宽对称，播放键居中）
 
     private var mainControls: some View {
-        HStack(spacing: 0) {
-            deckButton(icon: player.playMode.icon, accent: player.playMode == .shuffle) {
-                player.togglePlayMode()
+        HStack(spacing: 8) {
+            deckButton(icon: player.playMode.icon) {
                 BeansHaptics.select()
+                player.togglePlayMode()
             }
             deckButton(icon: "backward.fill") {
                 BeansHaptics.tap()
@@ -460,6 +480,7 @@ struct PlayerView: View {
             }
         }
     }
+
     private func deckButton(icon: String, accent: Bool = false, action: @escaping () -> Void) -> some View {
         Button {
             BeansHaptics.tap()
@@ -475,6 +496,7 @@ struct PlayerView: View {
         .buttonStyle(GlassPressButtonStyle())
         .frame(maxWidth: .infinity)
     }
+
     private var playButton: some View {
         Button {
             BeansHaptics.tap()
@@ -501,7 +523,8 @@ struct PlayerView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - 工具行（倍速 / 系统音量条 / 歌词开关 / 更多菜单收纳定时等次要功能）
+    // MARK: - 工具行（倍速 / 音量条 / 歌词开关 / 更多菜单）
+
     private var utilityRow: some View {
         HStack(spacing: 8) {
             Menu {
@@ -531,8 +554,10 @@ struct PlayerView: View {
                 .clipShape(Capsule())
             }
 
+            Spacer(minLength: 4)
+
             SystemVolumeSlider(tint: palette.accent)
-                .frame(maxWidth: .infinity, maxHeight: 22)
+                .frame(width: 110, height: 24)
 
             Button {
                 toggleLyrics()
@@ -577,7 +602,7 @@ struct PlayerView: View {
 
     private func toggleLyrics() {
         BeansHaptics.tap()
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.84)) {
             showLyrics.toggle()
         }
     }
@@ -617,7 +642,7 @@ struct PlayerView: View {
         lyrics = LyricParser.parse(raw)
     }
 
-    // MARK: - 封面加载与主色提取（仅用于背景与取色；封面卡片不受影响，布局恒定）
+    // MARK: - 封面加载与主色提取（仅用于背景与取色；封面卡片不受影响）
 
     private func loadCover() async {
         coverImage = nil
@@ -631,7 +656,6 @@ struct PlayerView: View {
             coverImage = img
             let rgb = PaletteExtractor.dominantColor(in: img)
             guard !Task.isCancelled else { return }
-            // 切歌/封面变化：旧主色保留到新主色就绪，平滑过渡到新配色
             withAnimation(.easeInOut(duration: 0.55)) {
                 dominant = rgb
             }

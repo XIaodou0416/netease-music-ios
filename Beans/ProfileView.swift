@@ -8,6 +8,9 @@ struct ProfileView: View {
 
     @State private var showHistory = false
     @State private var confirmLogout = false
+    @State private var showQQLogin = false
+    @State private var confirmQQLogout = false
+    @ObservedObject private var qqAuth = QQMusicAuth.shared
 
     private var themeMode: BeansThemeMode {
         BeansThemeMode(rawValue: themeModeRaw) ?? .system
@@ -24,6 +27,7 @@ struct ProfileView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 userCard
+                qqCard
                 statsRow
                 dataSection
                 settingsSection
@@ -39,10 +43,21 @@ struct ProfileView: View {
                 .environmentObject(player)
                 .environmentObject(auth)
         }
+        .sheet(isPresented: $showQQLogin) {
+            QQLoginSheet()
+                .environmentObject(theme)
+        }
         .confirmationDialog("退出登录？", isPresented: $confirmLogout, titleVisibility: .visible) {
             Button("退出登录", role: .destructive) {
                 player.clearHistory()
                 auth.logout()
+            }
+            Button("取消", role: .cancel) {}
+        }
+        .confirmationDialog("退出 QQ 音乐？", isPresented: $confirmQQLogout, titleVisibility: .visible) {
+            Button("退出登录", role: .destructive) {
+                qqAuth.logout()
+                ToastCenter.shared.show("已退出 QQ 音乐")
             }
             Button("取消", role: .cancel) {}
         }
@@ -76,6 +91,45 @@ struct ProfileView: View {
         .padding(16)
         .glassEffect(.clear, in: .rect(cornerRadius: 24))
         .beansCardShadow(radius: 10, y: 4)
+    }
+
+    /// QQ 音乐登录状态卡片（扫码登录 / 退出）
+    private var qqCard: some View {
+        Button {
+            BeansHaptics.tap()
+            if qqAuth.isLoggedIn {
+                confirmQQLogout = true
+            } else {
+                showQQLogin = true
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: qqAuth.isLoggedIn ? "checkmark.seal.fill" : "qrcode.viewfinder")
+                    .font(.system(size: 17))
+                    .foregroundStyle(qqAuth.isLoggedIn ? Color.beansSage : Color.beansAmber)
+                    .frame(width: 38, height: 38)
+                    .background(Color.beansGlassFill, in: Circle())
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("QQ 音乐")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.beansLabel)
+                    Text(qqAuth.isLoggedIn
+                         ? "已登录：\(qqAuth.nickname.isEmpty ? "QQ 账号" : qqAuth.nickname)"
+                         : "扫码登录后可播放 QQ 音乐歌曲")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.beansSecondary)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: qqAuth.isLoggedIn ? "person.crop.circle.badge.xmark" : "chevron.right")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.beansSecondary)
+            }
+            .padding(14)
+            .glassEffect(.clear, in: .rect(cornerRadius: 22))
+            .beansCardShadow(radius: 9, y: 3)
+        }
+        .buttonStyle(GlassPressButtonStyle(scale: 0.97))
     }
 
     private var statsRow: some View {

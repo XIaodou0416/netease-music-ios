@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UniformTypeIdentifiers
 
 struct ProfileView: View {
     @EnvironmentObject private var theme: ThemeStore
@@ -13,6 +14,8 @@ struct ProfileView: View {
     @State private var showLogin = false
     @State private var confirmQQLogout = false
     @State private var bgImageItem: PhotosPickerItem?
+    @State private var showFileImporter = false
+    @State private var appearanceExpanded = false
     @ObservedObject private var qqAuth = QQMusicAuth.shared
 
     private var themeMode: BeansThemeMode {
@@ -62,6 +65,21 @@ struct ProfileView: View {
         .sheet(isPresented: $showQQLogin) {
             QQLoginSheet()
                 .environmentObject(theme)
+        }
+        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.image], allowsMultipleSelection: true) { result in
+            switch result {
+            case .success(let urls):
+                for url in urls {
+                    let accessing = url.startAccessingSecurityScopedResource()
+                    defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+                    if let data = try? Data(contentsOf: url), !data.isEmpty {
+                        theme.addWallpaper(data)
+                    }
+                }
+                if !urls.isEmpty { BeansHaptics.success() }
+            case .failure:
+                break
+            }
         }
         .confirmationDialog("退出登录？", isPresented: $confirmLogout, titleVisibility: .visible) {
             Button("退出登录", role: .destructive) {
@@ -224,7 +242,12 @@ struct ProfileView: View {
 
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "外观")
+            SectionHeader(title: "外观", trailing: appearanceExpanded ? "收起" : "展开") {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    appearanceExpanded.toggle()
+                }
+            }
+            if appearanceExpanded {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     Image(systemName: "paintpalette.fill")
@@ -316,23 +339,6 @@ struct ProfileView: View {
                         .foregroundStyle(Color.beansSecondary)
                 }
 
-                Divider().overlay(Color.beansSecondary.opacity(0.15))
-
-                HStack {
-                    Image(systemName: "photo.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.beansAmber)
-                        .frame(width: 28)
-                    Text("主页背景")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Color.beansLabel)
-                    Spacer()
-                    ColorPicker("", selection: Binding(
-                        get: { theme.customBackground ?? Color.beansBackground },
-                        set: { theme.setBackground($0.hexString) }
-                    ))
-                    .labelsHidden()
-                }
                     HStack(spacing: 10) {
                         Image(systemName: "photo.on.rectangle.angled")
                             .font(.system(size: 14))
@@ -349,6 +355,26 @@ struct ProfileView: View {
                                     .foregroundStyle(Color.beansAmber)
                             }
                         }
+                    }
+                    HStack(spacing: 10) {
+                        Image(systemName: "folder")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.beansAmber)
+                            .frame(width: 28)
+                        Button {
+                            showFileImporter = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text("从文件选择壁纸")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(Color.beansLabel)
+                                Spacer()
+                                Image(systemName: "folder.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(Color.beansAmber)
+                            }
+                        }
+                        .buttonStyle(.plain)
                     }
                     // 壁纸库：所有已上传壁纸，点击即应用为当前背景
                     if !theme.wallpaperPaths.isEmpty {
@@ -429,6 +455,7 @@ struct ProfileView: View {
             }
         }
             .beansCardShadow(radius: 9, y: 3)
+            }
         }
     }
 

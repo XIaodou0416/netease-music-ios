@@ -46,11 +46,11 @@ struct DiscoverView: View {
                 } else if loading {
                     LoadingStateView()
                 } else {
-                    if !topLists.isEmpty {
-                        topListsSection
-                    }
                     if !dailySongs.isEmpty {
                         dailySection
+                    }
+                    if !topLists.isEmpty {
+                        topListsSection
                     }
                     if !personalized.isEmpty {
                         personalizedSection
@@ -114,23 +114,23 @@ struct DiscoverView: View {
     private var topListsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "排行榜")
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(topLists) { topList in
-                        Button {
-                            selectedTopList = topList
-                        } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                CoverImage(url: topList.coverURL, size: 120, cornerRadius: 16)
-                                Text(topList.name)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(Color.beansLabel)
-                                    .lineLimit(1)
-                                    .frame(width: 120, alignment: .leading)
-                            }
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)],
+                spacing: 16
+            ) {
+                ForEach(topLists) { topList in
+                    Button {
+                        selectedTopList = topList
+                    } label: {
+                        VStack(alignment: .leading, spacing: 8) {
+                            CoverImage(url: topList.coverURL, size: 150, cornerRadius: 16)
+                            Text(topList.name)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Color.beansLabel)
+                                .lineLimit(1)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }

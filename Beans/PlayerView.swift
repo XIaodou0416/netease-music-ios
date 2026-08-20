@@ -25,6 +25,7 @@ struct PlayerView: View {
     @State private var showComments = false
     @State private var showDownloadPicker = false
     @State private var showLyricSettings = false
+    @State private var dominantColor: RGBColor?
     @AppStorage("beans.lyricFontSize") private var lyricFontSize = 17
     @AppStorage("beans.lyricColor") private var lyricColorRaw = "accent"
     @AppStorage("beans.lyricDimColor") private var lyricDimColorRaw = "dim"
@@ -33,10 +34,14 @@ struct PlayerView: View {
     private var song: Song? { player.currentSong }
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
 
-    /// 固定调色板：跟随全局主题与深浅模式。
-    /// 封面取色必须禁用：任何封面加载触发的 @State 更新都会引起整页重绘，导致“封面加载后布局错乱”。
+    /// 封面主色联动调色板：背景渐变 / 进度条 / 播放暂停键 / 功能按钮 / 歌词高亮等全部跟随封面主色。
+    /// 安全机制：只在切歌（.task(id: song?.identityKey)）时一次性提取并更新，绝不随封面加载过程高频重算 @State，
+    /// 避免整页反复重绘导致的布局错乱与发烫。深浅模式切换时及时重算配色。
     private var palette: CoverPalette {
-        CoverPalette.fallback(colorScheme: colorScheme)
+        if let dominantColor {
+            return CoverPalette.make(dominant: dominantColor, colorScheme: colorScheme)
+        }
+        return CoverPalette.fallback(colorScheme: colorScheme)
     }
 
     /// 当前行歌词颜色（可自定义，默认跟随主题）
@@ -106,7 +111,9 @@ struct PlayerView: View {
             }
         }
         .task(id: song?.identityKey) {
+            dominantColor = nil
             await loadLyrics()
+            await extractCoverPalette()
         }
         .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
         .sheet(isPresented: $showSleepTimer) { SleepTimerSheet().environmentObject(player) }
@@ -698,6 +705,21 @@ struct PlayerView: View {
         }
         guard let raw else { return }
         lyrics = LyricParser.parse(raw)
+    }
+
+    /// 一次性提取当前封面主色，带动整个播放器配色动态变化（失败时保持主题回退色，不影响任何功能）
+    private func extractCoverPalette() async {
+        guard let url = song?.coverURL else { return }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let image = UIImage(data: data),
+                  let dominant = PaletteExtractor.dominantColor(in: image) else { return }
+            withAnimation(.easeInOut(duration: 0.45)) {
+                dominantColor = dominant
+            }
+        } catch {
+            // 提取失败：静默保持回退色
+        }
     }
 
 }

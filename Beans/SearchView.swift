@@ -9,7 +9,9 @@ enum SearchProvider: String, CaseIterable, Identifiable {
     /// 主题色渐变：网易云红 / QQ 绿
     var tint: LinearGradient {
         switch self {
-        case .netease: return LinearGradient.beansAccent
+        case .netease: return LinearGradient(
+            colors: [Color(red: 0.93, green: 0.22, blue: 0.16), Color(red: 0.80, green: 0.15, blue: 0.12)],
+            startPoint: .topLeading, endPoint: .bottomTrailing)
         case .qq: return LinearGradient(
             colors: [Color(red: 0.15, green: 0.78, blue: 0.55), Color(red: 0.05, green: 0.58, blue: 0.42)],
             startPoint: .topLeading, endPoint: .bottomTrailing)

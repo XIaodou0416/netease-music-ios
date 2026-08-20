@@ -339,14 +339,25 @@ struct PlayerView: View {
             .padding(.top, 10)
             .padding(.bottom, 6)
 
-            if lyrics.isEmpty {
-                emptyLyricsView
-            } else {
-                LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
-                    BeansHaptics.tap()
-                    player.seek(to: line.time)
+            // 歌词视口截止到底栏上方：当前行在可见区居中；底部渐隐与液态玻璃底栏自然过渡
+            ZStack(alignment: .bottom) {
+                if lyrics.isEmpty {
+                    emptyLyricsView
+                } else {
+                    LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
+                        BeansHaptics.tap()
+                        player.seek(to: line.time)
+                    }
                 }
+                // 底部渐隐：歌词接近底栏时逐渐淡出，透过玻璃呈模糊渲染
+                LinearGradient(
+                    colors: [.clear, palette.backgroundBottom.opacity(0.94)],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: 140)
+                .allowsHitTesting(false)
             }
+            .padding(.bottom, deckInset)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .id("lyricsPanel-\(song?.identityKey ?? "none")")
@@ -522,14 +533,10 @@ struct PlayerView: View {
         .buttonStyle(GlassPressButtonStyle())
     }
 
-    // MARK: - 主控制（4 键等宽对称，播放键居中；评论已改为上滑底部呼出）
+    // MARK: - 主控制（上一曲 / 播放 / 下一曲 等宽居中，播放键在正中；循环/随机已移至工具行）
 
     private var mainControls: some View {
         HStack(spacing: 6) {
-            deckButton(icon: player.playMode.icon) {
-                BeansHaptics.select()
-                player.togglePlayMode()
-            }
             deckButton(icon: "backward.fill") {
                 BeansHaptics.tap()
                 player.previous()
@@ -637,6 +644,26 @@ struct PlayerView: View {
                 }
                 .clipShape(Capsule())
             }
+
+            // 循环 / 随机播放小按钮（缩小，跟随当前播放模式图标，随机模式高亮）
+            Button {
+                BeansHaptics.select()
+                player.togglePlayMode()
+            } label: {
+                Image(systemName: player.playMode.icon)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(player.playMode == .shuffle ? palette.accent : palette.secondary)
+                    .frame(width: 30, height: 30)
+                    .background {
+                        GlassEffectContainer {
+                            Circle()
+                                .fill(.clear)
+                                .glassEffect(.clear, in: Circle())
+                        }
+                    }
+                    .clipShape(Circle())
+            }
+            .buttonStyle(GlassPressButtonStyle())
 
             Spacer(minLength: 4)
 

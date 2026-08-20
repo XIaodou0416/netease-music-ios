@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - 动态主题色（跟随系统外观或手动切换）
 
@@ -154,10 +155,13 @@ final class ThemeStore: ObservableObject {
     @Published var backgroundHex: String = ""
     /// 自定义背景是否同步到搜索 / 音乐库 / 我的等全部页面
     @Published var backgroundSyncAll = true
+    /// 自定义背景图片文件路径（空串表示未上传图片）
+    @Published var backgroundImagePath: String = ""
 
     private let customAccentKey = "beans.accent.custom"
     private let backgroundKey = "beans.background.custom"
     private let syncAllKey = "beans.background.syncAll"
+    private let backgroundImageKey = "beans.background.image"
 
     private init() {
         accent = BeansAccent(rawValue: UserDefaults.standard.string(forKey: AccentTheme.key) ?? "") ?? .amber
@@ -165,6 +169,7 @@ final class ThemeStore: ObservableObject {
         customAccentHex = (savedAccent?.isEmpty ?? true) ? nil : savedAccent
         backgroundHex = UserDefaults.standard.string(forKey: backgroundKey) ?? ""
         backgroundSyncAll = UserDefaults.standard.object(forKey: syncAllKey) as? Bool ?? true
+        backgroundImagePath = UserDefaults.standard.string(forKey: backgroundImageKey) ?? ""
     }
 
     func set(_ newAccent: BeansAccent) {
@@ -205,6 +210,38 @@ final class ThemeStore: ObservableObject {
     var customBackground: Color? {
         guard !backgroundHex.isEmpty else { return nil }
         return Color(hex: backgroundHex)
+    }
+
+    /// 上传的背景图片（按路径加载）
+    var customBackgroundImage: UIImage? {
+        guard !backgroundImagePath.isEmpty else { return nil }
+        return UIImage(contentsOfFile: backgroundImagePath)
+    }
+
+    /// 保存用户上传的背景图片（写入 Documents，路径持久化）
+    func setBackgroundImage(_ data: Data) {
+        let url = Self.backgroundImageURL()
+        do {
+            try data.write(to: url, options: .atomic)
+            backgroundImagePath = url.path
+            UserDefaults.standard.set(url.path, forKey: backgroundImageKey)
+        } catch {
+            backgroundImagePath = ""
+            UserDefaults.standard.set("", forKey: backgroundImageKey)
+        }
+    }
+
+    func clearBackgroundImage() {
+        if !backgroundImagePath.isEmpty {
+            try? FileManager.default.removeItem(atPath: backgroundImagePath)
+        }
+        backgroundImagePath = ""
+        UserDefaults.standard.set("", forKey: backgroundImageKey)
+    }
+
+    private static func backgroundImageURL() -> URL {
+        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        return dir.appendingPathComponent("beans-background.jpg")
     }
 }
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct ProfileView: View {
     @EnvironmentObject private var theme: ThemeStore
@@ -11,6 +12,7 @@ struct ProfileView: View {
     @State private var showQQLogin = false
     @State private var showLogin = false
     @State private var confirmQQLogout = false
+    @State private var bgImageItem: PhotosPickerItem?
     @ObservedObject private var qqAuth = QQMusicAuth.shared
 
     private var themeMode: BeansThemeMode {
@@ -38,6 +40,15 @@ struct ProfileView: View {
             .padding(.bottom, 190)
         }
         .scrollIndicators(.hidden)
+        .onChange(of: bgImageItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self), !data.isEmpty {
+                    theme.setBackgroundImage(data)
+                    BeansHaptics.success()
+                }
+            }
+        }
         .sheet(isPresented: $showHistory) {
             HistoryView()
                 .environmentObject(player)
@@ -269,6 +280,52 @@ struct ProfileView: View {
                     ))
                     .labelsHidden()
                 }
+                    HStack(spacing: 10) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.beansAmber)
+                            .frame(width: 28)
+                        PhotosPicker(selection: $bgImageItem, matching: .images) {
+                            HStack(spacing: 8) {
+                                Text("上传背景图")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(Color.beansLabel)
+                                Spacer()
+                                if let img = theme.customBackgroundImage {
+                                    Image(uiImage: img)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 44, height: 44)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .strokeBorder(.white.opacity(0.3), lineWidth: 1)
+                                        }
+                                } else {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 22))
+                                        .foregroundStyle(Color.beansSecondary)
+                                }
+                            }
+                        }
+                    }
+                    if theme.customBackgroundImage != nil {
+                        HStack(spacing: 12) {
+                            Button {
+                                theme.clearBackgroundImage()
+                                BeansHaptics.select()
+                            } label: {
+                                Text("清除背景图")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(.red)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(.ultraThinMaterial, in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                        }
+                    }
                 Toggle(isOn: Binding(
                     get: { theme.backgroundSyncAll },
                     set: { theme.setBackgroundSyncAll($0) }

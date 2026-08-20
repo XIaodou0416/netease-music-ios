@@ -50,7 +50,16 @@ struct GlassBackdrop: View {
     var body: some View {
         let _ = theme.accent
         ZStack {
-            if let customColor {
+            // 上传图片优先：同步开启时全 App 生效；图片上叠加可读性暗色渐变
+            if let image = theme.customBackgroundImage, theme.backgroundSyncAll {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                LinearGradient(
+                    colors: [.black.opacity(0.30), .black.opacity(0.52)],
+                    startPoint: .top, endPoint: .bottom
+                )
+            } else if let customColor {
                 LinearGradient(
                     colors: [customColor.opacity(0.9), customColor.opacity(0.55)],
                     startPoint: .top, endPoint: .bottom

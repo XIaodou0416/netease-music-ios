@@ -19,8 +19,18 @@ struct DiscoverView: View {
     var body: some View {
         let _ = theme.accent
         ZStack {
-            // 仅主页模式：自定义背景只应用在发现页
-            if !theme.backgroundSyncAll, let custom = theme.customBackground {
+            // 仅主页模式：自定义背景只应用在发现页（图片优先，其次颜色）
+            if !theme.backgroundSyncAll, let image = theme.customBackgroundImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .ignoresSafeArea()
+                LinearGradient(
+                    colors: [.black.opacity(0.30), .black.opacity(0.52)],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            } else if !theme.backgroundSyncAll, let custom = theme.customBackground {
                 LinearGradient(
                     colors: [custom.opacity(0.85), custom.opacity(0.5)],
                     startPoint: .top, endPoint: .bottom

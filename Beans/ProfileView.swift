@@ -14,6 +14,12 @@ struct ProfileView: View {
         BeansThemeMode(rawValue: themeModeRaw) ?? .system
     }
 
+    private var appVersionText: String {
+        let ver = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "Beans · \\(ver) (\\(build))"
+    }
+
     var body: some View {
         let _ = theme.accent
         ScrollView {
@@ -242,7 +248,7 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "关于")
             VStack(spacing: 8) {
-                Label("Beans · 1.0", systemImage: "beats.headphones")
+                Label(appVersionText, systemImage: "beats.headphones")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color.beansLabel)
                 Text("接入网易云音乐非官方接口，仅供个人自用\n部分 VIP / 版权受限歌曲可能无法播放")

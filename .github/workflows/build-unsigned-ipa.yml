@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   build-ipa:
     runs-on: macos-26
@@ -14,6 +17,36 @@ jobs:
 
       - name: Install XcodeGen
         run: brew install xcodegen
+
+      - name: Bump version (每次构建版本号+1)
+        id: bump
+        run: |
+          python3 - <<'PYEOF'
+          import re
+          path = 'project.yml'
+          with open(path) as f:
+              content = f.read()
+
+          def bump_version(m):
+              parts = m.group(1).split('.')
+              while len(parts) < 3:
+                  parts.append('0')
+              parts[-1] = str(int(parts[-1]) + 1)
+              return 'MARKETING_VERSION: "' + '.'.join(parts) + '"'
+
+          def bump_build(m):
+              return 'CURRENT_PROJECT_VERSION: "' + str(int(m.group(1)) + 1) + '"'
+
+          content, n1 = re.subn(r'MARKETING_VERSION:\s*"([^"]+)"', bump_version, content, count=1)
+          content, n2 = re.subn(r'CURRENT_PROJECT_VERSION:\s*"(\d+)"', bump_build, content, count=1)
+          with open(path, 'w') as f:
+              f.write(content)
+          ver = re.search(r'MARKETING_VERSION:\s*"([^"]+)"', content).group(1)
+          build = re.search(r'CURRENT_PROJECT_VERSION:\s*"(\d+)"', content).group(1)
+          print('::notice title=Version::Bumped to %s (%s)' % (ver, build))
+          with open('version.txt', 'w') as f:
+              f.write('%s (%s)' % (ver, build))
+          PYEOF
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -42,3 +75,16 @@ jobs:
         with:
           name: Beans-unsigned-ipa
           path: Beans-unsigned.ipa
+
+      - name: Commit version bump back
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add project.yml
+          if git diff --cached --quiet; then
+            echo "no version change to commit"
+          else
+            git commit -m "chore: bump version to $(cat version.txt) [skip ci]"
+            git push
+          fi

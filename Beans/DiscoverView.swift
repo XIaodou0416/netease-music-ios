@@ -196,23 +196,30 @@ struct DiscoverView: View {
                         Button {
                             selectedQQTopList = info
                         } label: {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(qqRankGradient(info.name))
-                                .frame(width: 88, height: 88)
-                                .overlay {
-                                    Image(systemName: "music.note")
-                                        .font(.system(size: 26, weight: .semibold))
-                                        .foregroundStyle(.white.opacity(0.9))
+                            Group {
+                                if let cover = info.coverURL {
+                                    CoverImage(url: cover, size: 88, cornerRadius: 14)
+                                        .frame(maxWidth: .infinity)
+                                } else {
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .fill(qqRankGradient(info.name))
+                                        .frame(width: 88, height: 88)
+                                        .overlay {
+                                            Image(systemName: "music.note")
+                                                .font(.system(size: 26, weight: .semibold))
+                                                .foregroundStyle(.white.opacity(0.9))
+                                        }
+                                        .frame(maxWidth: .infinity)
                                 }
-                                .frame(maxWidth: .infinity)
-                                .padding(6)
-                                .background {
-                                    GlassEffectContainer {
-                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                            .fill(.clear)
-                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                    }
+                            }
+                            .padding(6)
+                            .background {
+                                GlassEffectContainer {
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .fill(.clear)
+                                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 }
+                            }
                         }
                         .buttonStyle(.plain)
                     }

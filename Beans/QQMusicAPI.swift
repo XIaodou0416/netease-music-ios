@@ -70,6 +70,29 @@ final class QQMusicAPI {
         return json
     }
 
+    /// 表单 POST（fcg 老接口统一走这里，如 H5 评论接口）
+    private func postForm(_ urlString: String, body: [String: Any], referer: String = "https://y.qq.com/") async throws -> [String: Any] {
+        guard let url = URL(string: urlString) else { throw NetEaseError.unknown("请求地址无效") }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 QQMusic/9.0.5", forHTTPHeaderField: "User-Agent")
+        request.setValue(referer, forHTTPHeaderField: "Referer")
+        request.setValue("uin=0; qqmusic_fromtag=66", forHTTPHeaderField: "Cookie")
+        var comps = URLComponents()
+        comps.queryItems = body.map { URLQueryItem(name: $0.key, value: "\($0.value)") }
+        request.httpBody = comps.query?.data(using: .utf8)
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw NetEaseError.network
+        }
+        guard let json = parseJSON(data) else {
+            let snippet = String(data: data, encoding: .utf8)?.prefix(120) ?? ""
+            throw NetEaseError.decoding(String(snippet))
+        }
+        return json
+    }
+
     /// 兼容纯 JSON 与 JSONP（`callback({...})`）两种响应
     private func parseJSON(_ data: Data) -> [String: Any]? {
         if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -338,65 +361,146 @@ final class QQMusicAPI {
 
     // MARK: - 评论区 / 排行榜 / 推荐 / 歌单
 
-    /// QQ 音乐评论（musicu GlobalCommentRead）
-    func comments(songmid: String, limit: Int = 20) async throws -> [SongComment] {
-        let payload: [String: Any] = [
-            "comm": ["ct": 24, "cv": 0],
-            "req_1": [
-                "module": "music.globalComment.GlobalCommentRead",
-                "method": "ReadComment",
-                "param": [
-                    "rootcommentid": "Song_\(songmid)",
-                    "cursor": 0,
-                    "pagesize": limit,
-                    "sorttype": 2,
-                    "targetid": songmid,
-                    "biztype": 1,
-                    "start": 0
-                ]
-            ]
-        ]
-        let json = try await musicu(payload)
-        let data = ((json["req_1"] as? [String: Any])?["data"] as? [String: Any]) ?? [:]
-        let list = data["comments"] as? [[String: Any]] ?? []
-        var comments: [SongComment] = []
-        for item in list {
-            guard let root = item["rootcomment"] as? [String: Any] else { continue }
-            let content = root["content"] as? String ?? ""
+    /// QQ 音乐评论（fcg_global_comment_h5，与 wp_MusicApi 一致；musicu GlobalCommentRead 已停用返回 40000）
+    func comments(songmid: String, limit: Int = 25) async throws -> [SongComment] {
+        let json = try await postForm("https://c.y.qq.com/base/fcgi-bin/fcg_global_comment_h5.fcg", body: [
+            "biztype": 1,
+            "topid": songmid,
+            "LoginUin": 0,
+            "cmd": 8,
+            "pagenum": 0,
+            "pagesize": min(max(limit, 1), 25)
+        ])
+        let hot = ((json["hot_comment"] as? [String: Any])?["commentlist"] as? [[String: Any]]) ?? []
+        let normal = ((json["comment"] as? [String: Any])?["commentlist"] as? [[String: Any]]) ?? []
+        var seen = Set<String>()
+        var result: [SongComment] = []
+        for item in hot + normal {
+            let rootID = item["rootcommentid"] as? String ?? ""
+            let commentID = item["commentid"] as? String ?? ""
+            let key = rootID + "_" + commentID
+            guard !key.isEmpty, !seen.contains(key) else { continue }
+            seen.insert(key)
+            var content = Self.decodeCommentEmoji(item["rootcommentcontent"] as? String ?? "")
+            content = content.replacingOccurrences(of: "\\n", with: "
+")
             guard !content.isEmpty else { continue }
-            let id = root["id"] as? Int ?? 0
-            let nick = root["nick"] as? String ?? ""
-            let avatar = root["avatarurl"] as? String ?? ""
-            let time = root["time"] as? TimeInterval ?? 0
-            let likes = root["likeNum"] as? Int ?? 0
-            comments.append(SongComment(
-                id: id,
+            var nick = item["nick"] as? String ?? ""
+            if nick.isEmpty { nick = item["rootcommentnick"] as? String ?? "" }
+            if nick.hasPrefix("@") { nick = String(nick.dropFirst()) }
+            let avatar = item["avatarurl"] as? String ?? ""
+            let time = item["time"] as? TimeInterval ?? 0
+            result.append(SongComment(
+                id: key.hashValue,
                 content: content,
                 nickname: nick,
                 avatarURL: avatar.isEmpty ? nil : URL(string: avatar),
-                time: Date(timeIntervalSince1970: time),
-                likedCount: likes,
-                isHot: false
+                time: time > 0 ? Date(timeIntervalSince1970: time) : Date(),
+                likedCount: item["praisenum"] as? Int ?? 0,
+                isHot: true
             ))
         }
-        return comments
+        return result
     }
 
-    /// QQ 峰尖榜总览
+    /// QQ 评论表情解码（[em]eXXXXXX[/em] → 对应 Unicode 表情）
+    private static let commentEmojis: [String: String] = [
+        "e400846": "😘",
+        "e400874": "😴",
+        "e400825": "😃",
+        "e400847": "😙",
+        "e400835": "😍",
+        "e400873": "😳",
+        "e400836": "😎",
+        "e400867": "😭",
+        "e400832": "😊",
+        "e400837": "😏",
+        "e400875": "😫",
+        "e400831": "😉",
+        "e400855": "😡",
+        "e400823": "😄",
+        "e400862": "😨",
+        "e400844": "😖",
+        "e400841": "😓",
+        "e400830": "😈",
+        "e400828": "😆",
+        "e400833": "😋",
+        "e400822": "😀",
+        "e400843": "😕",
+        "e400829": "😇",
+        "e400824": "😂",
+        "e400834": "😌",
+        "e400877": "😷",
+        "e400132": "🍉",
+        "e400181": "🍺",
+        "e401067": "☕️",
+        "e400186": "🥧",
+        "e400343": "🐷",
+        "e400116": "🌹",
+        "e400126": "🍃",
+        "e400613": "💋",
+        "e401236": "❤️",
+        "e400622": "💔",
+        "e400637": "💣",
+        "e400643": "💩",
+        "e400773": "🔪",
+        "e400102": "🌛",
+        "e401328": "🌞",
+        "e400420": "👏",
+        "e400914": "🙌",
+        "e400408": "👍",
+        "e400414": "👎",
+        "e401121": "✋",
+        "e400396": "👋",
+        "e400384": "👉",
+        "e401115": "✊",
+        "e400402": "👌",
+        "e400905": "🙈",
+        "e400906": "🙉",
+        "e400907": "🙊",
+        "e400562": "👻",
+        "e400932": "🙏",
+        "e400644": "💪",
+        "e400611": "💉",
+        "e400185": "🎁",
+        "e400655": "💰",
+        "e400325": "🐥",
+        "e400612": "💊",
+        "e400198": "🎉",
+        "e401685": "⚡️",
+        "e400631": "💝",
+        "e400768": "🔥",
+        "e400432": "👑",
+    ]
+    private static func decodeCommentEmoji(_ raw: String) -> String {
+        var text = raw
+        while let range = text.range(of: #"\[em\]e\d+\[/em\]"#, options: .regularExpression) {
+            let token = String(text[range])
+            let code = token.replacingOccurrences(of: "[em]", with: "").replacingOccurrences(of: "[/em]", with: "")
+            text.replaceSubrange(range, with: commentEmojis[code] ?? "")
+        }
+        return text
+    }
+
+    /// QQ 峰尖榜总览（榜单列表在响应的 data.topList，字段为 topTitle / picUrl）
     func topLists() async throws -> [QQTopInfo] {
         let url = "https://c.y.qq.com/v8/fcg-bin/fcg_myqq_toplist.fcg?format=json"
         let json = try await get(url)
-        let list = json["topList"] as? [[String: Any]] ?? []
+        let data = json["data"] as? [String: Any] ?? json
+        let list = data["topList"] as? [[String: Any]] ?? []
         var result: [QQTopInfo] = []
         for item in list {
             guard let id = item["id"] as? Int else { continue }
             let songs = (item["songList"] as? [[String: Any]]) ?? []
             let topNames = songs.compactMap { $0["songname"] as? String }.prefix(3).map { $0 }
+            var pic = item["picUrl"] as? String ?? ""
+            if pic.hasPrefix("http://") { pic = "https://" + pic.dropFirst(7) }
             result.append(QQTopInfo(
                 id: id,
-                name: item["title"] as? String ?? "",
+                name: item["topTitle"] as? String ?? (item["title"] as? String ?? ""),
                 subTitle: item["subTitle"] as? String ?? "",
-                topSongNames: topNames
+                topSongNames: topNames,
+                coverURL: pic.isEmpty ? nil : URL(string: pic)
             ))
         }
         return result

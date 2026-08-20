@@ -166,6 +166,7 @@ struct QQTopInfo: Identifiable, Hashable {
     let name: String
     let subTitle: String
     let topSongNames: [String]
+    let coverURL: URL?
 }
 
 struct LyricLine: Identifiable, Hashable {

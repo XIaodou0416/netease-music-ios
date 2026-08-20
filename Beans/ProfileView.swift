@@ -164,7 +164,13 @@ struct ProfileView: View {
 
             }
             .padding(16)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            }
+        }
             .beansCardShadow(radius: 9, y: 3)
         }
     }
@@ -187,7 +193,13 @@ struct ProfileView: View {
             }
             .padding(.horizontal, 4)
             .padding(.vertical, 6)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+        }
             .beansCardShadow(radius: 8, y: 3)
         }
     }
@@ -245,7 +257,13 @@ struct ProfileView: View {
                     .foregroundStyle(Color.red)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+        }
             }
             .buttonStyle(.plain)
         }

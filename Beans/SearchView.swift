@@ -138,7 +138,13 @@ struct SearchView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .beansCardShadow(radius: 6, y: 2)
         .padding(.bottom, 6)
@@ -163,10 +169,12 @@ struct SearchView: View {
                     .padding(.horizontal, 15)
                     .padding(.vertical, 8)
                     .background {
+                        GlassEffectContainer {
                         if provider == p {
                             Capsule().fill(p == .netease ? LinearGradient.beansAccent : LinearGradient(colors: [Color(red: 0.15, green: 0.78, blue: 0.55), Color(red: 0.05, green: 0.58, blue: 0.42)], startPoint: .topLeading, endPoint: .bottomTrailing))
                         } else {
-                            Capsule().fill(.thinMaterial)
+                            Capsule().fill(.clear).glassEffect(.clear, in: Capsule())
+                        }
                         }
                     }
                     .clipShape(Capsule())
@@ -197,8 +205,10 @@ struct SearchView: View {
                         .padding(.horizontal, 15)
                         .padding(.vertical, 7)
                         .background {
+                            GlassEffectContainer {
                             if resultType == type {
-                                Capsule().fill(.thinMaterial)
+                                Capsule().fill(.clear).glassEffect(.clear, in: Capsule())
+                            }
                             }
                         }
                         .clipShape(Capsule())
@@ -241,7 +251,13 @@ struct SearchView: View {
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 13)
-                                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                                                .background {
+                                    GlassEffectContainer {
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .fill(.clear)
+                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                    }
+                                }
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             }
                             .buttonStyle(GlassPressButtonStyle())

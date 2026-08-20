@@ -133,27 +133,31 @@ struct AppStoreTabBar: View {
         }
         .padding(5)
         .background {
-            Capsule()
-                .fill(.ultraThinMaterial.opacity(0.68))
-                .overlay {
-                    Capsule()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [.white.opacity(0.45), .white.opacity(0.10)],
-                                startPoint: .top, endPoint: .bottom
-                            ),
-                            lineWidth: 0.8
+            // iOS 26 原生液态玻璃：真玻璃材质 + 高光 + 描边
+            GlassEffectContainer {
+                Capsule()
+                    .fill(.clear)
+                    .glassEffect(.clear, in: Capsule())
+            }
+            .overlay {
+                Capsule()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(0.45), .white.opacity(0.10)],
+                            startPoint: .top, endPoint: .bottom
+                        ),
+                        lineWidth: 0.8
+                    )
+            }
+            .overlay {
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [.white.opacity(0.16), .clear],
+                            startPoint: .top, endPoint: .center
                         )
-                }
-                .overlay {
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [.white.opacity(0.16), .clear],
-                                startPoint: .top, endPoint: .center
-                            )
-                        )
-                }
+                    )
+            }
         }
         .clipShape(Capsule())
         .shadow(color: .black.opacity(0.10), radius: 14, y: 6)
@@ -236,18 +240,21 @@ struct AppStoreTabBar: View {
         }
         .padding(8)
         .background {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [.white.opacity(0.4), .white.opacity(0.08)],
-                                startPoint: .top, endPoint: .bottom
-                            ),
-                            lineWidth: 1
-                        )
-                }
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(0.4), .white.opacity(0.08)],
+                            startPoint: .top, endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+            }
         }
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         .shadow(color: .black.opacity(0.22), radius: 20, y: 10)

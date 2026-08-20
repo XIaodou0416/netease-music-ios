@@ -1,6 +1,6 @@
 import Foundation
 
-/// QQ 音乐搜索类型（search_type：0 单曲 / 1 歌手 / 2 专辑 / 3 歌单 / 4 MV / 7 歌词 / 8 用户）
+/// QQ 音乐搜索类型（musicu search_type：0 单曲 / 1 歌手 / 2 专辑 / 3 歌单 / 4 MV / 7 歌词 / 8 用户）
 enum QQSearchType: Int {
     case song = 0
     case artist = 1
@@ -8,15 +8,15 @@ enum QQSearchType: Int {
 }
 
 /// QQ 音乐接口（搜索 / 播放地址 / 歌词 / 热搜）
-/// 参考 wp_MusicApi（https://github.com/GitHub-ZC/wp_MusicApi）修正：
-/// - musicu.fcg 使用 POST JSON body（原 GET+data 编码在部分网络被风控返回空）
-/// - search_type 修正为 0/1/2（歌曲/歌手/专辑）
-/// - 播放地址使用 isure.stream.qqmusic.qq.com 域名
-/// 说明：QQ 接口对部分数据中心 IP 会返回空（服务器端过滤），家庭/移动网络正常。
+/// 参考 wp_MusicApi（https://github.com/GitHub-ZC/wp_MusicApi）逆向结论：
+/// - 歌曲搜索改用 client_search_cp（t=0），该接口对家庭/移动/数据中心网络均可用；
+///   歌手/专辑搜索使用 musicu.fcg POST JSON（search_type 1/2），专辑空结果时自动用 client_search_cp t=8 兜底。
+/// - vkey 播放地址经 musicu.fcg 获取，VIP 歌曲返回空；部分数据中心 IP 会被风控返回空，家庭网络正常。
 final class QQMusicAPI {
     static let shared = QQMusicAPI()
 
     private let base = "https://u.y.qq.com/cgi-bin/musicu.fcg"
+    private let searchBase = "https://c.y.qq.com/soso/fcgi-bin/client_search_cp"
     private let session: URLSession
 
     private init() {
@@ -37,7 +37,7 @@ final class QQMusicAPI {
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             throw NetEaseError.network
         }
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        guard let json = parseJSON(data) else {
             let snippet = String(data: data, encoding: .utf8)?.prefix(120) ?? ""
             throw NetEaseError.decoding(String(snippet))
         }
@@ -59,11 +59,24 @@ final class QQMusicAPI {
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             throw NetEaseError.network
         }
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        guard let json = parseJSON(data) else {
             let snippet = String(data: data, encoding: .utf8)?.prefix(120) ?? ""
             throw NetEaseError.decoding(String(snippet))
         }
         return json
+    }
+
+    /// 兼容纯 JSON 与 JSONP（`callback({...})`）两种响应
+    private func parseJSON(_ data: Data) -> [String: Any]? {
+        if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            return obj
+        }
+        guard let text = String(data: data, encoding: .utf8),
+              let start = text.firstIndex(of: "{"),
+              let end = text.lastIndex(of: "}") else { return nil }
+        let slice = text[start...end]
+        guard let obj = try? JSONSerialization.jsonObject(with: Data(slice.utf8)) as? [String: Any] else { return nil }
+        return obj
     }
 
     private static func photoURL(_ mid: String?, size: String = "300x300") -> URL? {
@@ -71,7 +84,7 @@ final class QQMusicAPI {
         return URL(string: "https://y.gtimg.cn/music/photo_new/T002R\(size)M000\(mid).jpg")
     }
 
-    private func searchPayload(keyword: String, limit: Int, type: QQSearchType) -> [String: Any] {
+    private func musicuSearchPayload(keyword: String, limit: Int, type: QQSearchType) -> [String: Any] {
         [
             "comm": ["ct": 19, "cv": 1859, "uin": "0", "format": "json"],
             "req_1": [
@@ -88,26 +101,59 @@ final class QQMusicAPI {
         ]
     }
 
+    /// client_search_cp 搜索 URL（t：0 单曲 / 8 专辑 / 9 歌手）
+    private func clientSearchURL(keyword: String, limit: Int, type: Int) -> URL? {
+        var comps = URLComponents(string: searchBase)
+        comps?.queryItems = [
+            URLQueryItem(name: "ct", value: "24"),
+            URLQueryItem(name: "qqmusic_ver", value: "1298"),
+            URLQueryItem(name: "remoteplace", value: "txt.yqq.top"),
+            URLQueryItem(name: "aggr", value: "1"),
+            URLQueryItem(name: "cr", value: "1"),
+            URLQueryItem(name: "catZhida", value: "1"),
+            URLQueryItem(name: "lossless", value: "0"),
+            URLQueryItem(name: "flag_qc", value: "0"),
+            URLQueryItem(name: "t", value: "\(type)"),
+            URLQueryItem(name: "p", value: "1"),
+            URLQueryItem(name: "n", value: "\(limit)"),
+            URLQueryItem(name: "w", value: keyword),
+            URLQueryItem(name: "cv", value: "4747474"),
+            URLQueryItem(name: "format", value: "json"),
+            URLQueryItem(name: "inCharset", value: "utf-8"),
+            URLQueryItem(name: "outCharset", value: "utf-8"),
+            URLQueryItem(name: "notice", value: "0"),
+            URLQueryItem(name: "platform", value: "yqq.json"),
+            URLQueryItem(name: "needNewCode", value: "0"),
+            URLQueryItem(name: "uin", value: "0"),
+            URLQueryItem(name: "hostUin", value: "0"),
+            URLQueryItem(name: "loginUin", value: "0"),
+        ]
+        return comps?.url
+    }
+
     // MARK: - 搜索
 
-    /// 搜索歌曲（QQ 音乐）
+    /// 搜索歌曲（client_search_cp，本机与手机网络均可）
     func searchSongs(keyword: String, limit: Int = 30) async throws -> [Song] {
-        let json = try await musicu(searchPayload(keyword: keyword, limit: limit, type: .song))
-        let list = nestedArray(json, path: ["req_1", "data", "body", "song", "list"])
+        guard let url = clientSearchURL(keyword: keyword, limit: limit, type: 0) else {
+            throw NetEaseError.unknown("搜索地址无效")
+        }
+        let json = try await get(url.absoluteString, referer: "https://y.qq.com/portal/player.html")
+        let data = json["data"] as? [String: Any] ?? [:]
+        let song = data["song"] as? [String: Any] ?? [:]
+        let list = song["list"] as? [[String: Any]] ?? []
         var songs: [Song] = []
         for item in list {
-            guard let id = item["id"] as? Int, let mid = item["mid"] as? String else { continue }
+            guard let songid = item["songid"] as? Int, let mid = item["songmid"] as? String else { continue }
             let singer = (item["singer"] as? [[String: Any]]) ?? []
             let artists = singer.compactMap { $0["name"] as? String }.joined(separator: " / ")
-            let albumDict = item["album"] as? [String: Any]
-            let albumName = albumDict?["name"] as? String ?? ""
-            let albumMid = albumDict?["mid"] as? String
+            let albumMid = item["albummid"] as? String
             let interval = (item["interval"] as? Int) ?? 0
             songs.append(Song(
-                id: id,
-                name: item["name"] as? String ?? "",
+                id: songid,
+                name: item["songname"] as? String ?? "",
                 artists: artists,
-                album: albumName,
+                album: item["albumname"] as? String ?? "",
                 coverURL: Self.photoURL(albumMid),
                 duration: TimeInterval(interval),
                 source: .qq,
@@ -117,9 +163,9 @@ final class QQMusicAPI {
         return songs
     }
 
-    /// 搜索歌手（QQ 音乐）
+    /// 搜索歌手（musicu search_type=1，本机实测可用）
     func searchArtists(keyword: String, limit: Int = 30) async throws -> [Artist] {
-        let json = try await musicu(searchPayload(keyword: keyword, limit: limit, type: .artist))
+        let json = try await musicu(musicuSearchPayload(keyword: keyword, limit: limit, type: .artist))
         let list = nestedArray(json, path: ["req_1", "data", "body", "singer", "list"])
         var artists: [Artist] = []
         for item in list {
@@ -137,20 +183,37 @@ final class QQMusicAPI {
         return artists
     }
 
-    /// 搜索专辑（QQ 音乐）
+    /// 搜索专辑（musicu search_type=2 为主；空结果时用 client_search_cp t=8 兜底）
     func searchAlbums(keyword: String, limit: Int = 30) async throws -> [Album] {
-        let json = try await musicu(searchPayload(keyword: keyword, limit: limit, type: .album))
+        let json = try await musicu(musicuSearchPayload(keyword: keyword, limit: limit, type: .album))
         let list = nestedArray(json, path: ["req_1", "data", "body", "album", "list"])
+        if !list.isEmpty {
+            return parseAlbumItems(list)
+        }
+        // 兜底：client_search_cp t=8
+        if let url = clientSearchURL(keyword: keyword, limit: limit, type: 8) {
+            let fallback = try? await get(url.absoluteString, referer: "https://y.qq.com/portal/player.html")
+            let data = fallback?["data"] as? [String: Any] ?? [:]
+            let album = data["album"] as? [String: Any] ?? [:]
+            let fallbackList = album["list"] as? [[String: Any]] ?? []
+            if !fallbackList.isEmpty {
+                return parseAlbumItems(fallbackList)
+            }
+        }
+        return []
+    }
+
+    private func parseAlbumItems(_ items: [[String: Any]]) -> [Album] {
         var albums: [Album] = []
-        for item in list {
-            let name = item["name"] as? String ?? (item["title"] as? String ?? "")
+        for item in items {
+            let name = item["name"] as? String ?? (item["albumname"] as? String ?? "")
             guard !name.isEmpty else { continue }
-            let mid = item["mid"] as? String
+            let mid = item["mid"] as? String ?? (item["albummid"] as? String)
             let singer = (item["singer"] as? [[String: Any]]) ?? []
             let artistName = singer.compactMap { $0["name"] as? String }.joined(separator: " / ")
             let numericID = item["id"] as? Int ?? 0
             albums.append(Album(
-                id: mid ?? "qq-\(numericID)-\(name)",
+                id: mid ?? "qq-album-\(numericID)-\(name)",
                 name: name,
                 artistName: artistName,
                 coverURL: Self.photoURL(mid),

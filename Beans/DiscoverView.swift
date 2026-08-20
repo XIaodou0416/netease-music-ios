@@ -146,7 +146,13 @@ struct DiscoverView: View {
                         .foregroundStyle(Color.beansSecondary)
                 }
                 .padding(14)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            }
+        }
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .beansCardShadow(radius: 8, y: 3)
             }
@@ -166,7 +172,13 @@ struct DiscoverView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+        }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .beansCardShadow(radius: 8, y: 3)
 
@@ -181,7 +193,13 @@ struct DiscoverView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 6)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            }
+        }
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .beansCardShadow(radius: 8, y: 3)
         }

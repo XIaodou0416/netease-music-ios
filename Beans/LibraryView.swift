@@ -104,7 +104,13 @@ struct LibraryView: View {
                     .foregroundStyle(Color.beansSecondary)
             }
             .padding(14)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            }
+        }
             .beansCardShadow(radius: 8, y: 3)
         }
         .buttonStyle(.plain)

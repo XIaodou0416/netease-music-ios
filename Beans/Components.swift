@@ -82,6 +82,8 @@ struct CoverImage: View {
             switch phase {
             case .success(let image):
                 image.resizable().scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipped()
             case .failure:
                 placeholder
             case .empty:

@@ -5,7 +5,6 @@ struct ProfileView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
     @AppStorage("beans.themeMode") private var themeModeRaw = BeansThemeMode.system.rawValue
-    @AppStorage(LayoutDebugger.key) private var layoutDebuggerEnabled = false
 
     @State private var showHistory = false
     @State private var confirmLogout = false
@@ -163,29 +162,6 @@ struct ProfileView: View {
                     Spacer()
                 }
 
-                Divider().overlay(Color.beansSecondary.opacity(0.15))
-
-                HStack {
-                    Image(systemName: "ruler.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.beansAmber)
-                        .frame(width: 28)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("UI布局检测工具")
-                            .font(.system(size: 15))
-                            .foregroundStyle(Color.beansLabel)
-                        Text("开启后仅在控制台输出布局调试日志")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Color.beansSecondary)
-                    }
-                    Spacer()
-                    Toggle("", isOn: $layoutDebuggerEnabled)
-                        .labelsHidden()
-                        .tint(Color.beansHighlight)
-                        .onChange(of: layoutDebuggerEnabled) { _, newValue in
-                            LayoutDebugger.onStateChanged(enabled: newValue)
-                        }
-                }
             }
             .padding(16)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))

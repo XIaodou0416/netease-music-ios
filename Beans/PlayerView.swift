@@ -36,10 +36,8 @@ struct PlayerView: View {
                 }
             }
             .foregroundStyle(Color.beansLabel)
-            .layoutDebug("PlayerView")
         }
         .task(id: song?.id) {
-            LayoutDebugger.logSongSwitch(songID: song?.id)
             await loadLyrics()
         }
         .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
@@ -281,7 +279,6 @@ struct PlayerView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .id("lyricsPane-\(song?.id ?? -1)")
-        .layoutDebug("LyricsPane")
     }
 
     // MARK: - 底部控制坞（毛玻璃圆角坞：信息 / 进度 / 主控制 / 工具，四行分区）

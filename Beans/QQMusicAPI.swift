@@ -263,7 +263,9 @@ final class QQMusicAPI {
 
     /// 单次 vkey 请求（GET musicu.fcg，data 参数格式与 wp_MusicApi 完全一致）
     private func vkeyURL(songmid: String, br: String, uin: String, loginKey: String, guid: String, qqAuth: QQMusicAuth) async throws -> String? {
-        let filename = "\(br)\(songmid)\(songmid).mp3"
+        // 音质与扩展名：M500/M800 为 mp3，F000（无损）为 flac
+        let ext = br.hasPrefix("F") ? "flac" : "mp3"
+        let filename = "\(br)\(songmid)\(songmid).\(ext)"
         var param: [String: Any] = [
             "filename": [filename],
             "guid": guid,

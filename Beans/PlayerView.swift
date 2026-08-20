@@ -668,8 +668,11 @@ struct PlayerView: View {
         ToastCenter.shared.show("开始下载：\(song.name)")
         let result = await DownloadManager.shared.download(song: song, quality: quality)
         switch result {
-        case .success:
-            ToastCenter.shared.show("已下载：\(song.name)（可在文件 App 查看）", duration: 3)
+        case .success(let downloadResult):
+            let message = downloadResult.downgraded
+                ? "已下载（所选音质不可用，已自动降级）：\(song.name)"
+                : "已下载：\(song.name)（可在文件 App 查看）"
+            ToastCenter.shared.show(message, duration: 3)
         case .failure(let error):
             ToastCenter.shared.show("下载失败：\(error.localizedDescription)", duration: 3)
         }

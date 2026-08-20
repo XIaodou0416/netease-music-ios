@@ -341,32 +341,14 @@ struct PlayerView: View {
             .padding(.top, 10)
             .padding(.bottom, 6)
 
-            // 歌词视口截止到底栏上方：当前行在可见区居中；上下两端渐隐与玻璃底栏自然过渡
-            ZStack(alignment: .bottom) {
-                if lyrics.isEmpty {
-                    emptyLyricsView
-                } else {
-                    LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
-                        BeansHaptics.tap()
-                        player.seek(to: line.time)
-                    }
+            // 歌词视口截止到底栏上方：当前行在可见区居中（26 版风格，无渐隐遮挡）
+            if lyrics.isEmpty {
+                emptyLyricsView
+            } else {
+                LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
+                    BeansHaptics.tap()
+                    player.seek(to: line.time)
                 }
-                // 底部微渐隐：只做画面磨合，避免到底栏处生硬割裂
-                LinearGradient(
-                    colors: [.clear, palette.backgroundBottom.opacity(0.5)],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .frame(height: 64)
-                .allowsHitTesting(false)
-            }
-            .overlay(alignment: .top) {
-                // 顶部微渐隐：配合未出现歌词的模糊过渡
-                LinearGradient(
-                    colors: [palette.backgroundTop.opacity(0.45), .clear],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .frame(height: 52)
-                .allowsHitTesting(false)
             }
             .padding(.bottom, deckInset)
         }

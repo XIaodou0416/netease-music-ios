@@ -69,16 +69,28 @@ struct ProfileView: View {
         .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.image], allowsMultipleSelection: true) { result in
             switch result {
             case .success(let urls):
+                var ok = 0
                 for url in urls {
                     let accessing = url.startAccessingSecurityScopedResource()
                     defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-                    if let data = try? Data(contentsOf: url), !data.isEmpty {
-                        theme.addWallpaper(data)
+                    do {
+                        let data = try Data(contentsOf: url)
+                        if !data.isEmpty {
+                            theme.addWallpaper(data)
+                            ok += 1
+                        }
+                    } catch {
+                        ToastCenter.shared.show("读取文件失败：\(error.localizedDescription)", duration: 2.5)
                     }
                 }
-                if !urls.isEmpty { BeansHaptics.success() }
-            case .failure:
-                break
+                if ok > 0 {
+                    BeansHaptics.success()
+                    ToastCenter.shared.show("已添加 \(ok) 张壁纸，已应用为当前背景", duration: 2)
+                } else {
+                    ToastCenter.shared.show("未能读取所选图片，请重试", duration: 2.5)
+                }
+            case .failure(let error):
+                ToastCenter.shared.show("选择失败：\(error.localizedDescription)", duration: 2.5)
             }
         }
         .confirmationDialog("退出登录？", isPresented: $confirmLogout, titleVisibility: .visible) {
@@ -338,6 +350,24 @@ struct ProfileView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(Color.beansSecondary)
                 }
+
+                    Divider().overlay(Color.beansSecondary.opacity(0.15))
+
+                    HStack {
+                        Image(systemName: "photo.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.beansAmber)
+                            .frame(width: 28)
+                        Text("主页背景色")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color.beansLabel)
+                        Spacer()
+                        ColorPicker("", selection: Binding(
+                            get: { theme.customBackground ?? Color.beansBackground },
+                            set: { theme.setBackground($0.hexString) }
+                        ))
+                        .labelsHidden()
+                    }
 
                     HStack(spacing: 10) {
                         Image(systemName: "photo.on.rectangle.angled")

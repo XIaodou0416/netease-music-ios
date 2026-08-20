@@ -30,6 +30,8 @@ struct PlayerView: View {
     @AppStorage("beans.lyricColor") private var lyricColorRaw = "accent"
     @AppStorage("beans.lyricDimColor") private var lyricDimColorRaw = "dim"
     @AppStorage("beans.lyricGlow") private var lyricGlowLevel = 1
+    @AppStorage("beans.lyricGradStart") private var lyricGradStartRaw = ""
+    @AppStorage("beans.lyricGradEnd") private var lyricGradEndRaw = ""
 
     private var song: Song? { player.currentSong }
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
@@ -69,6 +71,26 @@ struct PlayerView: View {
             if lyricDimColorRaw.hasPrefix("#"), let c = Color(hex: lyricDimColorRaw) { return c }
             return palette.secondary
         }
+    }
+
+    /// 当前行歌词渐变（可自定义起止色；未设置时自动从封面强调色派生，深浅模式自适应）
+    private var lyricGradStart: Color {
+        if lyricGradStartRaw.hasPrefix("#"), let c = Color(hex: lyricGradStartRaw) { return c }
+        return lyricCurrentColor
+    }
+    private var lyricGradEnd: Color {
+        if lyricGradEndRaw.hasPrefix("#"), let c = Color(hex: lyricGradEndRaw) { return c }
+        return mixedColor(lyricCurrentColor, with: colorScheme == .dark ? .white : .black, amount: 0.45)
+    }
+    private func mixedColor(_ c: Color, with other: Color, amount: CGFloat) -> Color {
+        let ui = UIColor(c)
+        let ui2 = UIColor(other)
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        ui.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        ui2.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        let a = min(max(amount, 0), 1)
+        return Color(red: r1 * (1 - a) + r2 * a, green: g1 * (1 - a) + g2 * a, blue: b1 * (1 - a) + b2 * a)
     }
 
     private func glowName(_ level: Int) -> String {
@@ -134,6 +156,8 @@ struct PlayerView: View {
                 glowLevel: $lyricGlowLevel,
                 currentColorRaw: $lyricColorRaw,
                 dimColorRaw: $lyricDimColorRaw,
+                gradStartRaw: $lyricGradStartRaw,
+                gradEndRaw: $lyricGradEndRaw,
                 palette: palette
             )
         }
@@ -402,7 +426,7 @@ struct PlayerView: View {
                 if lyrics.isEmpty {
                     emptyLyricsView
                 } else {
-                    LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
+                    LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, gradientStart: lyricGradStart, gradientEnd: lyricGradEnd, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
                         BeansHaptics.tap()
                         player.seek(to: line.time)
                     }
@@ -811,6 +835,8 @@ struct LyricsSection: View {
     let lyrics: [LyricLine]
     let accent: Color
     let secondary: Color
+    var gradientStart: Color? = nil
+    var gradientEnd: Color? = nil
     var baseFontSize: CGFloat = 17
     var glowRadius: CGFloat = 9
     let onTapLine: (LyricLine) -> Void
@@ -873,20 +899,29 @@ struct LyricsSection: View {
         // 歌词行模糊：当前行与邻近行保持清晰，距离越远才越柔和（避免只剩一行清晰显得突兀）
         let blurRadius: CGFloat = isCurrent ? 0 : min(CGFloat(max(distance - 1, 0)) * 1.1, 2.8)
 
+        // 当前行用渐变（封面色或自定义），光晕跟随渐变起始色
+        let lineStyle: AnyShapeStyle
+        if isCurrent, let gradientStart, let gradientEnd {
+            lineStyle = AnyShapeStyle(LinearGradient(colors: [gradientStart, gradientEnd], startPoint: .top, endPoint: .bottom))
+        } else {
+            lineStyle = AnyShapeStyle(isCurrent ? accent : secondary)
+        }
+        let glowColor = isCurrent ? (gradientStart ?? accent) : accent
+
         return Text(line.text.isEmpty ? "♪" : line.text)
             .font(.system(
                 size: size,
                 weight: isCurrent ? .bold : .regular,
                 design: .rounded
             ))
-            .foregroundStyle(isCurrent ? accent : secondary)
+            .foregroundStyle(lineStyle)
             // 双层光晕：内层亮、外层宽，发光更明显
             .shadow(
-                color: isCurrent ? accent.opacity(glowRadius > 0 ? 0.9 : 0) : .clear,
+                color: isCurrent ? glowColor.opacity(glowRadius > 0 ? 0.9 : 0) : .clear,
                 radius: isCurrent ? glowRadius * 0.45 : 0
             )
             .shadow(
-                color: isCurrent ? accent.opacity(glowRadius > 0 ? 0.55 : 0) : .clear,
+                color: isCurrent ? glowColor.opacity(glowRadius > 0 ? 0.55 : 0) : .clear,
                 radius: isCurrent ? glowRadius : 0
             )
             .blur(radius: blurRadius)
@@ -913,6 +948,8 @@ struct LyricSettingsSheet: View {
     @Binding var glowLevel: Int
     @Binding var currentColorRaw: String
     @Binding var dimColorRaw: String
+    @Binding var gradStartRaw: String
+    @Binding var gradEndRaw: String
     let palette: CoverPalette
     @Environment(\.dismiss) private var dismiss
 
@@ -938,6 +975,32 @@ struct LyricSettingsSheet: View {
             },
             set: { newValue in
                 dimColorRaw = "#" + UIColor(newValue).hexString
+            }
+        )
+    }
+
+    /// 渐变起始色：任意色盘选色，空值时自动用封面强调色
+    private var gradStart: Binding<Color> {
+        Binding(
+            get: {
+                if gradStartRaw.hasPrefix("#"), let c = Color(hex: gradStartRaw) { return c }
+                return palette.accent
+            },
+            set: { newValue in
+                gradStartRaw = "#" + UIColor(newValue).hexString
+            }
+        )
+    }
+
+    /// 渐变结束色：任意色盘选色，空值时自动用封面色派生色
+    private var gradEnd: Binding<Color> {
+        Binding(
+            get: {
+                if gradEndRaw.hasPrefix("#"), let c = Color(hex: gradEndRaw) { return c }
+                return palette.accent
+            },
+            set: { newValue in
+                gradEndRaw = "#" + UIColor(newValue).hexString
             }
         )
     }
@@ -990,6 +1053,18 @@ struct LyricSettingsSheet: View {
                 Section("歌词颜色") {
                     ColorPicker("当前行颜色", selection: currentColor, supportsOpacity: false)
                     ColorPicker("未播放行颜色", selection: dimColor, supportsOpacity: false)
+                }
+
+                Section("歌词渐变") {
+                    ColorPicker("渐变起始色", selection: gradStart, supportsOpacity: false)
+                    ColorPicker("渐变结束色", selection: gradEnd, supportsOpacity: false)
+                    Button("恢复默认渐变") {
+                        gradStartRaw = ""
+                        gradEndRaw = ""
+                        BeansHaptics.select()
+                    }
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.beansAmber)
                 }
             }
             .navigationTitle("歌词设置")

@@ -115,17 +115,22 @@ struct DiscoverView: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "排行榜")
             LazyVGrid(
-                columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)],
-                spacing: 16
+                columns: [
+                    GridItem(.flexible(), spacing: 10),
+                    GridItem(.flexible(), spacing: 10),
+                    GridItem(.flexible(), spacing: 10)
+                ],
+                spacing: 14
             ) {
-                ForEach(topLists) { topList in
+                // 只展示前三个主流排行榜（磁升榜/热歌榜/新歌榜），单行展示不再变长
+                ForEach(topLists.prefix(3)) { topList in
                     Button {
                         selectedTopList = topList
                     } label: {
                         VStack(alignment: .leading, spacing: 8) {
-                            CoverImage(url: topList.coverURL, size: 150, cornerRadius: 16)
+                            CoverImage(url: topList.coverURL, size: 104, cornerRadius: 14)
                             Text(topList.name)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(Color.beansLabel)
                                 .lineLimit(1)
                         }

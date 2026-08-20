@@ -232,15 +232,15 @@ struct PlayerView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - 歌词面板（点击歌词行跳转对应时间播放）
+    // MARK: - 歌词面板（左上角标题 + 左对齐歌词 + 无歌词兜底；切歌强制重建视图刷新布局）
 
     private var lyricsPane: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 0) {
             HStack {
                 Text("歌词")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.beansSecondary)
-                Spacer()
+                Spacer(minLength: 0)
                 Button {
                     withAnimation(.spring(duration: 0.35)) { showLyrics = false }
                 } label: {
@@ -253,7 +253,9 @@ struct PlayerView: View {
                 }
                 .buttonStyle(GlassPressButtonStyle())
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 28)
+            .padding(.top, 2)
+            .padding(.bottom, 8)
 
             if lyrics.isEmpty {
                 VStack(spacing: 10) {
@@ -261,8 +263,11 @@ struct PlayerView: View {
                         .font(.system(size: 30, weight: .light))
                         .foregroundStyle(Color.beansSecondary.opacity(0.7))
                     Text("暂无歌词")
-                        .font(.system(size: 13))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Color.beansSecondary)
+                    Text("点击封面可返回专辑视图")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.beansSecondary.opacity(0.7))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -272,7 +277,8 @@ struct PlayerView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .id("lyricsPane-\(song?.id ?? -1)")
     }
 
     // MARK: - 底部控制坞（毛玻璃圆角坞：信息 / 进度 / 主控制 / 工具，四行分区）
@@ -597,7 +603,7 @@ struct SeekBar: View {
     }
 }
 
-// MARK: - 歌词（逐行高亮 + 自动滚动居中 + 点击跳转）
+// MARK: - 歌词（左对齐 + 左右安全边距 + 逐行高亮 + 自动滚动 + 点击跳转；容器显式撑满宽度防排版错位）
 
 struct LyricsSection: View {
     @EnvironmentObject private var player: PlayerManager
@@ -612,26 +618,36 @@ struct LyricsSection: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(showsIndicators: false) {
-                LazyVStack(spacing: 18) {
+                LazyVStack(alignment: .leading, spacing: 20) {
                     ForEach(Array(lyrics.enumerated()), id: \.element.id) { index, line in
-                        Text(line.text.isEmpty ? "♪" : line.text)
-                            .font(.system(size: index == currentIndex ? 16 : 14,
-                                          weight: index == currentIndex ? .bold : .regular))
-                            .foregroundStyle(index == currentIndex ? Color.beansHighlight : Color.beansSecondary)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: .infinity)
-                            .id(index)
-                            .padding(.vertical, 3)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                onTapLine(line)
-                            }
+                        HStack(alignment: .top, spacing: 10) {
+                            Capsule()
+                                .fill(index == currentIndex ? Color.beansHighlight : Color.clear)
+                                .frame(width: 3, height: 16)
+                                .padding(.top, 4)
+                            Text(line.text.isEmpty ? "♪" : line.text)
+                                .font(.system(size: index == currentIndex ? 16 : 14,
+                                              weight: index == currentIndex ? .bold : .regular))
+                                .foregroundStyle(index == currentIndex ? Color.beansHighlight : Color.beansSecondary)
+                                .multilineTextAlignment(.leading)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                                .onTapGesture { onTapLine(line) }
+                        }
+                        .id(index)
                     }
                 }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 30)
+                .padding(.horizontal, 28)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
+            .frame(maxWidth: .infinity)
             .scrollIndicators(.hidden)
+            .onAppear {
+                scrollToCurrent(proxy)
+            }
             .onChange(of: currentIndex) { _, newIndex in
                 guard let newIndex else { return }
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -639,5 +655,10 @@ struct LyricsSection: View {
                 }
             }
         }
+    }
+
+    private func scrollToCurrent(_ proxy: ScrollViewProxy) {
+        guard let currentIndex else { return }
+        proxy.scrollTo(currentIndex, anchor: .center)
     }
 }

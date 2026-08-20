@@ -9,6 +9,7 @@ struct ProfileView: View {
     @State private var showHistory = false
     @State private var confirmLogout = false
     @State private var showQQLogin = false
+    @State private var showLogin = false
     @State private var confirmQQLogout = false
     @ObservedObject private var qqAuth = QQMusicAuth.shared
 
@@ -42,6 +43,11 @@ struct ProfileView: View {
                 .environmentObject(player)
                 .environmentObject(auth)
         }
+        .sheet(isPresented: $showLogin) {
+            LoginView()
+                .environmentObject(auth)
+                .environmentObject(theme)
+        }
         .sheet(isPresented: $showQQLogin) {
             QQLoginSheet()
                 .environmentObject(theme)
@@ -63,32 +69,53 @@ struct ProfileView: View {
     }
 
     private var userCard: some View {
-        HStack(spacing: 14) {
-            AsyncImage(url: auth.user?.avatarURL) { phase in
-                if case .success(let image) = phase {
-                    image.resizable().scaledToFill()
-                } else {
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 26))
+        Button {
+            BeansHaptics.tap()
+            // 免登录使用：未登录时点击进入网易云登录（可选，用于同步歌单）
+            if !auth.isLoggedIn {
+                showLogin = true
+            }
+        } label: {
+            HStack(spacing: 14) {
+                AsyncImage(url: auth.user?.avatarURL) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 26))
+                            .foregroundStyle(Color.beansSecondary)
+                    }
+                }
+                .frame(width: 64, height: 64)
+                .clipShape(Circle())
+                .background(Color.beansGlassFill, in: Circle())
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(auth.user?.nickname ?? (auth.isLoggedIn ? "未登录" : "免登录 · 点击登录"))
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Color.beansLabel)
+                    Text(auth.isLoggedIn ? "UID \(auth.user?.uid ?? 0)" : "登录后可同步网易云歌单")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(Color.beansSecondary)
+                }
+                Spacer()
+                if !auth.isLoggedIn {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Color.beansSecondary)
                 }
             }
-            .frame(width: 64, height: 64)
-            .clipShape(Circle())
-            .background(Color.beansGlassFill, in: Circle())
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(auth.user?.nickname ?? "未登录")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(Color.beansLabel)
-                Text("UID \(auth.user?.uid ?? 0)")
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(Color.beansSecondary)
-            }
-            Spacer()
+            .padding(16)
+            .contentShape(Rectangle())
         }
-        .padding(16)
-        .glassEffect(.clear, in: .rect(cornerRadius: 24))
+        .buttonStyle(.plain)
+        .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: .rect(cornerRadius: 24))
+            }
+        }
         .beansCardShadow(radius: 10, y: 4)
     }
 
@@ -186,6 +213,90 @@ struct ProfileView: View {
                         }
                         .buttonStyle(GlassPressButtonStyle(scale: 0.9))
                     }
+                    Spacer()
+                }
+
+                Divider().overlay(Color.beansSecondary.opacity(0.15))
+
+                HStack {
+                    Image(systemName: "eyedropper.halffull")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.beansAmber)
+                        .frame(width: 28)
+                    Text("自定义强调色")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.beansLabel)
+                    Spacer()
+                    ColorPicker("", selection: Binding(
+                        get: { theme.customAccent ?? Color.beansAmber },
+                        set: { theme.setCustomAccent($0.hexString) }
+                    ))
+                    .labelsHidden()
+                }
+                HStack(spacing: 12) {
+                    Button {
+                        theme.clearCustomAccent()
+                        BeansHaptics.select()
+                    } label: {
+                        Text("恢复预设")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.beansAmber)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(.ultraThinMaterial, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                    Text(theme.customAccentHex == nil ? "使用预设主题" : "已自定义")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.beansSecondary)
+                }
+
+                Divider().overlay(Color.beansSecondary.opacity(0.15))
+
+                HStack {
+                    Image(systemName: "photo.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.beansAmber)
+                        .frame(width: 28)
+                    Text("主页背景")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.beansLabel)
+                    Spacer()
+                    ColorPicker("", selection: Binding(
+                        get: { theme.customBackground ?? Color.beansBackground },
+                        set: { theme.setBackground($0.hexString) }
+                    ))
+                    .labelsHidden()
+                }
+                Toggle(isOn: Binding(
+                    get: { theme.backgroundSyncAll },
+                    set: { theme.setBackgroundSyncAll($0) }
+                )) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.grid.2x2.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.beansAmber)
+                        Text("同步到搜索 / 音乐库 / 我的")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.beansLabel)
+                    }
+                }
+                .toggleStyle(.switch)
+                .tint(Color.beansAmber)
+                HStack {
+                    Button {
+                        theme.setBackground("")
+                        BeansHaptics.select()
+                    } label: {
+                        Text("恢复默认背景")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.beansAmber)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(.ultraThinMaterial, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
                     Spacer()
                 }
 

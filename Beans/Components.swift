@@ -44,11 +44,20 @@ struct GlassPressButtonStyle: ButtonStyle {
 
 struct GlassBackdrop: View {
     @EnvironmentObject private var theme: ThemeStore
+    /// 自定义背景色（nil 使用默认氛围渐变）
+    var customColor: Color? = nil
 
     var body: some View {
         let _ = theme.accent
         ZStack {
-            LinearGradient.beansBackdrop
+            if let customColor {
+                LinearGradient(
+                    colors: [customColor.opacity(0.9), customColor.opacity(0.55)],
+                    startPoint: .top, endPoint: .bottom
+                )
+            } else {
+                LinearGradient.beansBackdrop
+            }
             Circle()
                 .fill(Color.beansAmber.opacity(0.14))
                 .frame(width: 340, height: 340)

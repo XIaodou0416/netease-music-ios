@@ -18,7 +18,16 @@ struct DiscoverView: View {
 
     var body: some View {
         let _ = theme.accent
-        ScrollView {
+        ZStack {
+            // 仅主页模式：自定义背景只应用在发现页
+            if !theme.backgroundSyncAll, let custom = theme.customBackground {
+                LinearGradient(
+                    colors: [custom.opacity(0.85), custom.opacity(0.5)],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            }
+            ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header
                 if let errorMessage {
@@ -60,10 +69,11 @@ struct DiscoverView: View {
                 .environmentObject(player)
                 .environmentObject(auth)
         }
-        .sheet(isPresented: $showDailyList) {
-            DailySongsSheet(songs: dailySongs)
-                .environmentObject(player)
-                .environmentObject(auth)
+            .sheet(isPresented: $showDailyList) {
+                DailySongsSheet(songs: dailySongs)
+                    .environmentObject(player)
+                    .environmentObject(auth)
+            }
         }
     }
 

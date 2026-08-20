@@ -27,6 +27,9 @@ extension UIColor {
     )
     /// 全局着色（跟随配色主题：浅色用深色调保证对比度，深色用亮色调保证可读性）
     static var beansAmber: UIColor {
+        if let custom = ThemeStore.shared.customAccentHex, let c = UIColor(hex: custom) {
+            return beansDynamic(light: c.darkened(0.25), dark: c)
+        }
         let accent = ThemeStore.shared.accent
         return beansDynamic(light: accent.tintLight, dark: accent.tintDark)
     }
@@ -52,7 +55,9 @@ extension Color {
     static let beansSage = Color(uiColor: .beansSage)
     static let beansGlassFill = Color(uiColor: .beansGlassFill)
     /// 当前配色主题的高亮色（播放器进度点 / 光斑 / 歌词高亮等）
-    static var beansHighlight: Color { AccentTheme.current.highlight }
+    static var beansHighlight: Color {
+        ThemeStore.shared.customAccent ?? AccentTheme.current.highlight
+    }
 }
 
 // MARK: - 主题偏好
@@ -143,15 +148,63 @@ final class ThemeStore: ObservableObject {
 
     /// 当前配色主题（@Published：切换后所有观察视图立即重绘）
     @Published var accent: BeansAccent
+    /// 自定义全局强调色（色盘任选，nil 表示使用预设主题）
+    @Published var customAccentHex: String?
+    /// 自定义背景色（色盘任选，空串表示默认渐变背景）
+    @Published var backgroundHex: String = ""
+    /// 自定义背景是否同步到搜索 / 音乐库 / 我的等全部页面
+    @Published var backgroundSyncAll = true
+
+    private let customAccentKey = "beans.accent.custom"
+    private let backgroundKey = "beans.background.custom"
+    private let syncAllKey = "beans.background.syncAll"
 
     private init() {
         accent = BeansAccent(rawValue: UserDefaults.standard.string(forKey: AccentTheme.key) ?? "") ?? .amber
+        let savedAccent = UserDefaults.standard.string(forKey: customAccentKey)
+        customAccentHex = (savedAccent?.isEmpty ?? true) ? nil : savedAccent
+        backgroundHex = UserDefaults.standard.string(forKey: backgroundKey) ?? ""
+        backgroundSyncAll = UserDefaults.standard.object(forKey: syncAllKey) as? Bool ?? true
     }
 
     func set(_ newAccent: BeansAccent) {
         guard accent != newAccent else { return }
         accent = newAccent
         UserDefaults.standard.set(newAccent.rawValue, forKey: AccentTheme.key)
+    }
+
+    /// 自定义强调色（色盘选色）
+    func setCustomAccent(_ hex: String?) {
+        let normalized = hex?.isEmpty == true ? nil : hex
+        customAccentHex = normalized
+        UserDefaults.standard.set(normalized ?? "", forKey: customAccentKey)
+    }
+
+    func clearCustomAccent() {
+        setCustomAccent(nil)
+    }
+
+    /// 自定义背景色
+    func setBackground(_ hex: String) {
+        backgroundHex = hex
+        UserDefaults.standard.set(hex, forKey: backgroundKey)
+    }
+
+    func setBackgroundSyncAll(_ on: Bool) {
+        backgroundSyncAll = on
+        UserDefaults.standard.set(on, forKey: syncAllKey)
+    }
+
+    /// 自定义强调色 Color
+    var customAccent: Color? {
+        guard let customAccentHex else { return nil }
+        return Color(hex: customAccentHex)
+    }
+
+    /// 自定义背景色 Color
+    var customBackground: Color? {
+        guard !backgroundHex.isEmpty else { return nil }
+        return Color(hex: backgroundHex)
     }
 }
 
@@ -223,5 +276,54 @@ extension BeansThemeMode {
         case .light: return .light
         case .dark: return .dark
         }
+    }
+}
+// MARK: - 颜色工具（hex 解析 / 明暗调整，供色盘自定义使用）
+
+extension UIColor {
+    convenience init?(hex: String) {
+        var value = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.hasPrefix("#") { value.removeFirst() }
+        guard value.count == 6 || value.count == 8, let raw = UInt64(value, radix: 16) else { return nil }
+        let r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat
+        if value.count == 8 {
+            a = CGFloat((raw >> 24) & 0xFF) / 255
+            r = CGFloat((raw >> 16) & 0xFF) / 255
+            g = CGFloat((raw >> 8) & 0xFF) / 255
+            b = CGFloat(raw & 0xFF) / 255
+        } else {
+            a = 1
+            r = CGFloat((raw >> 16) & 0xFF) / 255
+            g = CGFloat((raw >> 8) & 0xFF) / 255
+            b = CGFloat(raw & 0xFF) / 255
+        }
+        self.init(red: r, green: g, blue: b, alpha: a)
+    }
+
+    var hexString: String {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        getRed(&r, green: &g, blue: &b, alpha: &a)
+        return String(
+            format: "%02X%02X%02X",
+            Int(r * 255), Int(g * 255), Int(b * 255)
+        )
+    }
+
+    func darkened(_ amount: CGFloat) -> UIColor {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        getRed(&r, green: &g, blue: &b, alpha: &a)
+        let k = max(0, 1 - amount)
+        return UIColor(red: r * k, green: g * k, blue: b * k, alpha: a)
+    }
+}
+
+extension Color {
+    init?(hex: String) {
+        guard let ui = UIColor(hex: hex) else { return nil }
+        self.init(uiColor: ui)
+    }
+
+    var hexString: String {
+        UIColor(self).hexString
     }
 }

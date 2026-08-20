@@ -23,6 +23,7 @@ struct PlayerView: View {
     @State private var showSimi = false
     @State private var showAddToPlaylist = false
     @State private var showComments = false
+    @State private var showLyricSettings = false
     @AppStorage("beans.lyricFontSize") private var lyricFontSize = 17
     @AppStorage("beans.lyricColor") private var lyricColorRaw = "accent"
     @AppStorage("beans.lyricDimColor") private var lyricDimColorRaw = "dim"
@@ -30,28 +31,6 @@ struct PlayerView: View {
 
     private var song: Song? { player.currentSong }
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
-
-    private struct ColorOption: Hashable {
-        let id: String
-        let name: String
-    }
-
-    private let lyricColorOptions: [ColorOption] = [
-        ColorOption(id: "accent", name: "跟随主题"),
-        ColorOption(id: "white", name: "纯白"),
-        ColorOption(id: "amber", name: "琥珀"),
-        ColorOption(id: "cyan", name: "冰蓝"),
-        ColorOption(id: "pink", name: "樱粉"),
-        ColorOption(id: "green", name: "薄荷绿"),
-    ]
-
-    private let lyricDimColorOptions: [ColorOption] = [
-        ColorOption(id: "dim", name: "默认淡灰"),
-        ColorOption(id: "white", name: "柔白"),
-        ColorOption(id: "bluegray", name: "蓝灰"),
-        ColorOption(id: "gray", name: "深灰"),
-        ColorOption(id: "dark", name: "暗黑"),
-    ]
 
     /// 固定调色板：跟随全局主题与深浅模式。
     /// 封面取色必须禁用：任何封面加载触发的 @State 更新都会引起整页重绘，导致“封面加载后布局错乱”。
@@ -67,7 +46,9 @@ struct PlayerView: View {
         case "cyan": return Color(red: 0.35, green: 0.85, blue: 0.96)
         case "pink": return Color(red: 1.0, green: 0.62, blue: 0.82)
         case "green": return Color(red: 0.42, green: 0.90, blue: 0.62)
-        default: return palette.accent
+        default:
+            if lyricColorRaw.hasPrefix("#"), let c = Color(hex: lyricColorRaw) { return c }
+            return palette.accent
         }
     }
 
@@ -78,11 +59,11 @@ struct PlayerView: View {
         case "bluegray": return Color(red: 0.72, green: 0.78, blue: 0.86)
         case "gray": return Color.gray.opacity(0.85)
         case "dark": return Color.black.opacity(0.55)
-        default: return palette.secondary
+        default:
+            if lyricDimColorRaw.hasPrefix("#"), let c = Color(hex: lyricDimColorRaw) { return c }
+            return palette.secondary
         }
     }
-
-    private let glowOptions: [Int] = [0, 1, 2, 3]
 
     private func glowName(_ level: Int) -> String {
         switch level {
@@ -113,9 +94,12 @@ struct PlayerView: View {
                 VStack(spacing: 0) {
                     headerBar
                     content(geo: geo)
-                    controlDeck
                 }
                 .foregroundStyle(palette.text)
+
+                controlDeck
+                    .frame(maxWidth: .infinity)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
             }
         }
         .task(id: song?.identityKey) {
@@ -133,6 +117,15 @@ struct PlayerView: View {
             if let song {
                 CommentsSheet(song: song)
             }
+        }
+        .sheet(isPresented: $showLyricSettings) {
+            LyricSettingsSheet(
+                fontSize: $lyricFontSize,
+                glowLevel: $lyricGlowLevel,
+                currentColorRaw: $lyricColorRaw,
+                dimColorRaw: $lyricDimColorRaw,
+                palette: palette
+            )
         }
         .overlay(alignment: .bottom) {
             ToastView(center: ToastCenter.shared)
@@ -290,10 +283,11 @@ struct PlayerView: View {
 
             Spacer(minLength: 2)
         }
+        .padding(.bottom, deckInset)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// 歌词模式：左上小封面 + 歌名信息条 + 居中歌词（自动布局）
+    /// 歌词模式：左上小封面 + 歌名信息条 + 居中歌词（自动布局，歌词可滚动到底部透过底栏玻璃）
     private var lyricsPanel: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
@@ -412,6 +406,9 @@ struct PlayerView: View {
 
     // MARK: - 底部控制栏（普通材质圆角面板：进度 / 主控制 / 工具行）
 
+    /// 底部控制栏估算高度（专辑模式用它补偿底部占位，歌词模式全高滚动）
+    private let deckInset: CGFloat = 168
+
     private var controlDeck: some View {
         VStack(spacing: 4) {
             Capsule()
@@ -441,14 +438,14 @@ struct PlayerView: View {
         .padding(.bottom, 4)
         .frame(maxWidth: .infinity)
         .background {
-            // 通透液态玻璃面板：清透材质 + 极淡顶光，延伸到底部安全区贴满屏幕底部
+            // 通透液态玻璃面板：半透明基底 + 原生玻璃采样（歌词可滚入底栏，透过玻璃看到模糊渲染）
             GlassEffectContainer {
                 UnevenRoundedRectangle(
                     topLeadingRadius: 30, bottomLeadingRadius: 0,
                     bottomTrailingRadius: 0, topTrailingRadius: 30,
                     style: .continuous
                 )
-                .fill(.clear)
+                .fill(Color.beansGlassFill)
                 .glassEffect(.clear, in: UnevenRoundedRectangle(
                     topLeadingRadius: 30, bottomLeadingRadius: 0,
                     bottomTrailingRadius: 0, topTrailingRadius: 30,
@@ -456,12 +453,32 @@ struct PlayerView: View {
                 ))
             }
             .ignoresSafeArea(edges: .bottom)
+            .overlay {
+                LinearGradient(
+                    colors: [.white.opacity(0.26), .clear, .white.opacity(0.05)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            }
+            .overlay {
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 30, bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0, topTrailingRadius: 30,
+                    style: .continuous
+                )
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(0.38), .white.opacity(0.06)],
+                        startPoint: .top, endPoint: .bottom
+                    ),
+                    lineWidth: 0.8
+                )
+            }
             .overlay(alignment: .top) {
-                LinearGradient(colors: [.white.opacity(0.18), .clear], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [.white.opacity(0.22), .clear], startPoint: .top, endPoint: .bottom)
                     .frame(height: 1)
             }
         }
-        .shadow(color: .black.opacity(0.10), radius: 18, y: -4)
+        .shadow(color: .black.opacity(0.08), radius: 16, y: -3)
     }
 
     private var subtitle: String {
@@ -658,65 +675,10 @@ struct PlayerView: View {
                     Label("添加到歌单", systemImage: "text.badge.plus")
                 }
                 Divider()
-                Menu {
-                    Button {
-                        lyricFontSize = max(12, lyricFontSize - 2)
-                    } label: {
-                        Label("缩小字号", systemImage: "textformat.size.smaller")
-                    }
-                    Button {
-                        lyricFontSize = min(28, lyricFontSize + 2)
-                    } label: {
-                        Label("放大字号", systemImage: "textformat.size.larger")
-                    }
-                    Text("当前 \(lyricFontSize)pt")
+                Button {
+                    showLyricSettings = true
                 } label: {
-                    Label("歌词字号", systemImage: "textformat")
-                }
-                Menu {
-                    ForEach(glowOptions, id: \.self) { level in
-                        Button {
-                            lyricGlowLevel = level
-                        } label: {
-                            if lyricGlowLevel == level {
-                                Label(glowName(level), systemImage: "checkmark")
-                            } else {
-                                Text(glowName(level))
-                            }
-                        }
-                    }
-                } label: {
-                    Label("歌词发光", systemImage: "sparkles")
-                }
-                Menu {
-                    ForEach(lyricColorOptions, id: \.self) { opt in
-                        Button {
-                            lyricColorRaw = opt.id
-                        } label: {
-                            if lyricColorRaw == opt.id {
-                                Label(opt.name, systemImage: "checkmark")
-                            } else {
-                                Text(opt.name)
-                            }
-                        }
-                    }
-                } label: {
-                    Label("歌词高亮颜色", systemImage: "paintbrush.fill")
-                }
-                Menu {
-                    ForEach(lyricDimColorOptions, id: \.self) { opt in
-                        Button {
-                            lyricDimColorRaw = opt.id
-                        } label: {
-                            if lyricDimColorRaw == opt.id {
-                                Label(opt.name, systemImage: "checkmark")
-                            } else {
-                                Text(opt.name)
-                            }
-                        }
-                    }
-                } label: {
-                    Label("未播放歌词颜色", systemImage: "paintbrush.pointed.fill")
+                    Label("歌词设置", systemImage: "textformat.size")
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
@@ -781,20 +743,49 @@ struct SeekBar: View {
             let thumbX = min(max(width * ratio, 9), max(width - 9, 9))
 
             ZStack(alignment: .leading) {
+                // 底轨：液态玻璃
                 Capsule()
                     .fill(track)
-                    .frame(height: 5)
+                    .frame(height: 8)
+                GlassEffectContainer {
+                    Capsule()
+                        .fill(Color.beansGlassFill)
+                        .glassEffect(.clear, in: Capsule())
+                }
+                .frame(height: 8)
+                // 已播放段：强调色渐变 + 顶部高光
                 Capsule()
-                    .fill(accent)
-                    .frame(width: thumbX, height: 5)
-                Circle()
-                    .fill(accent)
-                    .frame(width: scrubbing ? 21 : 15, height: scrubbing ? 21 : 15)
-                    .overlay {
-                        Circle().strokeBorder(.white.opacity(0.6), lineWidth: scrubbing ? 1.5 : 1)
+                    .fill(
+                        LinearGradient(
+                            colors: [accent, accent.opacity(0.7)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .frame(width: thumbX, height: 8)
+                    .overlay(alignment: .top) {
+                        LinearGradient(
+                            colors: [.white.opacity(0.55), .clear],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                        .frame(height: 3.5)
+                        .clipShape(Capsule())
+                        .padding(.horizontal, 2)
                     }
-                    .shadow(color: .black.opacity(0.35), radius: scrubbing ? 6 : 3, y: scrubbing ? 3 : 1)
-                    .offset(x: thumbX - (scrubbing ? 10.5 : 7.5))
+                    .overlay {
+                        Capsule().strokeBorder(.white.opacity(0.28), lineWidth: 0.6)
+                    }
+                // 滑块：白色玻璃 + 强调色内芯
+                Circle()
+                    .fill(.white)
+                    .frame(width: scrubbing ? 22 : 16, height: scrubbing ? 22 : 16)
+                    .overlay {
+                        Circle().fill(accent).frame(width: scrubbing ? 14 : 9, height: scrubbing ? 14 : 9)
+                    }
+                    .overlay {
+                        Circle().strokeBorder(.white.opacity(0.9), lineWidth: 1)
+                    }
+                    .shadow(color: .black.opacity(0.3), radius: scrubbing ? 6 : 3, y: scrubbing ? 3 : 1)
+                    .offset(x: thumbX - (scrubbing ? 11 : 8))
                     .animation(.spring(response: 0.25, dampingFraction: 0.7), value: scrubbing)
             }
             .frame(width: width, height: 30)
@@ -907,5 +898,113 @@ struct LyricsSection: View {
     private func scrollToCurrent(_ proxy: ScrollViewProxy) {
         guard let currentIndex else { return }
         proxy.scrollTo(currentIndex, anchor: .center)
+    }
+}
+
+// MARK: - 歌词设置面板（更多菜单 → 歌词设置：字号 / 发光强度 / 颜色色盘）
+
+struct LyricSettingsSheet: View {
+    @Binding var fontSize: Int
+    @Binding var glowLevel: Int
+    @Binding var currentColorRaw: String
+    @Binding var dimColorRaw: String
+    let palette: CoverPalette
+    @Environment(\.dismiss) private var dismiss
+
+    /// 当前行高亮色：任意色盘选色写入 hex，关闭面板后依然生效
+    private var currentColor: Binding<Color> {
+        Binding(
+            get: {
+                if currentColorRaw.hasPrefix("#"), let c = Color(hex: currentColorRaw) { return c }
+                return palette.accent
+            },
+            set: { newValue in
+                currentColorRaw = "#" + UIColor(newValue).hexString
+            }
+        )
+    }
+
+    /// 未播放歌词颜色：同上，任意色盘选色
+    private var dimColor: Binding<Color> {
+        Binding(
+            get: {
+                if dimColorRaw.hasPrefix("#"), let c = Color(hex: dimColorRaw) { return c }
+                return palette.secondary
+            },
+            set: { newValue in
+                dimColorRaw = "#" + UIColor(newValue).hexString
+            }
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("字号") {
+                    HStack(spacing: 12) {
+                        Text("A")
+                            .font(.system(size: 13, weight: .semibold))
+                        Slider(
+                            value: Binding(
+                                get: { Double(fontSize) },
+                                set: { fontSize = Int($0) }
+                            ),
+                            in: 12...28,
+                            step: 1
+                        )
+                        .tint(Color.beansAmber)
+                        Text("A")
+                            .font(.system(size: 22, weight: .bold))
+                    }
+                    Text("\(fontSize) pt")
+                        .font(.footnote)
+                        .foregroundStyle(Color.beansSecondary)
+                }
+
+                Section("发光强度") {
+                    HStack(spacing: 12) {
+                        Image(systemName: "sparkles")
+                            .foregroundStyle(Color.beansAmber)
+                        Slider(
+                            value: Binding(
+                                get: { Double(glowLevel) },
+                                set: { glowLevel = Int($0) }
+                            ),
+                            in: 0...3,
+                            step: 1
+                        )
+                        .tint(Color.beansAmber)
+                        Image(systemName: glowLevel > 2 ? "sparkles" : "sparkle")
+                            .foregroundStyle(glowLevel > 2 ? Color.beansAmber : Color.beansSecondary)
+                    }
+                    Text(glowName(glowLevel))
+                        .font(.footnote)
+                        .foregroundStyle(Color.beansSecondary)
+                }
+
+                Section("歌词颜色") {
+                    ColorPicker("当前行颜色", selection: currentColor, supportsOpacity: false)
+                    ColorPicker("未播放行颜色", selection: dimColor, supportsOpacity: false)
+                }
+            }
+            .navigationTitle("歌词设置")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func glowName(_ level: Int) -> String {
+        switch level {
+        case 0: return "关闭"
+        case 1: return "柔和"
+        case 2: return "标准"
+        default: return "强烈"
+        }
     }
 }

@@ -43,26 +43,21 @@ struct RootView: View {
     var body: some View {
         let _ = theme.accent
         ZStack {
-            GlassBackdrop()
+            // 免登录：默认进入主界面；自定义背景同步开启时全局生效
+            GlassBackdrop(customColor: theme.backgroundSyncAll ? theme.customBackground : nil)
 
-            if auth.isLoggedIn {
-                tabContent
-                    .id(selection)
-                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
-            } else {
-                LoginView()
-            }
+            tabContent
+                .id(selection)
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
 
-            if auth.isLoggedIn {
-                VStack(spacing: 0) {
-                    Spacer()
-                    if player.currentSong != nil {
-                        MiniPlayerView(showPlayer: $showPlayer)
-                            .padding(.bottom, 10)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-                    AppStoreTabBar(selection: $selection)
+            VStack(spacing: 0) {
+                Spacer()
+                if player.currentSong != nil {
+                    MiniPlayerView(showPlayer: $showPlayer)
+                        .padding(.bottom, 10)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+                AppStoreTabBar(selection: $selection)
             }
         }
         .preferredColorScheme(themeMode.colorScheme)

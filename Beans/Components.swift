@@ -92,18 +92,21 @@ struct WallpaperImage: View {
     let image: UIImage
 
     /// 小于约 700x700 视为小图：放大时轻度模糊柔化，避免满屏马赛克
-    private var isSmall: Bool {
+    private static func isSmall(_ image: UIImage) -> Bool {
         image.size.width * image.size.height < 480_000
     }
 
     var body: some View {
-        Image(uiImage: image)
-            .resizable()
-            .scaledToFill()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
-            .blur(radius: isSmall ? 5 : 0)
-            .ignoresSafeArea()
+        // 用 GeometryReader 明确采用父容器尺寸渲染，图片尺寸/比例与 UI 布局完全隔离
+        GeometryReader { geo in
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: geo.size.width, height: geo.size.height)
+                .clipped()
+                .blur(radius: Self.isSmall(image) ? 5 : 0)
+        }
+        .ignoresSafeArea()
     }
 }
 

@@ -361,6 +361,13 @@ final class NetEaseAPI {
         return songs.compactMap(Song.init(json:))
     }
 
+    /// 歌单广场（对应网易云「发现音乐-歌单广场」，默认热门排序）
+    func playlistSquare(cat: String = "全部", order: String = "hot", limit: Int = 12) async throws -> [Playlist] {
+        let json = try await request("/api/playlist/list", payload: ["cat": cat, "order": order, "limit": limit, "offset": 0, "total": true], crypto: "weapi")
+        let list = json["playlists"] as? [[String: Any]] ?? []
+        return list.compactMap(Playlist.init(json:))
+    }
+
     func personalizedPlaylists(limit: Int = 20) async throws -> [Playlist] {
         let json = try await request("/api/personalized/playlist", payload: ["limit": limit, "n": limit], crypto: "weapi")
         let list = json["result"] as? [[String: Any]] ?? []

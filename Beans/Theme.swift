@@ -236,16 +236,32 @@ final class ThemeStore: ObservableObject {
         return Color(hex: backgroundHex)
     }
 
-    /// 上传的背景图片（按路径加载）
+    /// 上传的背景图片（按路径加载，解码结果缓存，避免大图每次重复解码导致卡顿/布局抖动）
+    private var cachedBackgroundImage: UIImage?
     var customBackgroundImage: UIImage? {
+        if let cached = cachedBackgroundImage { return cached }
         guard !backgroundImagePath.isEmpty else { return nil }
-        return UIImage(contentsOfFile: backgroundImagePath)
+        let image = UIImage(contentsOfFile: backgroundImagePath)
+        cachedBackgroundImage = image
+        return image
+    }
+
+    private func invalidateBackgroundCache() {
+        cachedBackgroundImage = nil
     }
 
     /// 上传新壁纸：归一化后保存到壁纸库，并直接设为当前背景（覆盖保存当前壁纸）
     func addWallpaper(_ data: Data) {
         let normalized = Self.normalizedWallpaperJPEG(from: data)
-        guard let imageData = normalized, !imageData.isEmpty else { return }
+        let imageData: Data
+        if let normalized, !normalized.isEmpty {
+            imageData = normalized
+        } else if !data.isEmpty {
+            // 归一化失败（如超内存的极端大图）：兜底保存原图，保证上传必生效
+            imageData = data
+        } else {
+            return
+        }
         let url = Self.wallpaperDirectory()
             .appendingPathComponent("wallpaper-\(Int(Date().timeIntervalSince1970))-\(Int.random(in: 100...999)).jpg")
         do {
@@ -254,6 +270,7 @@ final class ThemeStore: ObservableObject {
             saveWallpaperList()
             backgroundImagePath = url.path
             UserDefaults.standard.set(url.path, forKey: backgroundImageKey)
+            invalidateBackgroundCache()
         } catch {
             // 保存失败：静默保留当前壁纸
         }
@@ -264,6 +281,7 @@ final class ThemeStore: ObservableObject {
         guard FileManager.default.fileExists(atPath: path) else { return }
         backgroundImagePath = path
         UserDefaults.standard.set(path, forKey: backgroundImageKey)
+        invalidateBackgroundCache()
     }
 
     /// 删除壁纸库中的某张壁纸；若正在使用则自动切换到上一张/清空
@@ -274,6 +292,7 @@ final class ThemeStore: ObservableObject {
         if backgroundImagePath == path {
             backgroundImagePath = wallpaperPaths.first ?? ""
             UserDefaults.standard.set(backgroundImagePath, forKey: backgroundImageKey)
+            invalidateBackgroundCache()
         }
     }
 
@@ -281,6 +300,7 @@ final class ThemeStore: ObservableObject {
     func clearBackgroundImage() {
         backgroundImagePath = ""
         UserDefaults.standard.set("", forKey: backgroundImageKey)
+        invalidateBackgroundCache()
     }
 
     private static func wallpaperDirectory() -> URL {
@@ -305,7 +325,9 @@ final class ThemeStore: ObservableObject {
         let wasSmall = longest < target
         let scale = target / longest
         let size = CGSize(width: w * scale, height: h * scale)
-        let renderer = UIGraphicsImageRenderer(size: size)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1 // 固定输出真实像素：长边 1600px，避免高分屏生成 4800px 巨图导致内存/解码异常
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
         var result = renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: size))
         }

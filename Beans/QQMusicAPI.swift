@@ -239,6 +239,15 @@ final class QQMusicAPI {
 
     // MARK: - 播放 / 歌词
 
+    /// 指定音质获取播放地址（br: M800=320kbps 高质量 / M500=128kbps 低质量），下载用
+    func songURL(songmid: String, br: String) async throws -> String? {
+        let qqAuth = QQMusicAuth.shared
+        let uin = qqAuth.isLoggedIn ? qqAuth.uin : "0"
+        let loginKey = qqAuth.isLoggedIn ? qqAuth.loginKey : ""
+        let guid = Self.deviceGuid
+        return try await vkeyURL(songmid: songmid, br: br, uin: uin, loginKey: loginKey, guid: guid, qqAuth: qqAuth)
+    }
+
     /// 通过 vkey 获取 QQ 音乐播放地址（对齐 wp_MusicApi：GET + data JSON + filename + CDN 分发）
     /// 登录后携带 uin/loginKey/Cookie；先试 320kbps(M800)，拿不到再退 128kbps(M500)
     func songURL(songmid: String) async throws -> String? {

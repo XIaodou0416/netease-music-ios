@@ -23,6 +23,7 @@ struct PlayerView: View {
     @State private var showSimi = false
     @State private var showAddToPlaylist = false
     @State private var showComments = false
+    @State private var showDownloadPicker = false
     @State private var showLyricSettings = false
     @AppStorage("beans.lyricFontSize") private var lyricFontSize = 17
     @AppStorage("beans.lyricColor") private var lyricColorRaw = "accent"
@@ -129,6 +130,14 @@ struct PlayerView: View {
                 palette: palette
             )
         }
+        .confirmationDialog("下载《\(song?.name ?? "当前歌曲")》", isPresented: $showDownloadPicker, titleVisibility: .visible) {
+            ForEach(DownloadQuality.allCases) { quality in
+                Button(quality.label) {
+                    Task { await downloadCurrent(quality) }
+                }
+            }
+            Button("取消", role: .cancel) {}
+        }
         .overlay(alignment: .bottom) {
             ToastView(center: ToastCenter.shared)
         }
@@ -226,6 +235,11 @@ struct PlayerView: View {
                     showAddToPlaylist = true
                 } label: {
                     Label("添加到歌单", systemImage: "text.badge.plus")
+                }
+                Button {
+                    showDownloadPicker = true
+                } label: {
+                    Label("下载歌曲", systemImage: "arrow.down.circle")
                 }
                 Divider()
                 Button {
@@ -643,6 +657,21 @@ struct PlayerView: View {
                     .clipShape(Circle())
             }
             .buttonStyle(GlassPressButtonStyle())
+        }
+    }
+
+    // MARK: - 下载
+
+    private func downloadCurrent(_ quality: DownloadQuality) async {
+        guard let song else { return }
+        BeansHaptics.medium()
+        ToastCenter.shared.show("开始下载：\(song.name)")
+        let result = await DownloadManager.shared.download(song: song, quality: quality)
+        switch result {
+        case .success:
+            ToastCenter.shared.show("已下载：\(song.name)（可在文件 App 查看）", duration: 3)
+        case .failure(let error):
+            ToastCenter.shared.show("下载失败：\(error.localizedDescription)", duration: 3)
         }
     }
 

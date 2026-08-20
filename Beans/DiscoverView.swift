@@ -10,7 +10,6 @@ struct DiscoverView: View {
     @State private var dailySongs: [Song] = []
     @State private var personalized: [Playlist] = []
 
-    @State private var hotPlaylists: [Playlist] = []
     @State private var loading = true
     @State private var errorMessage: String?
     @State private var selectedTopList: TopList?
@@ -57,9 +56,6 @@ struct DiscoverView: View {
                         personalizedSection
                     }
 
-                    if !hotPlaylists.isEmpty {
-                        hotPlaylistsSection
-                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -226,7 +222,7 @@ struct DiscoverView: View {
     }
     private var personalizedSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "推荐歌单")
+            SectionHeader(title: "歌单广场")
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 16) {
                 ForEach(personalized) { playlist in
                     Button {
@@ -249,29 +245,6 @@ struct DiscoverView: View {
     }
 
 
-    private var hotPlaylistsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "热门歌单")
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 16) {
-                ForEach(hotPlaylists) { playlist in
-                    Button {
-                        selectedPlaylist = playlist
-                    } label: {
-                        VStack(alignment: .leading, spacing: 8) {
-                            CoverImage(url: playlist.coverURL, size: 160, cornerRadius: 16)
-                                .frame(maxWidth: .infinity)
-                            Text(playlist.name)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(Color.beansLabel)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
 
     // MARK: - 动作
 
@@ -280,14 +253,12 @@ struct DiscoverView: View {
         errorMessage = nil
         async let a = NetEaseAPI.shared.topLists()
         async let b = NetEaseAPI.shared.dailyRecommend()
-        async let c = NetEaseAPI.shared.personalizedPlaylists(limit: 10)
-        async let d = NetEaseAPI.shared.topPlaylists(limit: 10)
+        async let c = NetEaseAPI.shared.playlistSquare(limit: 10)
         do {
-            let (tl, dr, pp, hp) = try await (a, b, c, d)
+            let (tl, dr, pp) = try await (a, b, c)
             topLists = tl
             dailySongs = dr
             personalized = pp
-            hotPlaylists = hp
             loading = false
         } catch {
             errorMessage = error.localizedDescription

@@ -53,16 +53,28 @@ jobs:
 
       - name: Build (unsigned)
         run: |
+          VER=$(grep -oE 'MARKETING_VERSION: "[^"]+"' project.yml | sed -E 's/.*"([^"]+)"/\1/')
+          BUILD=$(grep -oE 'CURRENT_PROJECT_VERSION: "[0-9]+"' project.yml | sed -E 's/.*"([0-9]+)"/\1/')
+          echo "Building with MARKETING_VERSION=$VER CURRENT_PROJECT_VERSION=$BUILD"
           xcodebuild \
             -project Beans.xcodeproj \
             -scheme Beans \
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath build \
+            MARKETING_VERSION="$VER" \
+            CURRENT_PROJECT_VERSION="$BUILD" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build
+
+      - name: Verify version in built app
+        run: |
+          echo "== project.yml =="
+          grep -E "MARKETING_VERSION|CURRENT_PROJECT_VERSION" project.yml
+          echo "== built Info.plist =="
+          plutil -p build/Build/Products/Release-iphoneos/Beans.app/Info.plist | grep -E "CFBundleShortVersionString|CFBundleVersion"
 
       - name: Package IPA
         run: |

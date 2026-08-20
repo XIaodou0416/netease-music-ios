@@ -342,12 +342,14 @@ struct PlayerView: View {
             .padding(.bottom, 6)
 
             // 歌词视口截止到底栏上方：当前行在可见区居中（26 版风格，无渐隐遮挡）
-            if lyrics.isEmpty {
-                emptyLyricsView
-            } else {
-                LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
-                    BeansHaptics.tap()
-                    player.seek(to: line.time)
+            Group {
+                if lyrics.isEmpty {
+                    emptyLyricsView
+                } else {
+                    LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
+                        BeansHaptics.tap()
+                        player.seek(to: line.time)
+                    }
                 }
             }
             .padding(.bottom, deckInset)

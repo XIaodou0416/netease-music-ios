@@ -28,7 +28,7 @@ extension UIColor {
     /// 全局着色（跟随配色主题：浅色用深色调保证对比度，深色用亮色调保证可读性）
     static var beansAmber: UIColor {
         if let custom = ThemeStore.shared.customAccentHex, let c = UIColor(hex: custom) {
-            return beansDynamic(light: c.darkened(0.25), dark: c)
+            return beansDynamic(light: c.shaded(0.25), dark: c)
         }
         let accent = ThemeStore.shared.accent
         return beansDynamic(light: accent.tintLight, dark: accent.tintDark)
@@ -309,7 +309,7 @@ extension UIColor {
         )
     }
 
-    func darkened(_ amount: CGFloat) -> UIColor {
+    func shaded(_ amount: CGFloat) -> UIColor {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         getRed(&r, green: &g, blue: &b, alpha: &a)
         let k = max(0, 1 - amount)

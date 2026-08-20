@@ -39,8 +39,7 @@ struct QQLoginSheet: View {
                 }
                 .padding(.horizontal, 24)
 
-                Text("使用手机 QQ 扫描二维码
-登录后可播放更多 QQ 音乐歌曲（含 VIP 试听）")
+                Text("使用手机 QQ 扫描二维码\n登录后可播放更多 QQ 音乐歌曲（含 VIP 试听）")
                     .font(.system(size: 13))
                     .foregroundStyle(Color.beansSecondary)
                     .multilineTextAlignment(.center)

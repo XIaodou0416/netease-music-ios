@@ -195,11 +195,46 @@ struct PlayerView: View {
 
             Spacer(minLength: 0)
 
-            Button {
-                BeansHaptics.tap()
-                showQueue = true
+            Menu {
+                Menu {
+                    ForEach(rateOptions, id: \.self) { option in
+                        Button {
+                            player.setRate(option)
+                            BeansHaptics.select()
+                        } label: {
+                            if abs(player.rate - option) < 0.01 {
+                                Label(String(format: "%.2gx", option), systemImage: "checkmark")
+                            } else {
+                                Text(String(format: "%.2gx", option))
+                            }
+                        }
+                    }
+                } label: {
+                    Label("倍速播放", systemImage: "speedometer")
+                }
+                Button {
+                    showSleepTimer = true
+                } label: {
+                    Label(player.sleepTimerRemaining > 0 ? "定时关闭（进行中）" : "定时关闭", systemImage: "moon.zzz")
+                }
+                Button {
+                    showSimi = true
+                } label: {
+                    Label("相似歌曲", systemImage: "sparkles")
+                }
+                Button {
+                    showAddToPlaylist = true
+                } label: {
+                    Label("添加到歌单", systemImage: "text.badge.plus")
+                }
+                Divider()
+                Button {
+                    showLyricSettings = true
+                } label: {
+                    Label("歌词设置", systemImage: "textformat.size")
+                }
             } label: {
-                Image(systemName: "list.bullet")
+                Image(systemName: "ellipsis.circle")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(palette.text)
                     .frame(width: 38, height: 38)
@@ -562,43 +597,11 @@ struct PlayerView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - 工具行（倍速 / 音量条 / 歌词开关 / 更多菜单）
+
+    // MARK: - 工具行（循环/随机 / 播放列表；倍速与更多设置已移入右上角更多菜单）
 
     private var utilityRow: some View {
         HStack(spacing: 8) {
-            Menu {
-                ForEach(rateOptions, id: \.self) { option in
-                    Button {
-                        player.setRate(option)
-                        BeansHaptics.select()
-                    } label: {
-                        if abs(player.rate - option) < 0.01 {
-                            Label(String(format: "%.2gx", option), systemImage: "checkmark")
-                        } else {
-                            Text(String(format: "%.2gx", option))
-                        }
-                    }
-                }
-            } label: {
-                HStack(spacing: 3) {
-                    Image(systemName: "speedometer")
-                        .font(.system(size: 11, weight: .semibold))
-                    Text(String(format: "%.2gx", player.rate))
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                }
-                .foregroundStyle(palette.secondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background {
-                    GlassEffectContainer {
-                        Capsule()
-                            .fill(.clear)
-                            .glassEffect(.clear, in: Capsule())
-                    }
-                }
-                .clipShape(Capsule())
-            }
-
             // 循环 / 随机播放小按钮（缩小，跟随当前播放模式图标，随机模式高亮）
             Button {
                 BeansHaptics.select()
@@ -621,48 +624,12 @@ struct PlayerView: View {
 
             Spacer(minLength: 4)
 
+            // 播放列表（右上角更多菜单已收纳倍速/定时/歌词设置等次要功能）
             Button {
-                toggleLyrics()
+                BeansHaptics.tap()
+                showQueue = true
             } label: {
-                Image(systemName: showLyrics ? "quote.bubble.fill" : "quote.bubble")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(showLyrics ? palette.accent : palette.secondary)
-                    .frame(width: 30, height: 30)
-                    .background {
-                        GlassEffectContainer {
-                            Circle()
-                                .fill(.clear)
-                                .glassEffect(.clear, in: Circle())
-                        }
-                    }
-                    .clipShape(Circle())
-            }
-            .buttonStyle(GlassPressButtonStyle())
-
-            Menu {
-                Button {
-                    showSleepTimer = true
-                } label: {
-                    Label(player.sleepTimerRemaining > 0 ? "定时关闭（进行中）" : "定时关闭", systemImage: "moon.zzz")
-                }
-                Button {
-                    showSimi = true
-                } label: {
-                    Label("相似歌曲", systemImage: "sparkles")
-                }
-                Button {
-                    showAddToPlaylist = true
-                } label: {
-                    Label("添加到歌单", systemImage: "text.badge.plus")
-                }
-                Divider()
-                Button {
-                    showLyricSettings = true
-                } label: {
-                    Label("歌词设置", systemImage: "textformat.size")
-                }
-            } label: {
-                Image(systemName: "ellipsis.circle")
+                Image(systemName: "list.bullet")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(palette.secondary)
                     .frame(width: 30, height: 30)
@@ -675,6 +642,7 @@ struct PlayerView: View {
                     }
                     .clipShape(Circle())
             }
+            .buttonStyle(GlassPressButtonStyle())
         }
     }
 

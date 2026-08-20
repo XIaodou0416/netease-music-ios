@@ -3,7 +3,8 @@ import UIKit
 
 // MARK: - 全屏播放器（全新重写：极简稳定布局）
 // 布局原则：
-// - 全部使用 SwiftUI 自动布局（VStack/HStack/ZStack），不使用 position / matchedGeometryEffect / 绝对定位。
+// - 布局全部使用 SwiftUI 自动布局（VStack/HStack/ZStack），任何屏幕与加载时序下都稳定；
+//   封面⇄歌词切换动画使用 matchedGeometryEffect 共享元素（封面从居中飞到左上角），仅作用于过渡动画，不影响布局约束。
 // - 专辑模式与歌词模式是两个独立视图，if/else + transition 切换，各自内部自然居中，任何屏幕与加载时序下都稳定。
 // - 封面使用固定尺寸 CoverImage（AsyncImage 仅在 overlay 中渲染），封面加载、切歌都不会影响布局。
 // - 底部控制栏为普通材质圆角面板，按钮等宽对称分布，无液态玻璃依赖。
@@ -27,12 +28,15 @@ struct PlayerView: View {
     @State private var showLyricSettings = false
     @State private var showArtistHome = false
     @State private var dominantColor: RGBColor?
+    @Namespace private var coverNS
     @AppStorage("beans.lyricFontSize") private var lyricFontSize = 17
     @AppStorage("beans.lyricColor") private var lyricColorRaw = "accent"
     @AppStorage("beans.lyricDimColor") private var lyricDimColorRaw = "dim"
     @AppStorage("beans.lyricGlow") private var lyricGlowLevel = 1
     @AppStorage("beans.lyricGradStart") private var lyricGradStartRaw = ""
     @AppStorage("beans.lyricGradEnd") private var lyricGradEndRaw = ""
+    /// 渐变模式：0=跟随封面自动取色（默认），1=始终保持用户自定义渐变
+    @AppStorage("beans.lyricGradMode") private var lyricGradMode = 0
 
     private var song: Song? { player.currentSong }
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
@@ -75,12 +79,13 @@ struct PlayerView: View {
     }
 
     /// 当前行歌词渐变（可自定义起止色；未设置时自动从封面强调色派生，深浅模式自适应）
+    /// 渐变模式：开（保持自定义）时使用用户选色且切歌后不重置；关（默认）时始终跟随封面自动取色
     private var lyricGradStart: Color {
-        if lyricGradStartRaw.hasPrefix("#"), let c = Color(hex: lyricGradStartRaw) { return c }
+        if lyricGradMode == 1, lyricGradStartRaw.hasPrefix("#"), let c = Color(hex: lyricGradStartRaw) { return c }
         return lyricCurrentColor
     }
     private var lyricGradEnd: Color {
-        if lyricGradEndRaw.hasPrefix("#"), let c = Color(hex: lyricGradEndRaw) { return c }
+        if lyricGradMode == 1, lyricGradEndRaw.hasPrefix("#"), let c = Color(hex: lyricGradEndRaw) { return c }
         return mixedColor(lyricCurrentColor, with: colorScheme == .dark ? .white : .black, amount: 0.45)
     }
     private func mixedColor(_ c: Color, with other: Color, amount: CGFloat) -> Color {
@@ -159,6 +164,7 @@ struct PlayerView: View {
                 dimColorRaw: $lyricDimColorRaw,
                 gradStartRaw: $lyricGradStartRaw,
                 gradEndRaw: $lyricGradEndRaw,
+                gradMode: $lyricGradMode,
                 palette: palette
             )
         }
@@ -345,6 +351,7 @@ struct PlayerView: View {
                         .frame(width: size * 1.20, height: size * 1.20)
                         .blur(radius: 38)
                     CoverImage(url: song?.coverURL, size: size, cornerRadius: min(24, size * 0.08))
+                        .matchedGeometryEffect(id: "playerCover", in: coverNS)
                         .overlay {
                             RoundedRectangle(cornerRadius: min(24, size * 0.08), style: .continuous)
                                 .strokeBorder(.white.opacity(0.22), lineWidth: 1)
@@ -386,6 +393,7 @@ struct PlayerView: View {
                     toggleLyrics()
                 } label: {
                     CoverImage(url: song?.coverURL, size: 48, cornerRadius: 12)
+                        .matchedGeometryEffect(id: "playerCover", in: coverNS)
                         .overlay {
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .strokeBorder(.white.opacity(0.2), lineWidth: 1)
@@ -973,6 +981,7 @@ struct LyricSettingsSheet: View {
     @Binding var dimColorRaw: String
     @Binding var gradStartRaw: String
     @Binding var gradEndRaw: String
+    @Binding var gradMode: Int
     let palette: CoverPalette
     @Environment(\.dismiss) private var dismiss
 
@@ -1011,6 +1020,7 @@ struct LyricSettingsSheet: View {
             },
             set: { newValue in
                 gradStartRaw = "#" + UIColor(newValue).hexString
+                gradMode = 1
             }
         )
     }
@@ -1024,6 +1034,7 @@ struct LyricSettingsSheet: View {
             },
             set: { newValue in
                 gradEndRaw = "#" + UIColor(newValue).hexString
+                gradMode = 1
             }
         )
     }
@@ -1079,11 +1090,20 @@ struct LyricSettingsSheet: View {
                 }
 
                 Section("歌词渐变") {
+                    Toggle("保持自定义渐变", isOn: Binding(
+                        get: { gradMode == 1 },
+                        set: { gradMode = $0 ? 1 : 0 }
+                    ))
+                    .tint(Color.beansAmber)
+                    Text("开启后一直使用你选择的渐变颜色；关闭时自动跟随歌曲封面取色调整渐变")
+                        .font(.footnote)
+                        .foregroundStyle(Color.beansSecondary)
                     ColorPicker("渐变起始色", selection: gradStart, supportsOpacity: false)
                     ColorPicker("渐变结束色", selection: gradEnd, supportsOpacity: false)
                     Button("恢复默认渐变") {
                         gradStartRaw = ""
                         gradEndRaw = ""
+                        gradMode = 0
                         BeansHaptics.select()
                     }
                     .font(.system(size: 13))

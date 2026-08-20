@@ -160,6 +160,14 @@ struct TopList: Identifiable, Hashable {
     }
 }
 
+/// QQ 峰尖榜总览项
+struct QQTopInfo: Identifiable, Hashable {
+    let id: Int
+    let name: String
+    let subTitle: String
+    let topSongNames: [String]
+}
+
 struct LyricLine: Identifiable, Hashable {
     let id: UUID
     let time: Double
@@ -245,6 +253,16 @@ struct SongComment: Identifiable, Hashable {
     let time: Date
     let likedCount: Int
     let isHot: Bool
+
+    init(id: Int, content: String, nickname: String, avatarURL: URL?, time: Date, likedCount: Int, isHot: Bool = false) {
+        self.id = id
+        self.content = content
+        self.nickname = nickname
+        self.avatarURL = avatarURL
+        self.time = time
+        self.likedCount = likedCount
+        self.isHot = isHot
+    }
 
     init?(json: [String: Any], isHot: Bool = false) {
         guard let id = json["commentId"] as? Int else { return nil }

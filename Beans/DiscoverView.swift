@@ -15,6 +15,11 @@ struct DiscoverView: View {
     @State private var selectedTopList: TopList?
     @State private var selectedPlaylist: Playlist?
     @State private var showDailyList = false
+    /// 首页数据源：网易云 / QQ音乐（与搜索页同一控件样式）
+    @State private var source: SearchProvider = .netease
+    @State private var qqTopLists: [QQTopInfo] = []
+    @State private var selectedQQTopList: QQTopInfo?
+    @State private var selectedQQPlaylist: Playlist?
 
     var body: some View {
         let _ = theme.accent
@@ -65,7 +70,7 @@ struct DiscoverView: View {
 
         .scrollIndicators(.hidden)
         .refreshable { await load() }
-        .task { await load() }
+        .task(id: source) { await load() }
         .sheet(item: $selectedTopList) { topList in
             TopListDetailView(topList: topList)
                 .environmentObject(player)
@@ -73,6 +78,16 @@ struct DiscoverView: View {
         }
         .sheet(item: $selectedPlaylist) { playlist in
             PlaylistView(playlist: playlist)
+                .environmentObject(player)
+                .environmentObject(auth)
+        }
+        .sheet(item: $selectedQQTopList) { info in
+            QQTopListDetailView(topID: info.id, name: info.name)
+                .environmentObject(player)
+                .environmentObject(auth)
+        }
+        .sheet(item: $selectedQQPlaylist) { playlist in
+            QQPlaylistSongsSheet(playlist: playlist)
                 .environmentObject(player)
                 .environmentObject(auth)
         }
@@ -85,21 +100,60 @@ struct DiscoverView: View {
     }
 
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(greeting)
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(Color.beansLabel)
-                Text(auth.user?.nickname ?? "")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.beansSecondary)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(greeting)
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundStyle(Color.beansLabel)
+                    Text(auth.user?.nickname ?? "")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.beansSecondary)
+                }
+                Spacer()
+                GlassIconButton(systemName: "arrow.clockwise") {
+                    Task { await load() }
+                }
             }
-            Spacer()
-            GlassIconButton(systemName: "arrow.clockwise") {
-                Task { await load() }
-            }
+            providerPicker
         }
         .padding(.top, 8)
+    }
+
+    /// 平台选择（网易云 / QQ音乐，样式与搜索页一致）
+    private var providerPicker: some View {
+        HStack(spacing: 4) {
+            ForEach(SearchProvider.allCases) { p in
+                Button {
+                    BeansHaptics.tap()
+                    if source != p { source = p }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: p.icon)
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(p.rawValue)
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundStyle(source == p ? Color.white : Color.beansSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .background {
+                        if source == p {
+                            Capsule().fill(p.tint)
+                        } else {
+                            Capsule().fill(.clear)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay {
+            Capsule().strokeBorder(.white.opacity(0.16), lineWidth: 0.8)
+        }
+        .clipShape(Capsule())
     }
 
     private var greeting: String {
@@ -118,33 +172,67 @@ struct DiscoverView: View {
                 columns: [GridItem(.adaptive(minimum: 100), spacing: 10)],
                 spacing: 12
             ) {
-                // 三列网格展示前六个排行榜，液态玻璃卡片
-                ForEach(topLists.prefix(6)) { topList in
-                    Button {
-                        selectedTopList = topList
-                    } label: {
-                        VStack(alignment: .leading, spacing: 6) {
+                // 纯封面液态玻璃卡片（无文字）：网易云榜单 / QQ 峰尖榜
+                if source == .netease {
+                    ForEach(topLists.prefix(6)) { topList in
+                        Button {
+                            selectedTopList = topList
+                        } label: {
                             CoverImage(url: topList.coverURL, size: 88, cornerRadius: 14)
                                 .frame(maxWidth: .infinity)
-                            Text(topList.name)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(Color.beansLabel)
-                                .lineLimit(1)
+                                .padding(6)
+                                .background {
+                                    GlassEffectContainer {
+                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                            .fill(.clear)
+                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    }
+                                }
                         }
-                        .padding(6)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background {
-                            GlassEffectContainer {
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(.clear)
-                                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            }
-                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                } else {
+                    ForEach(qqTopLists.prefix(6)) { info in
+                        Button {
+                            selectedQQTopList = info
+                        } label: {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(qqRankGradient(info.name))
+                                .frame(width: 88, height: 88)
+                                .overlay {
+                                    Image(systemName: "music.note")
+                                        .font(.system(size: 26, weight: .semibold))
+                                        .foregroundStyle(.white.opacity(0.9))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(6)
+                                .background {
+                                    GlassEffectContainer {
+                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                            .fill(.clear)
+                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    }
+                                }
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
         }
+    }
+
+    /// QQ 峰尖榜占位封面：按榜单名确定性取一组渐变，不加载网络图
+    private func qqRankGradient(_ name: String) -> LinearGradient {
+        let palettes: [[Color]] = [
+            [Color(red: 0.35, green: 0.55, blue: 0.95), Color(red: 0.20, green: 0.30, blue: 0.65)],
+            [Color(red: 0.95, green: 0.42, blue: 0.36), Color(red: 0.70, green: 0.18, blue: 0.20)],
+            [Color(red: 0.20, green: 0.78, blue: 0.62), Color(red: 0.08, green: 0.52, blue: 0.44)],
+            [Color(red: 0.92, green: 0.62, blue: 0.25), Color(red: 0.72, green: 0.38, blue: 0.12)],
+            [Color(red: 0.62, green: 0.45, blue: 0.90), Color(red: 0.40, green: 0.25, blue: 0.68)],
+            [Color(red: 0.30, green: 0.70, blue: 0.85), Color(red: 0.16, green: 0.45, blue: 0.65)]
+        ]
+        let seed = abs(name.hashValue) % palettes.count
+        return LinearGradient(colors: palettes[seed], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
     private var dailySection: some View {
@@ -242,7 +330,11 @@ struct DiscoverView: View {
                 // 精简：三列小卡片只显示前六个，不再又长又大
                 ForEach(personalized.prefix(6)) { playlist in
                     Button {
-                        selectedPlaylist = playlist
+                        if source == .qq {
+                            selectedQQPlaylist = playlist
+                        } else {
+                            selectedPlaylist = playlist
+                        }
                     } label: {
                         VStack(alignment: .leading, spacing: 6) {
                             CoverImage(url: playlist.coverURL, size: 88, cornerRadius: 14)
@@ -276,14 +368,133 @@ struct DiscoverView: View {
     private func load() async {
         loading = true
         errorMessage = nil
-        async let a = NetEaseAPI.shared.topLists()
-        async let b = NetEaseAPI.shared.dailyRecommend()
-        async let c = NetEaseAPI.shared.playlistSquare(limit: 10)
+        if source == .qq {
+            do {
+                async let a = QQMusicAPI.shared.recommendSongs(limit: 30)
+                async let b = QQMusicAPI.shared.topLists()
+                async let c = QQMusicAPI.shared.recommendPlaylists(limit: 12)
+                let (dr, tl, pp) = try await (a, b, c)
+                dailySongs = dr
+                qqTopLists = tl
+                personalized = pp
+                loading = false
+            } catch {
+                errorMessage = error.localizedDescription
+                loading = false
+            }
+        } else {
+            async let a = NetEaseAPI.shared.topLists()
+            async let b = NetEaseAPI.shared.dailyRecommend()
+            async let c = NetEaseAPI.shared.playlistSquare(limit: 10)
+            do {
+                let (tl, dr, pp) = try await (a, b, c)
+                topLists = tl
+                dailySongs = dr
+                personalized = pp
+                loading = false
+            } catch {
+                errorMessage = error.localizedDescription
+                loading = false
+            }
+        }
+    }
+}
+
+// MARK: - QQ 峰尖榜详情
+
+struct QQTopListDetailView: View {
+    @EnvironmentObject private var player: PlayerManager
+    @EnvironmentObject private var auth: AuthStore
+
+    let topID: Int
+    let name: String
+    @State private var tracks: [Song] = []
+    @State private var loading = true
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if loading {
+                    LoadingStateView()
+                } else if let errorMessage {
+                    ErrorStateView(message: errorMessage) {
+                        Task { await load() }
+                    }
+                } else {
+                    List {
+                        Section {
+                            ForEach(Array(tracks.enumerated()), id: .element.id) { index, song in
+                                SongCell(song: song) {
+                                    player.play(songs: tracks, startAt: index)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(name)
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .task { await load() }
+    }
+
+    private func load() async {
+        loading = true
+        errorMessage = nil
         do {
-            let (tl, dr, pp) = try await (a, b, c)
-            topLists = tl
-            dailySongs = dr
-            personalized = pp
+            tracks = try await QQMusicAPI.shared.topListSongs(topid: topID)
+            loading = false
+        } catch {
+            errorMessage = error.localizedDescription
+            loading = false
+        }
+    }
+}
+
+// MARK: - QQ 歌单内歌曲
+
+struct QQPlaylistSongsSheet: View {
+    @EnvironmentObject private var player: PlayerManager
+    @EnvironmentObject private var auth: AuthStore
+
+    let playlist: Playlist
+    @State private var tracks: [Song] = []
+    @State private var loading = true
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if loading {
+                    LoadingStateView()
+                } else if let errorMessage {
+                    ErrorStateView(message: errorMessage) {
+                        Task { await load() }
+                    }
+                } else {
+                    List {
+                        Section {
+                            ForEach(Array(tracks.enumerated()), id: .element.id) { index, song in
+                                SongCell(song: song) {
+                                    player.play(songs: tracks, startAt: index)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(playlist.name)
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .task { await load() }
+    }
+
+    private func load() async {
+        loading = true
+        errorMessage = nil
+        do {
+            tracks = try await QQMusicAPI.shared.playlistSongs(listID: playlist.id)
             loading = false
         } catch {
             errorMessage = error.localizedDescription

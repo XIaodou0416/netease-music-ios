@@ -20,6 +20,7 @@ struct CommentsSheet: View {
     let song: Song
 
     @State private var page: NetEaseAPI.SongCommentPage?
+    @State private var qqComments: [SongComment] = []
     @State private var loading = true
     @State private var errorMessage: String?
     @State private var offset = 0
@@ -36,6 +37,8 @@ struct CommentsSheet: View {
                     ErrorStateView(message: errorMessage) {
                         Task { await load(reset: true) }
                     }
+                } else if song.source == .qq {
+                    qqCommentList
                 } else if let page {
                     if page.hot.isEmpty && page.comments.isEmpty {
                         EmptyStateView(icon: "bubble.left", text: "暂无评论")
@@ -86,21 +89,49 @@ struct CommentsSheet: View {
         if reset {
             offset = 0
             page = nil
+            qqComments = []
             loading = true
         }
         errorMessage = nil
         do {
-            let result = try await NetEaseAPI.shared.songComments(id: song.id, limit: limit, offset: offset)
-            if reset {
-                page = result
-            } else if var current = page {
-                current.comments.append(contentsOf: result.comments)
-                page = current
+            if song.source == .qq {
+                guard let mid = song.qqMid else { throw NetEaseError.unknown("缺少 QQ 歌曲标识") }
+                qqComments = try await QQMusicAPI.shared.comments(songmid: mid)
+            } else {
+                let result = try await NetEaseAPI.shared.songComments(id: song.id, limit: limit, offset: offset)
+                if reset {
+                    page = result
+                } else if var current = page {
+                    current.comments.append(contentsOf: result.comments)
+                    page = current
+                }
             }
             loading = false
         } catch {
             errorMessage = error.localizedDescription
             loading = false
+        }
+    }
+
+    /// QQ 音乐评论列表
+    private var qqCommentList: some View {
+        Group {
+            if qqComments.isEmpty {
+                EmptyStateView(icon: "bubble.left", text: "暂无评论")
+            } else {
+                List {
+                    Section {
+                        Text("《\(song.name)》 · QQ 音乐 \(qqComments.count) 条评论")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.beansSecondary)
+                    }
+                    Section("评论") {
+                        ForEach(qqComments) { comment in
+                            CommentRow(comment: comment)
+                        }
+                    }
+                }
+            }
         }
     }
 

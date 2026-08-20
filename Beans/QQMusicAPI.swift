@@ -336,6 +336,151 @@ final class QQMusicAPI {
         return lyric
     }
 
+    // MARK: - 评论区 / 排行榜 / 推荐 / 歌单
+
+    /// QQ 音乐评论（musicu GlobalCommentRead）
+    func comments(songmid: String, limit: Int = 20) async throws -> [SongComment] {
+        let payload: [String: Any] = [
+            "comm": ["ct": 24, "cv": 0],
+            "req_1": [
+                "module": "music.globalComment.GlobalCommentRead",
+                "method": "ReadComment",
+                "param": [
+                    "rootcommentid": "Song_\(songmid)",
+                    "cursor": 0,
+                    "pagesize": limit,
+                    "sorttype": 2,
+                    "targetid": songmid,
+                    "biztype": 1,
+                    "start": 0
+                ]
+            ]
+        ]
+        let json = try await musicu(payload)
+        let data = ((json["req_1"] as? [String: Any])?["data"] as? [String: Any]) ?? [:]
+        let list = data["comments"] as? [[String: Any]] ?? []
+        var comments: [SongComment] = []
+        for item in list {
+            guard let root = item["rootcomment"] as? [String: Any] else { continue }
+            let content = root["content"] as? String ?? ""
+            guard !content.isEmpty else { continue }
+            let id = root["id"] as? Int ?? 0
+            let nick = root["nick"] as? String ?? ""
+            let avatar = root["avatarurl"] as? String ?? ""
+            let time = root["time"] as? TimeInterval ?? 0
+            let likes = root["likeNum"] as? Int ?? 0
+            comments.append(SongComment(
+                id: id,
+                content: content,
+                nickname: nick,
+                avatarURL: avatar.isEmpty ? nil : URL(string: avatar),
+                time: Date(timeIntervalSince1970: time),
+                likedCount: likes,
+                isHot: false
+            ))
+        }
+        return comments
+    }
+
+    /// QQ 峰尖榜总览
+    func topLists() async throws -> [QQTopInfo] {
+        let url = "https://c.y.qq.com/v8/fcg-bin/fcg_myqq_toplist.fcg?format=json"
+        let json = try await get(url)
+        let list = json["topList"] as? [[String: Any]] ?? []
+        var result: [QQTopInfo] = []
+        for item in list {
+            guard let id = item["id"] as? Int else { continue }
+            let songs = (item["songList"] as? [[String: Any]]) ?? []
+            let topNames = songs.compactMap { $0["songname"] as? String }.prefix(3).map { $0 }
+            result.append(QQTopInfo(
+                id: id,
+                name: item["title"] as? String ?? "",
+                subTitle: item["subTitle"] as? String ?? "",
+                topSongNames: topNames
+            ))
+        }
+        return result
+    }
+
+    /// 某个峰尖榜的歌曲列表
+    func topListSongs(topid: Int, limit: Int = 30) async throws -> [Song] {
+        let url = "https://c.y.qq.com/v8/fcg-bin/fcg_v8_toplist_cp.fcg?format=json&page=detail&type=top&topid=\(topid)&song_begin=0&song_num=\(limit)"
+        let json = try await get(url)
+        let list = json["songlist"] as? [[String: Any]] ?? []
+        return list.compactMap { item -> Song? in
+            if let data = item["data"] as? [String: Any] {
+                return song(from: data)
+            }
+            return song(from: item)
+        }
+    }
+
+    /// QQ 每日推荐（峰尖榜·总榜前 30）
+    func recommendSongs(limit: Int = 30) async throws -> [Song] {
+        try await topListSongs(topid: 4, limit: limit)
+    }
+
+    /// QQ 推荐歌单
+    func recommendPlaylists(limit: Int = 12) async throws -> [Playlist] {
+        let payload: [String: Any] = [
+            "comm": ["ct": 24, "cv": 0],
+            "req_1": [
+                "module": "music.srfDissInfo.RecommendPlaylist",
+                "method": "GetRecommendPlaylist",
+                "param": ["uin": 0, "lastDissid": 0, "songtype": 1, "scene": 0]
+            ]
+        ]
+        let json = try await musicu(payload)
+        let list = nestedArray(json, path: ["req_1", "data", "v_playlist"])
+        var playlists: [Playlist] = []
+        for item in list {
+            guard let id = item["tid"] as? Int ?? (item["id"] as? Int) else { continue }
+            let name = item["title"] as? String ?? ""
+            let pic = item["cover"] as? String ?? (item["pic_url"] as? String ?? "")
+            let songNum = item["songnum"] as? Int ?? 0
+            playlists.append(Playlist(id: id, name: name, coverURL: pic.isEmpty ? nil : URL(string: pic), trackCount: songNum))
+        }
+        return playlists
+    }
+
+    /// QQ 歌单内歌曲
+    func playlistSongs(listID: Int) async throws -> [Song] {
+        let payload: [String: Any] = [
+            "comm": ["ct": 24, "cv": 0],
+            "req_1": [
+                "module": "music.playlist.PlayListDataServer",
+                "method": "GetPlaylistDetail",
+                "param": ["id": listID, "uin": 0, "song_begin": 0, "song_num": 100]
+            ]
+        ]
+        let json = try await musicu(payload)
+        let list = nestedArray(json, path: ["req_1", "data", "songlist"])
+        return list.compactMap { song(from: $0) }
+    }
+
+    /// 通用 QQ 歌曲解析（各接口字段略有差异，此处统一容错）
+    private func song(from item: [String: Any]) -> Song? {
+        let mid = item["songmid"] as? String ?? (item["mid"] as? String ?? "")
+        let sid = item["songid"] as? Int ?? (item["id"] as? Int ?? 0)
+        guard !mid.isEmpty || sid > 0 else { return nil }
+        let singers = (item["singer"] as? [[String: Any]]) ?? (item["songer"] as? [[String: Any]]) ?? []
+        let artists = singers.compactMap { $0["name"] as? String }.joined(separator: " / ")
+        let albumDict = item["album"] as? [String: Any] ?? [:]
+        let albumName = albumDict["name"] as? String ?? (item["albumname"] as? String ?? "")
+        let albumMid = albumDict["mid"] as? String ?? (item["albummid"] as? String ?? "")
+        let interval = item["interval"] as? Int ?? 0
+        return Song(
+            id: sid,
+            name: item["songname"] as? String ?? (item["name"] as? String ?? ""),
+            artists: artists,
+            album: albumName,
+            coverURL: Self.photoURL(albumMid.isEmpty ? nil : albumMid),
+            duration: TimeInterval(interval),
+            source: .qq,
+            qqMid: mid.isEmpty ? nil : mid
+        )
+    }
+
     // MARK: - 工具
 
     private func nestedArray(_ json: [String: Any], path: [String]) -> [[String: Any]] {

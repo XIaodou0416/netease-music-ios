@@ -343,7 +343,7 @@ final class NetEaseAPI {
 
     /// 歌手热门歌曲
     func artistHotSongs(artistID: Int, limit: Int = 50) async throws -> [Song] {
-        let json = try await request("/api/artist/songs", payload: ["id": artistID, "limit": limit, "offset": 0], crypto: "weapi")
+        let json = try await request("/api/artist/songs", payload: ["id": artistID, "private_cloud": true, "work_type": 1, "order": "hot", "offset": 0, "limit": limit], crypto: "weapi")
         let list = json["songs"] as? [[String: Any]] ?? []
         return list.compactMap { Song(json: $0) }
     }
@@ -371,7 +371,7 @@ final class NetEaseAPI {
 
     /// 专辑内歌曲
     func albumSongs(albumID: Int) async throws -> [Song] {
-        let json = try await request("/api/v1/album/\(albumID)", payload: [:], crypto: "weapi")
+        let json = try await request("/api/album", payload: ["id": albumID], crypto: "weapi")
         let list = json["songs"] as? [[String: Any]] ?? []
         return list.compactMap { Song(json: $0) }
     }

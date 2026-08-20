@@ -202,6 +202,10 @@ struct ArtistHomeSheet: View {
             let (s, a) = await (songs, albums)
             hotSongs = s
             self.albums = a
+            // 接口异常时赶底：用搜索补全歌手歌曲（避免“暂无”）
+            if hotSongs.isEmpty, let fallback = try? await NetEaseAPI.shared.search(keyword: artistName, limit: 30) {
+                hotSongs = fallback
+            }
             loading = false
         } catch {
             errorMessage = error.localizedDescription

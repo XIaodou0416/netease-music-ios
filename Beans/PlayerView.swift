@@ -74,13 +74,15 @@ struct PlayerView: View {
         }
     }
 
-    /// 发光强度对应的 shadow 半径（0 关闭，最大 14）
+    /// 发光强度对应的 shadow 半径（0 关闭，最大 32，叠双层光晕更亮）
     private var lyricGlowRadius: CGFloat {
         switch lyricGlowLevel {
         case 0: return 0
-        case 1: return 5
-        case 2: return 9
-        default: return 14
+        case 1: return 6
+        case 2: return 12
+        case 3: return 18
+        case 4: return 25
+        default: return 32
         }
     }
 
@@ -150,6 +152,15 @@ struct PlayerView: View {
                     : [.white.opacity(0.08), .clear, .black.opacity(0.12)],
                 startPoint: .top, endPoint: .bottom
             )
+            // 顶部渐隐：整页上方柔化过渡，顶栏区域更沉浸
+            LinearGradient(
+                colors: colorScheme == .dark
+                    ? [.black.opacity(0.40), .clear]
+                    : [.black.opacity(0.18), .clear],
+                startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 150)
+            .frame(maxHeight: .infinity, alignment: .top)
         }
         .allowsHitTesting(false)
     }
@@ -339,7 +350,7 @@ struct PlayerView: View {
             .padding(.top, 10)
             .padding(.bottom, 6)
 
-            // 歌词视口截止到底栏上方：当前行在可见区居中；底部渐隐与液态玻璃底栏自然过渡
+            // 歌词视口截止到底栏上方：当前行在可见区居中；上下两端渐隐与玻璃底栏自然过渡
             ZStack(alignment: .bottom) {
                 if lyrics.isEmpty {
                     emptyLyricsView
@@ -355,6 +366,15 @@ struct PlayerView: View {
                     startPoint: .top, endPoint: .bottom
                 )
                 .frame(height: 140)
+                .allowsHitTesting(false)
+            }
+            .overlay(alignment: .top) {
+                // 顶部渐隐：歌词向上滚动时柔和淡出
+                LinearGradient(
+                    colors: [palette.backgroundTop.opacity(0.92), .clear],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: 96)
                 .allowsHitTesting(false)
             }
             .padding(.bottom, deckInset)
@@ -449,7 +469,7 @@ struct PlayerView: View {
         .padding(.bottom, 4)
         .frame(maxWidth: .infinity)
         .background {
-            // 通透液态玻璃面板：半透明基底 + 原生玻璃采样（歌词可滚入底栏，透过玻璃看到模糊渲染）
+            // 通透液态玻璃面板：底部清晰、顶部渐隐融入背景（无硬边/白线）
             GlassEffectContainer {
                 UnevenRoundedRectangle(
                     topLeadingRadius: 30, bottomLeadingRadius: 0,
@@ -464,6 +484,16 @@ struct PlayerView: View {
                 ))
             }
             .ignoresSafeArea(edges: .bottom)
+            .mask {
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black.opacity(0.45), location: 0.20),
+                        .init(color: .black, location: 0.45)
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+            }
             .overlay {
                 LinearGradient(
                     colors: [.white.opacity(0.26), .clear, .white.opacity(0.05)],
@@ -484,12 +514,8 @@ struct PlayerView: View {
                     lineWidth: 0.8
                 )
             }
-            .overlay(alignment: .top) {
-                LinearGradient(colors: [.white.opacity(0.22), .clear], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 1)
-            }
         }
-        .shadow(color: .black.opacity(0.08), radius: 16, y: -3)
+        .shadow(color: .black.opacity(0.06), radius: 14, y: -2)
     }
 
     private var subtitle: String {
@@ -908,8 +934,13 @@ struct LyricsSection: View {
                 design: .rounded
             ))
             .foregroundStyle(isCurrent ? accent : secondary)
+            // 双层光晕：内层亮、外层宽，发光更明显
             .shadow(
-                color: isCurrent ? accent.opacity(glowRadius > 0 ? 0.65 : 0) : .clear,
+                color: isCurrent ? accent.opacity(glowRadius > 0 ? 0.9 : 0) : .clear,
+                radius: isCurrent ? glowRadius * 0.45 : 0
+            )
+            .shadow(
+                color: isCurrent ? accent.opacity(glowRadius > 0 ? 0.55 : 0) : .clear,
                 radius: isCurrent ? glowRadius : 0
             )
             .opacity(max(opacity, 0.15))
@@ -997,7 +1028,7 @@ struct LyricSettingsSheet: View {
                                 get: { Double(glowLevel) },
                                 set: { glowLevel = Int($0) }
                             ),
-                            in: 0...3,
+                            in: 0...5,
                             step: 1
                         )
                         .tint(Color.beansAmber)
@@ -1031,7 +1062,9 @@ struct LyricSettingsSheet: View {
         case 0: return "关闭"
         case 1: return "柔和"
         case 2: return "标准"
-        default: return "强烈"
+        case 3: return "强烈"
+        case 4: return "明亮"
+        default: return "极亮"
         }
     }
 }

@@ -50,11 +50,9 @@ struct GlassBackdrop: View {
     var body: some View {
         let _ = theme.accent
         ZStack {
-            // 上传图片优先：同步开启时全 App 生效；图片上叠加可读性暗色渐变
+            // 上传图片优先：同步开启时全 App 生效；固定全屏布局 + 小图柔化，图片再小也不会撑大 UI
             if let image = theme.customBackgroundImage, theme.backgroundSyncAll {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
+                WallpaperImage(image: image)
                 LinearGradient(
                     colors: [.black.opacity(0.30), .black.opacity(0.52)],
                     startPoint: .top, endPoint: .bottom
@@ -82,6 +80,27 @@ struct GlassBackdrop: View {
     }
 }
 
+
+// MARK: - 背景墙纸（上传图片：固定全屏布局，不影响其他 UI 尺寸；小图轻度柔化避免像素感）
+
+struct WallpaperImage: View {
+    let image: UIImage
+
+    /// 小于约 700x700 视为小图：放大时轻度模糊柔化，避免满屏马赛克
+    private var isSmall: Bool {
+        image.size.width * image.size.height < 480_000
+    }
+
+    var body: some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFill()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
+            .blur(radius: isSmall ? 5 : 0)
+            .ignoresSafeArea()
+    }
+}
 
 // MARK: - 玻璃卡片（清透版）
 

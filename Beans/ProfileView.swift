@@ -21,8 +21,8 @@ struct ProfileView: View {
                 userCard
                 statsRow
                 dataSection
-                aboutSection
                 settingsSection
+                aboutSection
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)

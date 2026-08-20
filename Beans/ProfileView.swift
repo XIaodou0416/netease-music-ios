@@ -28,7 +28,6 @@ struct ProfileView: View {
             VStack(alignment: .leading, spacing: 22) {
                 userCard
                 qqCard
-                statsRow
                 dataSection
                 settingsSection
                 aboutSection
@@ -132,31 +131,6 @@ struct ProfileView: View {
         .buttonStyle(GlassPressButtonStyle(scale: 0.97))
     }
 
-    private var statsRow: some View {
-        HStack(spacing: 10) {
-            statCard(title: "歌单", value: "\(auth.playlists.count)", icon: "music.note.list")
-            statCard(title: "历史", value: "\(player.history.count)", icon: "clock.fill")
-        }
-    }
-
-    private func statCard(title: String, value: String, icon: String) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundStyle(Color.beansAmber)
-            Text(value)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundStyle(Color.beansLabel)
-            Text(title)
-                .font(.system(size: 11))
-                .foregroundStyle(Color.beansSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .glassEffect(.clear, in: .rect(cornerRadius: 20))
-        .beansCardShadow(radius: 7, y: 2)
-    }
-
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "外观")
@@ -239,10 +213,6 @@ struct ProfileView: View {
                 row(icon: "chart.bar.fill", title: "听歌排行", value: "前 \(player.topPlayed.count) 名") {
                     // 顶部排行入口已放在音乐库
                 }
-                Divider().overlay(Color.beansSecondary.opacity(0.15))
-                row(icon: "trash", title: "清除播放历史", value: "") {
-                    player.clearHistory()
-                }
             }
             .padding(.horizontal, 4)
             .padding(.vertical, 6)
@@ -292,7 +262,7 @@ struct ProfileView: View {
                 Label(appVersionText, systemImage: "beats.headphones")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color.beansLabel)
-                Text("接入网易云音乐非官方接口，仅供个人自用\n部分 VIP / 版权受限歌曲可能无法播放")
+                Text("仅供学习交流，纯 AI 实现此应用\n接入网易云音乐、QQ 音乐等公开接口，请勿用于商业用途")
                     .font(.system(size: 12))
                     .foregroundStyle(Color.beansSecondary)
                     .multilineTextAlignment(.center)

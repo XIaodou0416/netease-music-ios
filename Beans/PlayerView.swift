@@ -70,7 +70,9 @@ struct PlayerView: View {
         }
     }
 
-    // MARK: - 背景（全局主题渐变 + 材质遮罩；不使用封面大图，封面加载零布局影响）
+    // MARK: - 背景（主题渐变兜底 + 封面毛玻璃 + 可读性遮罩）
+    // 毛玻璃封面为 UIKit 独立图层（CoverBlurBackground），加载/换图不经过 SwiftUI
+    // 布局，因此封面加载完成不会引发布局重算，彻底避免"封面加载后错乱"。
 
     private var background: some View {
         ZStack {
@@ -78,13 +80,16 @@ struct PlayerView: View {
                 colors: [palette.backgroundTop, palette.backgroundBottom],
                 startPoint: .top, endPoint: .bottom
             )
+            CoverBlurBackground(url: song?.coverURL, scheme: colorScheme)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             LinearGradient(
                 colors: colorScheme == .dark
-                    ? [.black.opacity(0.5), .black.opacity(0.12), .black.opacity(0.55)]
-                    : [.white.opacity(0.16), .clear, .black.opacity(0.22)],
+                    ? [.black.opacity(0.34), .black.opacity(0.08), .black.opacity(0.50)]
+                    : [.white.opacity(0.16), .clear, .black.opacity(0.20)],
                 startPoint: .top, endPoint: .bottom
             )
         }
+        .allowsHitTesting(false)
     }
 
     // MARK: - 顶栏（收起 / 状态 / 红心 / 队列）
@@ -202,10 +207,6 @@ struct PlayerView: View {
             }
             .padding(.horizontal, 36)
 
-            Spacer(minLength: 2)
-            Label("轻点封面查看歌词", systemImage: "quote.bubble")
-                .font(.system(size: 11))
-                .foregroundStyle(palette.secondary.opacity(0.85))
             Spacer(minLength: 2)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

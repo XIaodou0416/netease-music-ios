@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AddToPlaylistSheet: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
     @Environment(\.dismiss) private var dismiss
 
@@ -10,6 +11,7 @@ struct AddToPlaylistSheet: View {
     @State private var message: String?
 
     var body: some View {
+        let _ = theme.accent
         NavigationStack {
             List {
                 if auth.playlists.isEmpty {

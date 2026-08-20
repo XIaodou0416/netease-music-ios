@@ -28,6 +28,7 @@ enum RootTab: String, CaseIterable, Identifiable {
 }
 
 struct RootView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
     @AppStorage("beans.themeMode") private var themeModeRaw = BeansThemeMode.system.rawValue
@@ -40,6 +41,7 @@ struct RootView: View {
     }
 
     var body: some View {
+        let _ = theme.accent
         ZStack {
             GlassBackdrop()
 
@@ -86,6 +88,7 @@ struct RootView: View {
 // MARK: - 液态玻璃底栏（玻璃效果仅作背景装饰，不包裹按钮，保证可交互；长按触发液态涟漪 + 播放快捷菜单）
 
 struct AppStoreTabBar: View {
+    @EnvironmentObject private var theme: ThemeStore
     @Binding var selection: RootTab
     @EnvironmentObject private var player: PlayerManager
 
@@ -97,6 +100,7 @@ struct AppStoreTabBar: View {
     private let menuWidth: CGFloat = 176
 
     var body: some View {
+        let _ = theme.accent
         GeometryReader { geo in
             ZStack(alignment: .bottom) {
                 if let menuTab, player.currentSong != nil {

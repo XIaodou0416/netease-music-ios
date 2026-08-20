@@ -10,6 +10,7 @@ enum QRStatus: Equatable {
 }
 
 struct LoginView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
 
     @State private var key: String?
@@ -17,6 +18,7 @@ struct LoginView: View {
     @State private var timer: Timer?
 
     var body: some View {
+        let _ = theme.accent
         ZStack {
             GlassBackdrop()
             VStack(spacing: 22) {

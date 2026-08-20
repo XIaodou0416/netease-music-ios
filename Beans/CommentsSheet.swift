@@ -16,6 +16,7 @@ func beansRelativeTime(_ date: Date) -> String {
 // MARK: - 评论区
 
 struct CommentsSheet: View {
+    @EnvironmentObject private var theme: ThemeStore
     let song: Song
 
     @State private var page: NetEaseAPI.SongCommentPage?
@@ -26,6 +27,7 @@ struct CommentsSheet: View {
     private let limit = 30
 
     var body: some View {
+        let _ = theme.accent
         NavigationStack {
             Group {
                 if loading {
@@ -111,9 +113,11 @@ struct CommentsSheet: View {
 // MARK: - 评论行
 
 struct CommentRow: View {
+    @EnvironmentObject private var theme: ThemeStore
     let comment: SongComment
 
     var body: some View {
+        let _ = theme.accent
         HStack(alignment: .top, spacing: 12) {
             AsyncImage(url: comment.avatarURL) { phase in
                 if case .success(let image) = phase {

@@ -1,12 +1,14 @@
 import SwiftUI
 
 struct SleepTimerSheet: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var player: PlayerManager
     @Environment(\.dismiss) private var dismiss
 
     private let options = [15, 30, 45, 60]
 
     var body: some View {
+        let _ = theme.accent
         NavigationStack {
             List {
                 if player.sleepTimerRemaining > 0 {

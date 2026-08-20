@@ -1,10 +1,12 @@
 import SwiftUI
 
 struct MiniPlayerView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var player: PlayerManager
     @Binding var showPlayer: Bool
 
     var body: some View {
+        let _ = theme.accent
         Button {
             BeansHaptics.tap()
             showPlayer = true

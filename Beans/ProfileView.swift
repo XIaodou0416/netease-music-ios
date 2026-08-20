@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
     @AppStorage("beans.themeMode") private var themeModeRaw = BeansThemeMode.system.rawValue
-    @AppStorage(AccentTheme.key) private var accentRaw = ""
 
     @State private var showHistory = false
     @State private var confirmLogout = false
@@ -13,18 +13,15 @@ struct ProfileView: View {
         BeansThemeMode(rawValue: themeModeRaw) ?? .system
     }
 
-    private var currentAccent: BeansAccent {
-        BeansAccent(rawValue: accentRaw) ?? .amber
-    }
-
     var body: some View {
+        let _ = theme.accent
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 userCard
                 statsRow
-                settingsSection
                 dataSection
                 aboutSection
+                settingsSection
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -72,6 +69,7 @@ struct ProfileView: View {
         }
         .padding(16)
         .glassEffect(.clear, in: .rect(cornerRadius: 24))
+        .beansCardShadow(radius: 10, y: 4)
     }
 
     private var statsRow: some View {
@@ -97,6 +95,7 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
         .glassEffect(.clear, in: .rect(cornerRadius: 20))
+        .beansCardShadow(radius: 7, y: 2)
     }
 
     private var settingsSection: some View {
@@ -135,8 +134,7 @@ struct ProfileView: View {
                 HStack(spacing: 16) {
                     ForEach(BeansAccent.allCases) { accent in
                         Button {
-                            AccentTheme.set(accent)
-                            accentRaw = accent.rawValue
+                            theme.set(accent)
                             BeansHaptics.select()
                         } label: {
                             ZStack {
@@ -146,7 +144,7 @@ struct ProfileView: View {
                                     .overlay {
                                         Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1)
                                     }
-                                if accent == currentAccent {
+                                if accent == theme.accent {
                                     Image(systemName: "checkmark")
                                         .font(.system(size: 12, weight: .bold))
                                         .foregroundStyle(.white)
@@ -160,6 +158,7 @@ struct ProfileView: View {
             }
             .padding(16)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .beansCardShadow(radius: 9, y: 3)
         }
     }
 
@@ -180,6 +179,9 @@ struct ProfileView: View {
                 }
             }
             .padding(.horizontal, 4)
+            .padding(.vertical, 6)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .beansCardShadow(radius: 8, y: 3)
         }
     }
 
@@ -226,6 +228,7 @@ struct ProfileView: View {
             .frame(maxWidth: .infinity)
             .padding(16)
             .glassEffect(.clear, in: .rect(cornerRadius: 22))
+            .beansCardShadow(radius: 9, y: 3)
 
             Button(role: .destructive) {
                 confirmLogout = true

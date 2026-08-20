@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - 全屏播放器（网易云风格：毛玻璃背景 + 上半区居中封面 + 歌名居中 + 进度条 + 主控制行）
 
 struct PlayerView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var player: PlayerManager
     @EnvironmentObject private var auth: AuthStore
     @Environment(\.dismiss) private var dismiss
@@ -22,6 +23,7 @@ struct PlayerView: View {
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
 
     var body: some View {
+        let _ = theme.accent
         GeometryReader { geo in
             let coverSize = min(264, max(200, geo.size.height * 0.30))
             ZStack {

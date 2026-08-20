@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct DiscoverView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
 
@@ -13,9 +14,9 @@ struct DiscoverView: View {
     @State private var errorMessage: String?
     @State private var selectedTopList: TopList?
     @State private var selectedPlaylist: Playlist?
-    @State private var showingFM = false
 
     var body: some View {
+        let _ = theme.accent
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header
@@ -26,7 +27,6 @@ struct DiscoverView: View {
                 } else if loading {
                     LoadingStateView()
                 } else {
-                    quickActions
                     if !topLists.isEmpty {
                         topListsSection
                     }
@@ -88,17 +88,6 @@ struct DiscoverView: View {
         }
     }
 
-    private var quickActions: some View {
-        HStack(spacing: 12) {
-            GlassButton(title: "每日推荐", systemName: "calendar.badge.clock", prominent: true) {
-                playDaily()
-            }
-            GlassButton(title: "私人FM", systemName: "dot.radiowaves.left.and.right") {
-                startFM()
-            }
-        }
-    }
-
     private var topListsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "排行榜")
@@ -156,6 +145,7 @@ struct DiscoverView: View {
             }
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .beansCardShadow(radius: 8, y: 3)
 
             VStack(spacing: 0) {
                 ForEach(Array(dailySongs.prefix(3).enumerated()), id: \.element.id) { index, song in
@@ -170,6 +160,7 @@ struct DiscoverView: View {
             .padding(.vertical, 6)
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .beansCardShadow(radius: 8, y: 3)
         }
     }
 
@@ -224,24 +215,6 @@ struct DiscoverView: View {
 
     // MARK: - 动作
 
-    private func playDaily() {
-        guard !dailySongs.isEmpty else {
-            Task { await load() }
-            return
-        }
-        player.play(songs: dailySongs, startAt: 0)
-    }
-
-    private func startFM() {
-        Task {
-            if let songs = try? await NetEaseAPI.shared.personalFM(), !songs.isEmpty {
-                await MainActor.run {
-                    player.play(songs: songs, startAt: 0)
-                }
-            }
-        }
-    }
-
     private func load() async {
         loading = true
         errorMessage = nil
@@ -267,6 +240,7 @@ struct DiscoverView: View {
 
 struct TopListDetailView: View {
     @EnvironmentObject private var player: PlayerManager
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
 
     let topList: TopList

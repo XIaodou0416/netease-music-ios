@@ -1,10 +1,12 @@
 import SwiftUI
 
 struct QueueView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var player: PlayerManager
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        let _ = theme.accent
         NavigationStack {
             Group {
                 if player.queue.isEmpty {

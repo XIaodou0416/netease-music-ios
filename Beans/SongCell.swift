@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SongCell: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var player: PlayerManager
     @EnvironmentObject private var auth: AuthStore
 
@@ -20,6 +21,7 @@ struct SongCell: View {
     }
 
     var body: some View {
+        let _ = theme.accent
         HStack(spacing: 12) {
             if showCover {
                 CoverImage(url: song.coverURL, size: 46, cornerRadius: 10)

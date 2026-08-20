@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SearchView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var player: PlayerManager
     @EnvironmentObject private var auth: AuthStore
 
@@ -14,6 +15,7 @@ struct SearchView: View {
     @FocusState private var focused: Bool
 
     var body: some View {
+        let _ = theme.accent
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
                 searchField
@@ -104,6 +106,7 @@ struct SearchView: View {
         .padding(.vertical, 11)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .beansCardShadow(radius: 6, y: 2)
         .padding(.bottom, 6)
     }
 

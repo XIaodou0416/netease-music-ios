@@ -32,7 +32,10 @@ struct GlassPressButtonStyle: ButtonStyle {
 // MARK: - 背景氛围（液态玻璃需要有可采样的动态内容）
 
 struct GlassBackdrop: View {
+    @EnvironmentObject private var theme: ThemeStore
+
     var body: some View {
+        let _ = theme.accent
         ZStack {
             LinearGradient.beansBackdrop
             Circle()
@@ -63,6 +66,7 @@ struct GlassCard<Content: View>: View {
                 .padding(16)
                 .glassEffect(.clear, in: .rect(cornerRadius: cornerRadius))
         }
+        .beansCardShadow(radius: 9, y: 3)
     }
 }
 
@@ -108,12 +112,14 @@ struct CoverImage: View {
 // MARK: - 玻璃图标按钮（清透 + 按压动效）
 
 struct GlassIconButton: View {
+    @EnvironmentObject private var theme: ThemeStore
     let systemName: String
     var size: CGFloat = 44
     var active = false
     let action: () -> Void
 
     var body: some View {
+        let _ = theme.accent
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: size * 0.38, weight: .semibold))
@@ -136,12 +142,14 @@ struct GlassIconButton: View {
 // MARK: - 玻璃按钮（清透 + 按压动效）
 
 struct GlassButton: View {
+    @EnvironmentObject private var theme: ThemeStore
     let title: String
     var systemName: String?
     var prominent = false
     let action: () -> Void
 
     var body: some View {
+        let _ = theme.accent
         Button(action: action) {
             HStack(spacing: 8) {
                 if let systemName {
@@ -233,7 +241,10 @@ struct ErrorStateView: View {
 }
 
 struct LoadingStateView: View {
+    @EnvironmentObject private var theme: ThemeStore
+
     var body: some View {
+        let _ = theme.accent
         ProgressView()
             .controlSize(.large)
             .tint(Color.beansAmber)
@@ -275,9 +286,11 @@ struct QRCodeView: View {
 // MARK: - 当前播放指示（均衡器动效）
 
 struct NowPlayingIndicator: View {
+    @EnvironmentObject private var theme: ThemeStore
     @State private var animating = false
 
     var body: some View {
+        let _ = theme.accent
         HStack(alignment: .bottom, spacing: 2) {
             ForEach(0..<3, id: \.self) { index in
                 Capsule()
@@ -300,6 +313,7 @@ struct NowPlayingIndicator: View {
 // MARK: - 播放进度线（迷你播放器用）
 
 struct ProgressLine: View {
+    @EnvironmentObject private var theme: ThemeStore
     let progress: Double
     let duration: Double
 
@@ -309,6 +323,7 @@ struct ProgressLine: View {
     }
 
     var body: some View {
+        let _ = theme.accent
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.beansSecondary.opacity(0.25))

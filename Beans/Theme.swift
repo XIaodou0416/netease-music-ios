@@ -25,10 +25,11 @@ extension UIColor {
         light: UIColor(red: 0.424, green: 0.424, blue: 0.439, alpha: 1),  // #6C6C70
         dark: UIColor(red: 0.596, green: 0.596, blue: 0.624, alpha: 1)    // #98989F
     )
-    static let beansAmber = beansDynamic(
-        light: UIColor(red: 0.753, green: 0.478, blue: 0.039, alpha: 1),  // #C07A0A
-        dark: UIColor(red: 0.949, green: 0.639, blue: 0.235, alpha: 1)    // #F2A33C
-    )
+    /// 全局着色（跟随配色主题：浅色用深色调保证对比度，深色用亮色调保证可读性）
+    static var beansAmber: UIColor {
+        let accent = ThemeStore.shared.accent
+        return beansDynamic(light: accent.tintLight, dark: accent.tintDark)
+    }
     static let beansSage = beansDynamic(
         light: UIColor(red: 0.384, green: 0.482, blue: 0.310, alpha: 1),
         dark: UIColor(red: 0.560, green: 0.650, blue: 0.480, alpha: 1)
@@ -46,7 +47,8 @@ extension Color {
     static let beansCard = Color(uiColor: .beansCard)
     static let beansLabel = Color(uiColor: .beansLabel)
     static let beansSecondary = Color(uiColor: .beansSecondary)
-    static let beansAmber = Color(uiColor: .beansAmber)
+    /// 全局着色：跟随当前配色主题即时变化（所有页面统一生效）
+    static var beansAmber: Color { Color(uiColor: .beansAmber) }
     static let beansSage = Color(uiColor: .beansSage)
     static let beansGlassFill = Color(uiColor: .beansGlassFill)
     /// 当前配色主题的高亮色（播放器进度点 / 光斑 / 歌词高亮等）
@@ -79,7 +81,7 @@ enum BeansThemeMode: String, CaseIterable, Identifiable {
     }
 }
 
-// MARK: - 播放器配色主题（多套配色，可在「我的 → 外观」中切换）
+// MARK: - 配色主题（多套配色，可在「我的 → 外观」中切换；全局统一生效）
 
 enum BeansAccent: String, CaseIterable, Identifiable {
     case amber = "琥珀暖金"
@@ -106,21 +108,63 @@ enum BeansAccent: String, CaseIterable, Identifiable {
         }
     }
 
+    /// 高亮色（渐变首色，用于光斑 / 进度点 / 歌词高亮）
     var highlight: Color {
         gradientColors[0]
     }
+
+    /// 常规着色（图标 / 文字）浅色模式版本：深色调保证浅色背景对比度
+    var tintLight: UIColor {
+        switch self {
+        case .amber: return UIColor(red: 0.72, green: 0.44, blue: 0.03, alpha: 1)   // 深琥珀
+        case .mint: return UIColor(red: 0.15, green: 0.53, blue: 0.39, alpha: 1)    // 深湖绿
+        case .pink: return UIColor(red: 0.78, green: 0.33, blue: 0.53, alpha: 1)    // 深樱粉
+        case .sky: return UIColor(red: 0.20, green: 0.48, blue: 0.84, alpha: 1)     // 深星蓝
+        case .violet: return UIColor(red: 0.46, green: 0.34, blue: 0.77, alpha: 1)  // 深罗兰
+        }
+    }
+
+    /// 常规着色（图标 / 文字）深色模式版本：亮色调保证深色背景对比度
+    var tintDark: UIColor {
+        switch self {
+        case .amber: return UIColor(red: 0.96, green: 0.70, blue: 0.35, alpha: 1)
+        case .mint: return UIColor(red: 0.45, green: 0.80, blue: 0.64, alpha: 1)
+        case .pink: return UIColor(red: 0.97, green: 0.60, blue: 0.74, alpha: 1)
+        case .sky: return UIColor(red: 0.45, green: 0.72, blue: 0.98, alpha: 1)
+        case .violet: return UIColor(red: 0.71, green: 0.62, blue: 0.92, alpha: 1)
+        }
+    }
 }
 
-/// 当前配色读取 / 写入（持久化到 UserDefaults）
+// MARK: - 全局主题（ObservableObject：一处修改，全 App 即时联动）
+
+final class ThemeStore: ObservableObject {
+    static let shared = ThemeStore()
+
+    /// 当前配色主题（@Published：切换后所有观察视图立即重绘）
+    @Published var accent: BeansAccent
+
+    private init() {
+        accent = BeansAccent(rawValue: UserDefaults.standard.string(forKey: AccentTheme.key) ?? "") ?? .amber
+    }
+
+    func set(_ newAccent: BeansAccent) {
+        guard accent != newAccent else { return }
+        accent = newAccent
+        UserDefaults.standard.set(newAccent.rawValue, forKey: AccentTheme.key)
+    }
+}
+
+/// 当前配色读取 / 写入（持久化到 UserDefaults，统一走 ThemeStore）
 enum AccentTheme {
     static let key = "beans.accent"
 
     static var current: BeansAccent {
-        BeansAccent(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .amber
+        ThemeStore.shared.accent
     }
 
     static func set(_ accent: BeansAccent) {
-        UserDefaults.standard.set(accent.rawValue, forKey: key)
+        ThemeStore.shared.set(accent)
     }
 }
 
@@ -144,6 +188,29 @@ extension LinearGradient {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+}
+
+// MARK: - 浅色立体阴影（卡片分层质感）
+
+struct BeansCardShadowModifier: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+    var radius: CGFloat
+    var y: CGFloat
+
+    func body(content: Content) -> some View {
+        content.shadow(
+            color: colorScheme == .dark ? .black.opacity(0.35) : .black.opacity(0.08),
+            radius: radius,
+            y: y
+        )
+    }
+}
+
+extension View {
+    /// 卡片阴影：浅色模式柔和阴影提升层次，深色模式轻微阴影保持立体
+    func beansCardShadow(radius: CGFloat = 9, y: CGFloat = 3) -> some View {
+        modifier(BeansCardShadowModifier(radius: radius, y: y))
     }
 }
 

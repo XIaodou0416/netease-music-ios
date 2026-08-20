@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LibraryView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
 
@@ -9,6 +10,7 @@ struct LibraryView: View {
     @State private var selectedPlaylist: Playlist?
 
     var body: some View {
+        let _ = theme.accent
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header
@@ -88,6 +90,7 @@ struct LibraryView: View {
             }
             .padding(14)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .beansCardShadow(radius: 8, y: 3)
         }
         .buttonStyle(.plain)
     }
@@ -192,6 +195,7 @@ struct LibraryView: View {
 struct FavoritesView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
+    @EnvironmentObject private var theme: ThemeStore
 
     var body: some View {
         NavigationStack {

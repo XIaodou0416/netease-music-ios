@@ -261,13 +261,14 @@ struct PlayerView: View {
         .padding(.horizontal, 32)
         .position(x: geo.size.width / 2, y: geo.size.height * 0.40 + size / 2 + 36)
     }
-
-    /// 歌词模式：封面飞走后左上角保留歌名信息条 + 居中歌词
+    /// 歌词模式：封面飞走后顶部保留歌名信息条 + 居中歌词
     private var lyricsContent: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
+                // 与左上角封面（20,20 处 54x54）占位对齐，避免信息条与封面重叠
+                Color.clear
+                    .frame(width: 54, height: 54)
+                VStack(alignment: .leading, spacing: 2) {
                     Text(song?.name ?? "")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(palette.text)
@@ -277,22 +278,22 @@ struct PlayerView: View {
                         .foregroundStyle(palette.secondary)
                         .lineLimit(1)
                 }
+                Spacer(minLength: 0)
                 Button {
                     toggleLyrics()
                 } label: {
-                    Label("收起", systemImage: "chevron.down")
-                        .font(.system(size: 11, weight: .semibold))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(palette.secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(.ultraThinMaterial, in: Capsule())
-                        .clipShape(Capsule())
+                        .frame(width: 34, height: 34)
+                        .background { Circle().fill(.ultraThinMaterial) }
+                        .clipShape(Circle())
                 }
                 .buttonStyle(GlassPressButtonStyle())
             }
             .padding(.horizontal, 20)
-            .padding(.top, 14)
-            .padding(.bottom, 6)
+            .padding(.top, 20)
+            .padding(.bottom, 4)
 
             if lyrics.isEmpty {
                 emptyLyricsView
@@ -303,7 +304,6 @@ struct PlayerView: View {
                 }
             }
         }
-        .padding(.top, 78)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .id("lyricsContent-\(song?.identityKey ?? "none")")
     }
@@ -363,13 +363,13 @@ struct PlayerView: View {
                 .frame(width: 34, height: 4)
                 .padding(.top, 8)
 
-            VStack(spacing: 14) {
+            VStack(spacing: 12) {
                 progressBlock
                 mainControls
                 utilityRow
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
+            .padding(.horizontal, 18)
+            .padding(.top, 8)
             .padding(.bottom, 10)
         }
         .frame(maxWidth: .infinity)
@@ -403,36 +403,34 @@ struct PlayerView: View {
     }
 
     // MARK: - 进度区块（可点按 / 拖动的进度条 + 当前时间 / 总时长 + ±15 秒）
-
     private var progressBlock: some View {
-        VStack(spacing: 4) {
-            SeekBar(accent: palette.accent, track: palette.secondary.opacity(0.35))
-            HStack(spacing: 8) {
+        VStack(spacing: 2) {
+            SeekBar(accent: palette.accent, track: palette.secondary.opacity(0.3))
+            HStack(spacing: 6) {
                 seekPillButton("gobackward.15") { player.seekBy(-15) }
                 Text(beansTimeString(player.progress))
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(palette.secondary)
-                    .frame(minWidth: 36, alignment: .leading)
+                    .frame(minWidth: 34, alignment: .leading)
                 Spacer(minLength: 0)
                 Text(beansTimeString(player.duration))
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(palette.secondary)
-                    .frame(minWidth: 36, alignment: .trailing)
+                    .frame(minWidth: 34, alignment: .trailing)
                 seekPillButton("goforward.15") { player.seekBy(15) }
             }
         }
     }
-
     private func seekPillButton(_ icon: String, action: @escaping () -> Void) -> some View {
         Button {
             BeansHaptics.tap()
             action()
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(palette.secondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
                 .background(.ultraThinMaterial, in: Capsule())
                 .clipShape(Capsule())
         }
@@ -462,32 +460,30 @@ struct PlayerView: View {
             }
         }
     }
-
     private func deckButton(icon: String, accent: Bool = false, action: @escaping () -> Void) -> some View {
         Button {
             BeansHaptics.tap()
             action()
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 19, weight: .medium))
+                .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(accent ? palette.accent : palette.text)
-                .frame(width: 46, height: 46)
+                .frame(width: 44, height: 44)
                 .background { Circle().fill(.ultraThinMaterial) }
                 .clipShape(Circle())
         }
         .buttonStyle(GlassPressButtonStyle())
         .frame(maxWidth: .infinity)
     }
-
     private var playButton: some View {
         Button {
             BeansHaptics.tap()
             player.togglePlayPause()
         } label: {
             Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                .font(.system(size: 26, weight: .semibold))
+                .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(Color.white)
-                .frame(width: 62, height: 62)
+                .frame(width: 58, height: 58)
                 .background {
                     Circle()
                         .fill(LinearGradient(
@@ -499,16 +495,15 @@ struct PlayerView: View {
                         }
                 }
                 .clipShape(Circle())
-                .shadow(color: palette.accent.opacity(0.45), radius: 16, y: 8)
+                .shadow(color: palette.accent.opacity(0.4), radius: 14, y: 7)
         }
         .buttonStyle(GlassPressButtonStyle(scale: 0.9))
         .frame(maxWidth: .infinity)
     }
 
     // MARK: - 工具行（倍速 / 系统音量条 / 歌词开关 / 更多菜单收纳定时等次要功能）
-
     private var utilityRow: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Menu {
                 ForEach(rateOptions, id: \.self) { option in
                     Button {
@@ -523,36 +518,31 @@ struct PlayerView: View {
                     }
                 }
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     Image(systemName: "speedometer")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                     Text(String(format: "%.2gx", player.rate))
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 }
                 .foregroundStyle(palette.secondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
                 .background(.ultraThinMaterial, in: Capsule())
                 .clipShape(Capsule())
             }
 
-            Spacer(minLength: 6)
-
             SystemVolumeSlider(tint: palette.accent)
-                .frame(maxWidth: 110, maxHeight: 22)
-
-            Spacer(minLength: 6)
+                .frame(maxWidth: .infinity, maxHeight: 22)
 
             Button {
                 toggleLyrics()
             } label: {
-                Label(showLyrics ? "收起歌词" : "歌词", systemImage: showLyrics ? "quote.bubble.fill" : "quote.bubble")
+                Image(systemName: showLyrics ? "quote.bubble.fill" : "quote.bubble")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(showLyrics ? palette.accent : palette.secondary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .clipShape(Capsule())
+                    .frame(width: 32, height: 32)
+                    .background { Circle().fill(.ultraThinMaterial) }
+                    .clipShape(Circle())
             }
             .buttonStyle(GlassPressButtonStyle())
 
@@ -574,9 +564,9 @@ struct PlayerView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(palette.secondary)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 32, height: 32)
                     .background { Circle().fill(.ultraThinMaterial) }
                     .clipShape(Circle())
             }

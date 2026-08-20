@@ -1,29 +1,29 @@
 # Beans — 网易云音乐播放器（iOS / 未签名 IPA）
 
 Beans 是一款面向网易云账号的音乐播放器：扫码登录 → 拉取你的收藏与歌单 → 以 iOS 26 原生液态玻璃风格播放。
-深色暖调咖啡色系（#131110 / #F6F0E6 / #9C948A / #E8A33D）。共 71 项功能，清单见 FEATURES.md。
+深色暖调咖啡色系（#131110 / #F6F0E6 / #9C948A / #E8A33D），支持 5 套全局配色主题。共 79 项功能，清单见 FEATURES.md。
 
 ## 功能
 - 网易云 App 扫码登录（weapi / eapi 加密协议，Swift 原生实现）
 - 我的收藏（我喜欢的音乐）+ 全部歌单 + 新建 / 添加歌单
 - 在线播放（AVPlayer + 锁屏控制 + 控制中心 + 后台播放）
 - 队列管理 / 插队播放 / 播放历史 / 听歌排行 / 睡眠定时 / 倍速
-- 发现页：排行榜、每日推荐、私人 FM、推荐歌单、新歌速递、热门歌单
+- 发现页：排行榜、每日推荐（单卡片）、推荐歌单、热门歌单
 - 搜索 + 热搜榜 + 相似歌曲 + 在线歌词逐行跟随
-- 液态玻璃 UI（GlassEffectContainer / .glassEffect）+ 深浅色跟随系统
+- 液态玻璃 UI（GlassEffectContainer / .glassEffect）+ 深浅色跟随系统 + 5 套全局配色一键切换
 - 播放页：下滑退出 / 静态封面 / 点封面看歌词 / 歌词点击跳转播放
-- 搜索即时联想（防抖）、网易云收藏数云端同步、App Store 风格底栏、顶部渐隐、触感与按压动效
+- 搜索即时联想（防抖）、网易云收藏数云端同步、App Store 风格底栏、触感与按压动效
 
 ## 工程结构
 ```
 Beans/
 ├── BeansApp.swift            应用入口
 ├── RootView.swift            4 Tab 液态玻璃底栏 + 登录门禁
-├── DiscoverView.swift       发现页（排行榜 / 每日推荐 / FM / 推荐歌单 / 新歌 / 热门歌单）
+├── DiscoverView.swift       发现页（排行榜 / 每日推荐 / 推荐歌单 / 热门歌单）
 ├── SearchView.swift          搜索 + 热搜
 ├── LibraryView.swift        音乐库（收藏 / 歌单 / 最近播放 / 听歌排行）
 ├── PlaylistView.swift       歌单详情
-├── PlayerView.swift         播放页（旋转封面 / 歌词 / 进度 / 倍速 / 睡眠定时）
+├── PlayerView.swift         播放页（毛玻璃背景 / 静态封面 / 歌词 / 进度 / 倍速 / 睡眠定时）
 ├── MiniPlayerView.swift     迷你播放条
 ├── QueueView.swift          播放队列
 ├── HistoryView.swift        最近播放

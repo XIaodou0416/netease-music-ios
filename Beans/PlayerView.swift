@@ -44,9 +44,13 @@ struct PlayerView: View {
                 VStack(spacing: 0) {
                     headerBar
                     content(geo: geo)
-                    controlDeck
                 }
                 .foregroundStyle(palette.text)
+
+                VStack(spacing: 0) {
+                    controlDeck
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
         }
         .task(id: song?.identityKey) {
@@ -84,8 +88,8 @@ struct PlayerView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             LinearGradient(
                 colors: colorScheme == .dark
-                    ? [.black.opacity(0.28), .clear, .black.opacity(0.42)]
-                    : [.white.opacity(0.10), .clear, .black.opacity(0.16)],
+                    ? [.black.opacity(0.22), .clear, .black.opacity(0.34)]
+                    : [.white.opacity(0.08), .clear, .black.opacity(0.12)],
                 startPoint: .top, endPoint: .bottom
             )
         }
@@ -332,7 +336,7 @@ struct PlayerView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
-        .padding(.bottom, 10)
+        .padding(.bottom, 6)
         .frame(maxWidth: .infinity)
         .background {
             // iOS 原生液态玻璃面板，延伸到底部安全区贴满屏幕底部，不留空白

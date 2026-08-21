@@ -1,29 +1,6 @@
 import SwiftUI
 import UIKit
 
-// MARK: - 横屏歌词舞台渲染风格（用户可自主选择，持久化记忆）
-enum StageRenderStyle: String, CaseIterable, Identifiable {
-    case particles = "粒子封面"
-    case pixel = "像素封面"
-    case nebula = "星云漩涡"
-    case waves = "声浪律动"
-    case glow = "光晕呼吸"
-    case meteor = "流星拖尾"
-
-    var id: String { rawValue }
-
-    var icon: String {
-        switch self {
-        case .particles: return "sparkles"
-        case .pixel: return "square.grid.3x3"
-        case .nebula: return "circle.hexagongrid"
-        case .waves: return "waveform"
-        case .glow: return "circle.circle"
-        case .meteor: return "bolt.horizontal"
-        }
-    }
-}
-
 // MARK: - 封面粒子（颜色采样自封面像素，组成"粒子化封面"）
 struct CoverParticle: Identifiable {
     let id: Int
@@ -35,7 +12,7 @@ struct CoverParticle: Identifiable {
 }
 
 enum ParticleCoverSampler {
-    /// 把封面缩略图采样成粒子点阵（颜色来自真实像素，形成粒子化封面）
+    /// 把封面缩略图采样成粒子点阵（颜色来自真实像素），密度由用户调节
     static func sample(from url: URL?, grid: Int = 40) async -> [CoverParticle] {
         guard let url else { return [] }
         do {
@@ -83,7 +60,7 @@ enum ParticleCoverSampler {
     }
 }
 
-// MARK: - 粒子化封面视图（粒子封面风格：可被 rotation3DEffect 做 360° 旋转）
+// MARK: - 粒子化封面视图（封面粒子在 3D 空间中的正面视图）
 struct ParticleCoverView: View {
     let particles: [CoverParticle]
     let isPlaying: Bool
@@ -108,159 +85,28 @@ struct ParticleCoverView: View {
     }
 }
 
-// MARK: - 其他风格全屏背景渲染（像素 / 星云 / 声浪 / 光晕 / 流星）
-struct StageAmbientView: View {
-    let style: StageRenderStyle
-    let particles: [CoverParticle]
-    let accent: Color
-    let isPlaying: Bool
-
-    private func rand(_ i: Int, _ seed: Double) -> Double {
-        let v = sin(Double(i) * 127.1 + seed * 311.7) * 43758.5453
-        return v - floor(v)
-    }
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isPlaying)) { timeline in
-            Canvas { context, size in
-                guard size.width > 0, size.height > 0 else { return }
-                let t = timeline.date.timeIntervalSinceReferenceDate
-                let w = size.width, h = size.height
-                let pulse = min(1, max(0, 1 - (((t * 78 / 60).truncatingRemainder(dividingBy: 1)) * 2.6)))
-
-                switch style {
-                case .pixel:
-                    // 像素封面：大色块拼出封面
-                    let blockW = w / 22, blockH = h / 15
-                    for p in particles {
-                        let bx = p.baseX * w + sin(t * 0.4 + p.phase) * 3
-                        let by = p.baseY * h + cos(t * 0.35 + p.phase) * 3
-                        let rect = CGRect(x: bx - blockW / 2, y: by - blockH / 2, width: blockW * 1.15, height: blockH * 1.15)
-                        context.fill(Path(rect), with: .color(p.color.opacity(0.9)))
-                    }
-                case .nebula:
-                    // 星云漩涡：三条螺旋星带，随时间旋转
-                    let spokes = 3
-                    for s in 0..<spokes {
-                        let spin = t * (0.28 + Double(s) * 0.06) + Double(s) * 2.094
-                        let baseAngle = spin
-                        let cx = w * 0.5, cy = h * 0.5
-                        let maxR = min(w, h) * 0.48
-                        for i in 0..<90 {
-                            let r = maxR * Double(i) / 90.0
-                            let a = baseAngle + r * 0.006
-                            let x = cx + CGFloat(cos(a) * r)
-                            let y = cy + CGFloat(sin(a) * r) * 0.9
-                            let fade = 1.0 - Double(i) / 90.0
-                            let col = s == 0 ? accent : (s == 1 ? accent.opacity(0.6) : Color.white.opacity(0.35))
-                            let rr = 2.4 * CGFloat(fade) + CGFloat(pulse) * 1.4
-                            let rect = CGRect(x: x - rr, y: y - rr, width: rr * 2, height: rr * 2)
-                            context.fill(Path(ellipseIn: rect), with: .color(col.opacity(0.5 * fade + 0.2)))
-                        }
-                    }
-                case .waves:
-                    // 声浪律动：四条波形，峰谷随节拍起伏
-                    let rows: [CGFloat] = [0.30, 0.44, 0.58, 0.72]
-                    for (ri, row) in rows.enumerated() {
-                        let cy = h * row
-                        let amp = 14 + CGFloat(pulse) * 20 + CGFloat(ri) * 4
-                        var path = Path()
-                        path.move(to: CGPoint(x: 0, y: cy))
-                        let step = w / 60
-                        for x in stride(from: CGFloat(0), through: w, by: step) {
-                            let y = cy + sin(x * 0.018 + t * (1.6 + Double(ri) * 0.4)) * amp
-                            path.addLine(to: CGPoint(x: x, y: y))
-                        }
-                        let grad = Gradient(colors: [accent.opacity(0.0), accent.opacity(0.75), accent.opacity(0.0)])
-                        context.stroke(path, with: .linearGradient(grad, startPoint: CGPoint(x: 0, y: 0), endPoint: CGPoint(x: w, y: 0)), lineWidth: 3.2)
-                    }
-                case .glow:
-                    // 光晕呼吸：大光斑 + 光环 + 星点
-                    let cx = w * 0.5, cy = h * 0.5
-                    let maxR = min(w, h) * 0.42
-                    let radius = maxR * (0.85 + CGFloat(pulse) * 0.25)
-                    let grad = Gradient(colors: [
-                        accent.opacity(0.55 + Double(pulse) * 0.2),
-                        accent.opacity(0.18),
-                        accent.opacity(0.0)
-                    ])
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: cx - radius, y: cy - radius, width: radius * 2, height: radius * 2)),
-                        with: .radialGradient(grad, center: CGPoint(x: cx, y: cy), startRadius: 0, endRadius: radius)
-                    )
-                    for i in 0..<2 {
-                        let ringR = maxR * (0.55 + CGFloat(i) * 0.22 + CGFloat(pulse) * 0.15)
-                        let ring = Path(ellipseIn: CGRect(x: cx - ringR, y: cy - ringR, width: ringR * 2, height: ringR * 2))
-                        context.stroke(ring, with: .color(accent.opacity(0.35 + Double(pulse) * 0.2)), lineWidth: 1.6)
-                    }
-                    for i in 0..<40 {
-                        let sx = rand(i, 1) * w
-                        let sy = rand(i, 2) * h
-                        let tw = 0.5 + 0.5 * sin(t * 1.5 + Double(i) * 1.7)
-                        let star = 1.0 + CGFloat(tw) * 2.2
-                        let cx2 = sx + sin(t * 0.5 + Double(i)) * 14
-                        let cy2 = sy + cos(t * 0.45 + Double(i) * 1.3) * 12
-                        var sp = Path()
-                        sp.move(to: CGPoint(x: cx2 - star * 2, y: cy2))
-                        sp.addLine(to: CGPoint(x: cx2 + star * 2, y: cy2))
-                        sp.move(to: CGPoint(x: cx2, y: cy2 - star * 2))
-                        sp.addLine(to: CGPoint(x: cx2, y: cy2 + star * 2))
-                        context.stroke(sp, with: .color(.white.opacity(0.25 + tw * 0.5)), lineWidth: 1.1)
-                    }
-                case .meteor:
-                    // 流星拖尾：粒子沿轨道飞行，带渐变尾巴
-                    for i in 0..<14 {
-                        let speed = 0.02 + Double(i % 5) * 0.006
-                        let dist = ((t * speed + Double(i) * 0.73).truncatingRemainder(dividingBy: 1.0))
-                        let angle = Double(i) * 0.45
-                        let cx = w * 0.5 + CGFloat(cos(angle) * (dist * 1.3 - 0.15)) * w * 0.6
-                        let cy = h * 0.5 + CGFloat(sin(angle) * (dist * 1.3 - 0.15)) * h * 0.6
-                        let tail = 26.0 + Double(pulse) * 14
-                        let tx = cx - CGFloat(cos(angle)) * CGFloat(tail)
-                        let ty = cy - CGFloat(sin(angle)) * CGFloat(tail)
-                        var mp = Path()
-                        mp.move(to: CGPoint(x: tx, y: ty))
-                        mp.addLine(to: CGPoint(x: cx, y: cy))
-                        let col = i % 3 == 0 ? Color.white : accent
-                        context.stroke(mp, with: .color(col.opacity(0.75)), lineWidth: 1.8)
-                        let headR = 2.6 + CGFloat(pulse) * 1.6
-                        context.fill(
-                            Path(ellipseIn: CGRect(x: cx - headR, y: cy - headR, width: headR * 2, height: headR * 2)),
-                            with: .color(.white.opacity(0.95))
-                        )
-                    }
-                case .particles:
-                    break
-                }
-            }
-        }
-        .drawingGroup()
-    }
-}
-
 // MARK: - 横屏歌词舞台（全屏覆盖）
-/// 固定横屏方向；粒子封面可 360° 旋转、歌词反向补偿始终保持在正面；支持多种渲染风格。
+/// 3D 空间：封面粒子可手动拖动 360° 旋转（不自动转），歌词永远浮在空间正前方不动。
+/// 固定横屏方向；控件竖屏方向显示在屏幕上方；左侧可展开收藏歌单列表。
 struct LyricStageLandscapeView: View {
     @EnvironmentObject private var player: PlayerManager
+    @EnvironmentObject private var auth: AuthStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     let lyrics: [LyricLine]
     let coverURL: URL?
     let accent: Color
 
-    @AppStorage("beans.stageRenderStyle") private var styleRaw = StageRenderStyle.particles.rawValue
+    /// 粒子密度（用户可调，持久化）
+    @AppStorage("beans.stageParticleDensity") private var density = 40
     @State private var particles: [CoverParticle] = []
     @State private var angle: Double = 0
-    @State private var autoRotate = true
     @State private var dragging = false
     @State private var dragStart: Double = 0
     @State private var coverLoaded = false
-
-    private let timer = Timer.publish(every: 0.03, on: .main, in: .common).autoconnect()
-
-    private var renderStyle: StageRenderStyle {
-        StageRenderStyle(rawValue: styleRaw) ?? .particles
-    }
+    @State private var showPlaylists = false
+    @State private var showParticlePanel = false
+    @State private var playlistLoading = false
 
     /// 二分查找当前歌词行（与歌词页一致，避免逐行扫描）
     private var currentIndex: Int? {
@@ -285,64 +131,88 @@ struct LyricStageLandscapeView: View {
         return lyrics[currentIndex].text.isEmpty ? "♪" : lyrics[currentIndex].text
     }
 
+    /// 歌词颜色：提取封面主色并提亮，保证在深色空间里看得清
+    private var lyricColor: Color {
+        mixedColor(accent, with: .white, amount: 0.38)
+    }
+
+    private func mixedColor(_ c: Color, with other: Color, amount: CGFloat) -> Color {
+        let ui = UIColor(c)
+        let ui2 = UIColor(other)
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        ui.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        ui2.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        let a = min(max(amount, 0), 1)
+        return Color(red: r1 * (1 - a) + r2 * a, green: g1 * (1 - a) + g2 * a, blue: b1 * (1 - a) + b2 * a)
+    }
+
     var body: some View {
         GeometryReader { geo in
-            // 固定横屏方向：无论手机如何放置，画面始终同一个方向
             let stageW = geo.size.height
             let stageH = geo.size.width
-            let coverSide = min(stageW * 0.72, stageH * 0.86)
+            let coverSide = min(stageW * 0.70, stageH * 0.80)
 
             ZStack {
-                // 深色底 + 封面主色辉光
-                LinearGradient(
-                    colors: colorScheme == .dark
-                        ? [Color.black.opacity(0.96), Color(red: 0.05, green: 0.04, blue: 0.10)]
-                        : [Color(red: 0.10, green: 0.09, blue: 0.16), Color.black],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                // ---------- 3D 空间（横屏内容，固定旋转 -90°） ----------
+                ZStack {
+                    LinearGradient(
+                        colors: colorScheme == .dark
+                            ? [Color.black.opacity(0.96), Color(red: 0.05, green: 0.04, blue: 0.10)]
+                            : [Color(red: 0.10, green: 0.09, blue: 0.16), Color.black],
+                        startPoint: .top, endPoint: .bottom
+                    )
 
-                if coverLoaded {
-                    if renderStyle == .particles {
-                        // 粒子化封面，绕 Y 轴 360° 旋转
+                    if coverLoaded {
+                        // 封面粒子：只由用户拖动旋转，不自动转
                         ParticleCoverView(particles: particles, isPlaying: player.isPlaying)
                             .frame(width: coverSide, height: coverSide)
                             .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
                             .shadow(color: .black.opacity(0.6), radius: 40, y: 0)
                     } else {
-                        // 其他风格：全屏背景渲染
-                        StageAmbientView(style: renderStyle, particles: particles, accent: accent, isPlaying: player.isPlaying)
+                        ProgressView("粒子封面加载中…")
+                            .tint(.white)
+                            .foregroundStyle(.white.opacity(0.8))
                     }
-                } else {
-                    ProgressView("粒子封面加载中…")
-                        .tint(.white)
-                        .foregroundStyle(.white.opacity(0.8))
-                }
 
-                // 当前歌词：粒子封面风格反向补偿旋转，其余风格固定正面
-                VStack(spacing: 10) {
-                    Text(currentLine)
-                        .font(.system(size: 30, weight: .bold))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.5)
-                        .shadow(color: .black.opacity(0.85), radius: 6, y: 2)
-                        .shadow(color: Color.white.opacity(0.35), radius: 14)
-                        .padding(.horizontal, 24)
-                    Rectangle()
-                        .fill(Color.white.opacity(0.4))
-                        .frame(width: 44, height: 3)
-                        .cornerRadius(1.5)
-                    Text(currentIndex.map { index in "\(index + 1)/\(lyrics.count)" } ?? "")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.55))
+                    // 歌词：永远在空间正前方，不随封面旋转
+                    VStack(spacing: 10) {
+                        Text(currentLine)
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundStyle(lyricColor)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.5)
+                            .shadow(color: .black.opacity(0.9), radius: 3, y: 1)
+                            .shadow(color: lyricColor.opacity(0.85), radius: 12)
+                            .shadow(color: lyricColor.opacity(0.55), radius: 28)
+                            .padding(.horizontal, 30)
+                        Rectangle()
+                            .fill(lyricColor.opacity(0.55))
+                            .frame(width: 44, height: 3)
+                            .cornerRadius(1.5)
+                        Text(currentIndex.map { index in "\(index + 1)/\(lyrics.count)" } ?? "")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
                 }
-                .rotation3DEffect(.degrees(renderStyle == .particles ? -angle : 0), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+                .frame(width: stageW, height: stageH)
+                .rotationEffect(.degrees(-90))
+                .gesture(
+                    // 用户手动旋转封面：拖动跟手，松手即停
+                    DragGesture()
+                        .onChanged { value in
+                            if !dragging { dragging = true; dragStart = angle }
+                            angle = (dragStart + value.translation.width * 0.5).truncatingRemainder(dividingBy: 360)
+                        }
+                        .onEnded { _ in
+                            dragging = false
+                        }
+                )
 
-                // 顶部操作条
-                VStack {
-                    HStack {
+                // ---------- 外层控件（竖屏方向，不旋转） ----------
+                VStack(spacing: 0) {
+                    HStack(spacing: 14) {
                         Button {
                             BeansHaptics.tap()
                             dismiss()
@@ -350,91 +220,185 @@ struct LyricStageLandscapeView: View {
                             Image(systemName: "xmark")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(.white)
-                                .frame(width: 38, height: 38)
+                                .frame(width: 40, height: 40)
                                 .background(.ultraThinMaterial, in: Circle())
                         }
                         .buttonStyle(.plain)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(player.currentSong?.name ?? "")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                            Text(player.currentSong?.artists ?? "")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .lineLimit(1)
+                        }
                         Spacer()
-                        Text(player.currentSong?.name ?? "")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.7))
-                            .lineLimit(1)
-                        Spacer()
-                        Menu {
-                            ForEach(StageRenderStyle.allCases) { st in
-                                Button {
-                                    BeansHaptics.select()
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        styleRaw = st.rawValue
-                                    }
-                                } label: {
-                                    if st == renderStyle {
-                                        Label(st.rawValue, systemImage: "checkmark")
-                                    } else {
-                                        Text(st.rawValue)
-                                    }
-                                }
+
+                        // 粒子密度设置
+                        Button {
+                            BeansHaptics.select()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                                showParticlePanel.toggle()
                             }
                         } label: {
-                            Image(systemName: "paintpalette.fill")
+                            Image(systemName: "slider.horizontal.3")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(.white)
-                                .frame(width: 38, height: 38)
+                                .frame(width: 40, height: 40)
                                 .background(.ultraThinMaterial, in: Circle())
                         }
+                        .buttonStyle(.plain)
+
+                        // 收藏歌单
                         Button {
                             BeansHaptics.tap()
-                            withAnimation(.linear(duration: 0.3)) { angle = (angle + 180).truncatingRemainder(dividingBy: 360) }
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                                showPlaylists.toggle()
+                            }
                         } label: {
-                            Image(systemName: "rotate.3d")
-                                .font(.system(size: 15, weight: .semibold))
+                            Image(systemName: "list.bullet.rectangle")
+                                .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(.white)
-                                .frame(width: 38, height: 38)
+                                .frame(width: 40, height: 40)
                                 .background(.ultraThinMaterial, in: Circle())
                         }
                         .buttonStyle(.plain)
                     }
-                    .padding(.horizontal, 18)
+                    .padding(.horizontal, 16)
                     .padding(.top, 10)
+
+                    // 粒子密度面板（顶部下拉）
+                    if showParticlePanel {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("粒子密度")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.85))
+                                Spacer()
+                                Text("\(density) × \(density)")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
+                            Slider(
+                                value: Binding(
+                                    get: { Double(density) },
+                                    set: { density = Int($0) }
+                                ),
+                                in: 10...60,
+                                step: 2
+                            )
+                            .tint(.white)
+                        }
+                        .padding(14)
+                        .frame(maxWidth: 300)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .strokeBorder(.white.opacity(0.15), lineWidth: 0.8)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 10)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+
                     Spacer()
-                    Text("\(renderStyle.rawValue) · 左右拖动旋转封面 · 单击歌词跳转")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.4))
-                        .padding(.bottom, 14)
                 }
-                .frame(width: stageW, height: stageH)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.horizontal, 8)
+
+                // ---------- 左侧收藏歌单面板 ----------
+                if showPlaylists {
+                    HStack(spacing: 0) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("收藏歌单")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.top, 8)
+                            ScrollView(showsIndicators: false) {
+                                VStack(spacing: 8) {
+                                    if auth.playlists.isEmpty {
+                                        Text("暂无收藏歌单")
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(.white.opacity(0.5))
+                                            .padding(.top, 24)
+                                    } else {
+                                        ForEach(auth.playlists) { playlist in
+                                            Button {
+                                                BeansHaptics.tap()
+                                                playPlaylist(playlist)
+                                            } label: {
+                                                HStack(spacing: 10) {
+                                                    CoverImage(url: playlist.coverURL, size: 40, cornerRadius: 8)
+                                                    VStack(alignment: .leading, spacing: 2) {
+                                                        Text(playlist.name)
+                                                            .font(.system(size: 12, weight: .medium))
+                                                            .foregroundStyle(.white)
+                                                            .lineLimit(1)
+                                                        Text("\(playlist.trackCount) 首")
+                                                            .font(.system(size: 10))
+                                                            .foregroundStyle(.white.opacity(0.5))
+                                                    }
+                                                    Spacer()
+                                                    Image(systemName: "play.circle")
+                                                        .font(.system(size: 14))
+                                                        .foregroundStyle(.white.opacity(0.6))
+                                                }
+                                                .padding(8)
+                                                .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(maxHeight: .infinity)
+                        }
+                        .padding(12)
+                        .frame(width: 250, alignment: .leading)
+                        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .strokeBorder(.white.opacity(0.12), lineWidth: 0.8)
+                        }
+                        .padding(.vertical, 70)
+                        .padding(.leading, 14)
+                        Spacer()
+                    }
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+                }
             }
-            .frame(width: stageW, height: stageH)
-            .rotationEffect(.degrees(-90))
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .ignoresSafeArea()
-        .onReceive(timer) { _ in
-            if autoRotate && !dragging && renderStyle == .particles {
-                angle = (angle + 0.6).truncatingRemainder(dividingBy: 360)
-            }
-        }
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    guard renderStyle == .particles else { return }
-                    if !dragging { dragging = true; dragStart = angle }
-                    autoRotate = false
-                    angle = (dragStart + value.translation.width * 0.4).truncatingRemainder(dividingBy: 360)
-                }
-                .onEnded { _ in
-                    dragging = false
-                    autoRotate = true
-                }
-        )
         .onTapGesture {
-            guard let currentIndex else { return }
+            guard !showPlaylists, let currentIndex else { return }
             BeansHaptics.tap()
             player.seek(to: lyrics[currentIndex].time)
         }
-        .task {
-            particles = await ParticleCoverSampler.sample(from: coverURL)
+        .task(id: density) {
+            coverLoaded = false
+            particles = await ParticleCoverSampler.sample(from: coverURL, grid: density)
             coverLoaded = true
+        }
+    }
+
+    private func playPlaylist(_ playlist: Playlist) {
+        playlistLoading = true
+        Task {
+            let tracks = (try? await NetEaseAPI.shared.playlistTracks(id: playlist.id)) ?? []
+            playlistLoading = false
+            guard !tracks.isEmpty else {
+                BeansHaptics.error()
+                return
+            }
+            player.play(songs: tracks, startAt: 0)
+            BeansHaptics.success()
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                showPlaylists = false
+            }
         }
     }
 }

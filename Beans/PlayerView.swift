@@ -166,6 +166,7 @@ struct PlayerView: View {
         .fullScreenCover(isPresented: $showLyricStage) {
             LyricStageLandscapeView(lyrics: lyrics, coverURL: song?.coverURL, accent: palette.accent)
                 .environmentObject(player)
+                .environmentObject(auth)
         }
         .sheet(isPresented: $showLyricSettings) {
             LyricSettingsSheet(

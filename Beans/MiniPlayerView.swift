@@ -4,6 +4,25 @@ struct MiniPlayerView: View {
     @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var player: PlayerManager
     @Binding var showPlayer: Bool
+    @State private var miniLyrics: [LyricLine] = []
+
+    /// 二分查找当前播放到的歌词行（歌词按时间升序）
+    private var currentLyricLine: LyricLine? {
+        guard !miniLyrics.isEmpty else { return nil }
+        var low = 0
+        var high = miniLyrics.count - 1
+        var answer: LyricLine?
+        while low <= high {
+            let mid = (low + high) / 2
+            if miniLyrics[mid].time <= player.progress {
+                answer = miniLyrics[mid]
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+        return answer
+    }
 
     var body: some View {
         let _ = theme.accent
@@ -18,10 +37,12 @@ struct MiniPlayerView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.beansLabel)
                         .lineLimit(1)
-                    Text(player.currentSong?.artists ?? "")
+                    Text(currentLyricLine?.text ?? player.currentSong?.artists ?? "")
                         .font(.system(size: 12))
                         .foregroundStyle(Color.beansSecondary)
                         .lineLimit(1)
+                        .truncationMode(.tail)
+                        .animation(.easeInOut(duration: 0.25), value: currentLyricLine?.text)
                 }
                 Spacer(minLength: 8)
                 Button {
@@ -84,5 +105,21 @@ struct MiniPlayerView: View {
         }
         .buttonStyle(GlassPressButtonStyle(scale: 0.97))
         .padding(.horizontal, 12)
+        .task(id: player.currentSong?.identityKey) {
+            await loadMiniLyrics()
+        }
+    }
+
+    private func loadMiniLyrics() async {
+        miniLyrics = []
+        guard let song = player.currentSong else { return }
+        var raw: String?
+        if song.source == .qq, let mid = song.qqMid {
+            raw = try? await QQMusicAPI.shared.lyric(songmid: mid)
+        } else {
+            raw = try? await NetEaseAPI.shared.lyric(id: song.id)
+        }
+        guard let raw else { return }
+        miniLyrics = LyricParser.parse(raw)
     }
 }

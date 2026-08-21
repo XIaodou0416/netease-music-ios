@@ -263,14 +263,15 @@ struct ProfileView: View {
 
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "外观", trailing: appearanceExpanded ? "收起" : "展开") {
+            SectionHeader(title: "外观")
+            // 主题模式：液态玻璃行，点击展开 / 收起全部外观设置
+            Button {
+                BeansHaptics.select()
                 withAnimation(.easeInOut(duration: 0.25)) {
                     appearanceExpanded.toggle()
                 }
-            }
-            if appearanceExpanded {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
+            } label: {
+                HStack(spacing: 12) {
                     Image(systemName: "paintpalette.fill")
                         .font(.system(size: 14))
                         .foregroundStyle(Color.beansAmber)
@@ -279,50 +280,42 @@ struct ProfileView: View {
                         .font(.system(size: 15))
                         .foregroundStyle(Color.beansLabel)
                     Spacer()
+                    Text(themeMode.title)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.beansSecondary)
+                    Image(systemName: appearanceExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.beansSecondary.opacity(0.6))
                 }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 13)
+                .background {
+                    GlassEffectContainer {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(.clear)
+                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    }
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(colors: [.white.opacity(0.4), .white.opacity(0.08)], startPoint: .top, endPoint: .bottom),
+                            lineWidth: 0.8
+                        )
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(GlassPressButtonStyle(scale: 0.98))
+
+            if appearanceExpanded {
+            VStack(alignment: .leading, spacing: 14) {
                 Picker("主题模式", selection: $themeModeRaw) {
                     ForEach(BeansThemeMode.allCases) { mode in
                         Text(mode.title).tag(mode.rawValue)
                     }
                 }
                 .pickerStyle(.segmented)
-
-                Divider().overlay(Color.beansSecondary.opacity(0.15))
-
-                HStack {
-                    Image(systemName: "paintbrush.pointed.fill")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.beansAmber)
-                        .frame(width: 28)
-                    Text("播放器配色")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Color.beansLabel)
-                    Spacer()
-                }
-                HStack(spacing: 16) {
-                    ForEach(BeansAccent.allCases) { accent in
-                        Button {
-                            theme.set(accent)
-                            BeansHaptics.select()
-                        } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(LinearGradient(colors: accent.gradientColors, startPoint: .topLeading, endPoint: .bottomTrailing))
-                                    .frame(width: 34, height: 34)
-                                    .overlay {
-                                        Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1)
-                                    }
-                                if accent == theme.accent {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundStyle(.white)
-                                }
-                            }
-                        }
-                        .buttonStyle(GlassPressButtonStyle(scale: 0.9))
-                    }
-                    Spacer()
-                }
 
                 Divider().overlay(Color.beansSecondary.opacity(0.15))
 

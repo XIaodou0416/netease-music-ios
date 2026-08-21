@@ -509,16 +509,20 @@ struct PlayerView: View {
     // MARK: - 空歌词兜底
 
     private var emptyLyricsView: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "quote.bubble")
-                .font(.system(size: 30, weight: .light))
-                .foregroundStyle(palette.secondary.opacity(0.7))
-            Text("暂无歌词")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(palette.text)
-            Text("点击左上角封面返回专辑视图")
-                .font(.system(size: 11))
-                .foregroundStyle(palette.secondary.opacity(0.8))
+        VStack(spacing: 0) {
+            Spacer(minLength: 40)
+            VStack(spacing: 10) {
+                Image(systemName: "quote.bubble")
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundStyle(palette.secondary.opacity(0.7))
+                Text("暂无歌词")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(palette.text)
+                Text("点击左上角封面返回专辑视图")
+                    .font(.system(size: 11))
+                    .foregroundStyle(palette.secondary.opacity(0.8))
+            }
+            Spacer(minLength: 40)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

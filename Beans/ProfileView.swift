@@ -40,7 +40,6 @@ struct ProfileView: View {
             VStack(alignment: .leading, spacing: 22) {
                 userCard
                 qqCard
-                dataSection
                 settingsSection
                 aboutSection
             }
@@ -183,7 +182,6 @@ struct ProfileView: View {
                 HStack(spacing: 10) {
                     profileStat(icon: "play.circle.fill", value: "\(player.playCounts.values.reduce(0, +))", label: "累计播放")
                     profileStat(icon: "square.stack.fill", value: "\(auth.playlists.count)", label: "歌单")
-                    profileStat(icon: "chart.bar.fill", value: rankValue, label: "听歌排行")
                 }
                 .padding(12)
             }
@@ -563,35 +561,6 @@ struct ProfileView: View {
         }
             .beansCardShadow(radius: 9, y: 3)
             }
-        }
-    }
-
-    private var dataSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "数据")
-            VStack(spacing: 0) {
-                row(icon: "clock.arrow.circlepath", title: "最近播放", value: "\(player.history.count) 首") {
-                    showHistory = true
-                }
-                Divider().overlay(Color.beansSecondary.opacity(0.15))
-                row(icon: "play.circle.fill", title: "累计播放", value: "\(player.playCounts.values.reduce(0, +)) 次") {}
-                Divider().overlay(Color.beansSecondary.opacity(0.15))
-                row(icon: "chart.bar.fill", title: "听歌排行", value: rankValue) {
-                    if auth.isLoggedIn, !weekRecord.isEmpty || !allRecord.isEmpty {
-                        showNetEaseRank = true
-                    }
-                }
-            }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 6)
-            .background {
-            GlassEffectContainer {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-            }
-        }
-            .beansCardShadow(radius: 8, y: 3)
         }
     }
 

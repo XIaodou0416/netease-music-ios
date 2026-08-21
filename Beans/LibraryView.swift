@@ -19,7 +19,6 @@ struct LibraryView: View {
                 header
                 playlistsSection
                 historySection
-                topPlayedSection
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -72,7 +71,6 @@ struct LibraryView: View {
             HStack(spacing: 10) {
                 statPill(icon: "square.stack.fill", value: "\(auth.playlists.count)", label: "歌单")
                 statPill(icon: "clock.arrow.circlepath", value: "\(player.history.count)", label: "最近播放")
-                statPill(icon: "chart.bar.fill", value: "\(player.topPlayed.count)", label: "听歌排行")
             }
         }
         .padding(.top, 8)
@@ -237,54 +235,6 @@ struct LibraryView: View {
                     ForEach(player.history.prefix(5)) { song in
                         SongCell(song: song) {
                             playFromHistory(song)
-                        }
-                        Divider().overlay(Color.beansSecondary.opacity(0.15))
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background {
-                    GlassEffectContainer {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(.clear)
-                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    }
-                }
-                .beansCardShadow(radius: 8, y: 3)
-            }
-        }
-    }
-
-    private var topPlayedSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "听歌排行")
-            let top = player.topPlayed
-            if top.isEmpty {
-                EmptyStateView(icon: "chart.bar.fill", text: "多听几首再来看看吧")
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(top.enumerated()), id: \.element.song.id) { index, entry in
-                        HStack(spacing: 12) {
-                            Text("\(index + 1)")
-                                .font(BeansFont.appFont(15, .bold, .rounded))
-                                .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
-                                .frame(width: 22)
-                            CoverImage(url: entry.song.coverURL, size: 44, cornerRadius: 10)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(entry.song.name)
-                                    .font(BeansFont.appFont(15))
-                                    .foregroundStyle(Color.beansLabel)
-                                    .lineLimit(1)
-                                Text("播放 \(entry.count) 次")
-                                    .font(BeansFont.appFont(12))
-                                    .foregroundStyle(Color.beansSecondary)
-                            }
-                            Spacer()
-                        }
-                        .padding(.vertical, 6)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            player.play(songs: top.map(\.song), startAt: index)
                         }
                         Divider().overlay(Color.beansSecondary.opacity(0.15))
                     }

@@ -253,13 +253,13 @@ struct DiscoverView: View {
                 BeansHaptics.tap()
                 showDailyList = true
             }
-            // 全宽封面横幅：封面模糊 + 渐变叠层 + 播放按钮
+            // 全宽横幅：头像背景 + 渐变叠层 + 播放按钮
             Button {
                 BeansHaptics.tap()
                 showDailyList = true
             } label: {
                 ZStack(alignment: .bottomLeading) {
-                    AsyncImage(url: dailySongs.first?.coverURL) { phase in
+                    AsyncImage(url: auth.user?.avatarURL) { phase in
                         if case .success(let image) = phase {
                             image.resizable().scaledToFill()
                         } else {
@@ -269,7 +269,6 @@ struct DiscoverView: View {
                             )
                         }
                     }
-                    .blur(radius: 8)
                     LinearGradient(
                         colors: [.black.opacity(0.12), .black.opacity(0.72)],
                         startPoint: .top, endPoint: .bottom

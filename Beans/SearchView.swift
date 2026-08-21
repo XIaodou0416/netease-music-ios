@@ -115,20 +115,27 @@ struct SearchView: View {
     // MARK: - 顶部标题
 
     private var headerTitle: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text("搜索")
-                .font(BeansFont.appFont(30, .bold))
-                .foregroundStyle(Color.beansLabel)
-            Spacer(minLength: 0)
-            Label(provider.rawValue, systemImage: provider.icon)
-                .font(BeansFont.appFont(12, .semibold))
-                .foregroundStyle(Color.beansSecondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(.ultraThinMaterial, in: Capsule())
-                .overlay {
-                    Capsule().strokeBorder(.white.opacity(0.15), lineWidth: 0.8)
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
+                Text("搜索")
+                    .font(BeansFont.appFont(30, .bold))
+                    .foregroundStyle(Color.beansLabel)
+                Spacer(minLength: 0)
+                Label(provider.rawValue, systemImage: provider.icon)
+                    .font(BeansFont.appFont(12, .semibold))
+                    .foregroundStyle(Color.beansSecondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay {
+                        Capsule().strokeBorder(.white.opacity(0.15), lineWidth: 0.8)
+                    }
+            }
+            Capsule()
+                .fill(LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .leading, endPoint: .trailing))
+                .frame(height: 3)
+                .frame(maxWidth: .infinity)
+                .opacity(0.85)
         }
     }
 
@@ -199,14 +206,21 @@ struct SearchView: View {
             }
             .buttonStyle(GlassPressButtonStyle(scale: 0.9))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 13)
         .background {
             GlassEffectContainer {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(.clear)
-                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(colors: [.white.opacity(0.35), .white.opacity(0.06)], startPoint: .top, endPoint: .bottom),
+                    lineWidth: 0.8
+                )
         }
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -347,10 +361,20 @@ struct SearchView: View {
             Task { await startSearch(word) }
         } label: {
             HStack(spacing: 12) {
-                Text("\(index + 1)")
-                    .font(BeansFont.appFont(16, .bold, .rounded))
-                    .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
-                    .frame(width: 26, alignment: .leading)
+                Group {
+                    if index < 3 {
+                        Text("\(index + 1)")
+                            .font(BeansFont.appFont(14, .bold, .rounded))
+                            .foregroundStyle(.white)
+                            .frame(width: 24, height: 24)
+                            .background(LinearGradient.beansAccent, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    } else {
+                        Text("\(index + 1)")
+                            .font(BeansFont.appFont(14, .bold, .rounded))
+                            .foregroundStyle(Color.beansSecondary)
+                            .frame(width: 24, alignment: .leading)
+                    }
+                }
                 Text(word)
                     .font(BeansFont.appFont(15, .medium))
                     .foregroundStyle(Color.beansLabel)

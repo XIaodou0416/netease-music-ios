@@ -52,37 +52,69 @@ struct LibraryView: View {
     }
 
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("音乐库")
-                    .font(BeansFont.appFont(26, .bold))
-                    .foregroundStyle(Color.beansLabel)
-                Text("\(auth.playlists.count) 个歌单")
-                    .font(BeansFont.appFont(13))
-                    .foregroundStyle(Color.beansSecondary)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("音乐库")
+                        .font(BeansFont.appFont(30, .bold))
+                        .foregroundStyle(Color.beansLabel)
+                    Text("\(auth.playlists.count) 个歌单 · 本地收藏")
+                        .font(BeansFont.appFont(13))
+                        .foregroundStyle(Color.beansSecondary)
+                }
+                Spacer()
+                GlassIconButton(systemName: "arrow.clockwise") {
+                    BeansHaptics.tap()
+                    Task { await auth.loadLibrary() }
+                }
             }
-            Spacer()
-            GlassIconButton(systemName: "arrow.clockwise") {
-                Task { await auth.loadLibrary() }
+            Capsule()
+                .fill(LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .leading, endPoint: .trailing))
+                .frame(height: 3)
+                .frame(maxWidth: .infinity)
+                .opacity(0.85)
+            // 统计胶囊行
+            HStack(spacing: 10) {
+                statPill(icon: "square.stack.fill", value: "\(auth.playlists.count)", label: "歌单")
+                statPill(icon: "clock.arrow.circlepath", value: "\(player.history.count)", label: "最近播放")
+                statPill(icon: "chart.bar.fill", value: "\(player.topPlayed.count)", label: "听歌排行")
             }
         }
-        .padding(16)
+        .padding(.top, 8)
+    }
+
+    private func statPill(icon: String, value: String, label: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.beansAmber)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(BeansFont.appFont(15, .bold, .rounded))
+                    .foregroundStyle(Color.beansLabel)
+                Text(label)
+                    .font(BeansFont.appFont(10))
+                    .foregroundStyle(Color.beansSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
         .background {
             GlassEffectContainer {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(.clear)
-                    .glassEffect(.clear, in: .rect(cornerRadius: 24))
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(
-                    LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
+                    LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
                     lineWidth: 0.8
                 )
         }
-        .beansCardShadow(radius: 10, y: 4)
-        .padding(.top, 8)
     }
 
     private var playlistsSection: some View {
@@ -104,6 +136,14 @@ struct LibraryView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 CoverImage(url: playlist.coverURL, size: 160, cornerRadius: 16)
                                     .frame(maxWidth: .infinity)
+                                    .overlay(alignment: .bottomTrailing) {
+                                        Image(systemName: "play.fill")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundStyle(.white)
+                                            .frame(width: 26, height: 26)
+                                            .background(.black.opacity(0.4), in: Circle())
+                                            .padding(8)
+                                    }
                                 Text(playlist.name)
                                     .font(BeansFont.appFont(12, .medium))
                                     .foregroundStyle(Color.beansLabel)

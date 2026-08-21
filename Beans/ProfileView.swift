@@ -124,33 +124,50 @@ struct ProfileView: View {
                 showLogin = true
             }
         } label: {
-            HStack(spacing: 14) {
-                AsyncImage(url: auth.user?.avatarURL) { phase in
-                    if case .success(let image) = phase {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 26))
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 14) {
+                    // 头像：主题渐变描边环
+                    AsyncImage(url: auth.user?.avatarURL) { phase in
+                        if case .success(let image) = phase {
+                            image.resizable().scaledToFill()
+                        } else {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 26))
+                                .foregroundStyle(Color.beansSecondary)
+                        }
+                    }
+                    .frame(width: 64, height: 64)
+                    .clipShape(Circle())
+                    .overlay {
+                        Circle().strokeBorder(
+                            LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .topLeading, endPoint: .bottomTrailing),
+                            lineWidth: 2.5
+                        )
+                    }
+                    .background(Color.beansGlassFill, in: Circle())
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(auth.user?.nickname ?? (auth.isLoggedIn ? "未登录" : "免登录 · 点击登录"))
+                            .font(BeansFont.appFont(20, .bold))
+                            .foregroundStyle(Color.beansLabel)
+                            .lineLimit(1)
+                        Text(auth.isLoggedIn ? "UID \(auth.user?.uid ?? 0)" : "登录后可同步网易云歌单")
+                            .font(BeansFont.appFont(12, .regular, .monospaced))
+                            .foregroundStyle(Color.beansSecondary)
+                            .lineLimit(1)
+                    }
+                    Spacer()
+                    if !auth.isLoggedIn {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(Color.beansSecondary)
                     }
                 }
-                .frame(width: 64, height: 64)
-                .clipShape(Circle())
-                .background(Color.beansGlassFill, in: Circle())
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(auth.user?.nickname ?? (auth.isLoggedIn ? "未登录" : "免登录 · 点击登录"))
-                        .font(BeansFont.appFont(20, .bold))
-                        .foregroundStyle(Color.beansLabel)
-                    Text(auth.isLoggedIn ? "UID \(auth.user?.uid ?? 0)" : "登录后可同步网易云歌单")
-                        .font(BeansFont.appFont(12, .regular, .monospaced))
-                        .foregroundStyle(Color.beansSecondary)
-                }
-                Spacer()
-                if !auth.isLoggedIn {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.beansSecondary)
+                // 统计摘要：累计播放 / 歌单 / 听歌排行
+                HStack(spacing: 10) {
+                    profileStat(icon: "play.circle.fill", value: "\(player.playCounts.values.reduce(0, +))", label: "累计播放")
+                    profileStat(icon: "square.stack.fill", value: "\(auth.playlists.count)", label: "歌单")
+                    profileStat(icon: "chart.bar.fill", value: rankValue, label: "听歌排行")
                 }
             }
             .padding(16)
@@ -172,6 +189,38 @@ struct ProfileView: View {
                 )
         }
         .beansCardShadow(radius: 10, y: 4)
+    }
+
+    private func profileStat(icon: String, value: String, label: String) -> some View {
+        VStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.beansAmber)
+            Text(value)
+                .font(BeansFont.appFont(14, .bold, .rounded))
+                .foregroundStyle(Color.beansLabel)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            Text(label)
+                .font(BeansFont.appFont(10))
+                .foregroundStyle(Color.beansSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
+                    lineWidth: 0.8
+                )
+        }
     }
 
     /// QQ 音乐登录状态卡片（扫码登录 / 退出）

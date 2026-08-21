@@ -42,55 +42,54 @@ struct DiscoverView: View {
                 .ignoresSafeArea()
             }
             ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                header
-                if let errorMessage {
-                    ErrorStateView(message: errorMessage) {
-                        Task { await load() }
+                VStack(alignment: .leading, spacing: 26) {
+                    header
+                    providerPicker
+                    if let errorMessage {
+                        ErrorStateView(message: errorMessage) {
+                            Task { await load() }
+                        }
+                    } else if loading {
+                        LoadingStateView()
+                    } else {
+                        if !dailySongs.isEmpty {
+                            dailySection.sectionEntrance(delay: 0)
+                        }
+                        if !topLists.isEmpty {
+                            topListsSection.sectionEntrance(delay: 0.08)
+                        }
+                        if !personalized.isEmpty {
+                            personalizedSection.sectionEntrance(delay: 0.16)
+                        }
                     }
-                } else if loading {
-                    LoadingStateView()
-                } else {
-                    if !dailySongs.isEmpty {
-                        dailySection.sectionEntrance(delay: 0)
-                    }
-                    if !topLists.isEmpty {
-                        topListsSection.sectionEntrance(delay: 0.08)
-                    }
-                    if !personalized.isEmpty {
-                        personalizedSection.sectionEntrance(delay: 0.16)
-                    }
-
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 190)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 190)
-        }
-
-        .scrollIndicators(.hidden)
-        .refreshable { await load() }
-        .task(id: source) { await load() }
-        .sheet(item: $selectedTopList) { topList in
-            TopListDetailView(topList: topList)
-                .environmentObject(player)
-                .environmentObject(auth)
-        }
-        .sheet(item: $selectedPlaylist) { playlist in
-            PlaylistView(playlist: playlist)
-                .environmentObject(player)
-                .environmentObject(auth)
-        }
-        .sheet(item: $selectedQQTopList) { info in
-            QQTopListDetailView(topID: info.id, name: info.name)
-                .environmentObject(player)
-                .environmentObject(auth)
-        }
-        .sheet(item: $selectedQQPlaylist) { playlist in
-            QQPlaylistSongsSheet(playlist: playlist)
-                .environmentObject(player)
-                .environmentObject(auth)
-        }
+            .scrollIndicators(.hidden)
+            .refreshable { await load() }
+            .task(id: source) { await load() }
+            .sheet(item: $selectedTopList) { topList in
+                TopListDetailView(topList: topList)
+                    .environmentObject(player)
+                    .environmentObject(auth)
+            }
+            .sheet(item: $selectedPlaylist) { playlist in
+                PlaylistView(playlist: playlist)
+                    .environmentObject(player)
+                    .environmentObject(auth)
+            }
+            .sheet(item: $selectedQQTopList) { info in
+                QQTopListDetailView(topID: info.id, name: info.name)
+                    .environmentObject(player)
+                    .environmentObject(auth)
+            }
+            .sheet(item: $selectedQQPlaylist) { playlist in
+                QQPlaylistSongsSheet(playlist: playlist)
+                    .environmentObject(player)
+                    .environmentObject(auth)
+            }
             .sheet(isPresented: $showDailyList) {
                 DailySongsSheet(songs: dailySongs)
                     .environmentObject(player)
@@ -99,12 +98,13 @@ struct DiscoverView: View {
         }
     }
 
+    /// 顶部问候区：大标题 + 主题渐变细线 + 刷新按钮
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(greeting)
-                        .font(BeansFont.appFont(26, .bold))
+                        .font(BeansFont.appFont(30, .bold))
                         .foregroundStyle(Color.beansLabel)
                     Text(auth.user?.nickname ?? "发现好音乐")
                         .font(BeansFont.appFont(13))
@@ -112,26 +112,15 @@ struct DiscoverView: View {
                 }
                 Spacer()
                 GlassIconButton(systemName: "arrow.clockwise") {
+                    BeansHaptics.tap()
                     Task { await load() }
                 }
             }
-            .padding(16)
-            .background {
-                GlassEffectContainer {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(.clear)
-                        .glassEffect(.clear, in: .rect(cornerRadius: 24))
-                }
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
-                        lineWidth: 0.8
-                    )
-            }
-            .beansCardShadow(radius: 10, y: 4)
-            providerPicker
+            Capsule()
+                .fill(LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .leading, endPoint: .trailing))
+                .frame(height: 3)
+                .frame(maxWidth: .infinity)
+                .opacity(0.85)
         }
         .padding(.top, 8)
     }
@@ -181,83 +170,114 @@ struct DiscoverView: View {
         }
     }
 
+    /// 排行榜：横向滑动液态玻璃卡片（网易云榜单 / QQ 峰尖榜）
     private var topListsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "排行榜")
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 100), spacing: 10)],
-                spacing: 12
-            ) {
-                // 纯封面液态玻璃卡片（无文字）：网易云榜单 / QQ 峰尖榜
-                if source == .netease {
-                    ForEach(topLists.prefix(6)) { topList in
-                        Button {
-                            selectedTopList = topList
-                        } label: {
-                            CoverImage(url: topList.coverURL, size: 88, cornerRadius: 14)
-                                .frame(maxWidth: .infinity)
-                                .padding(6)
-                                .background {
-                                    GlassEffectContainer {
-                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                            .fill(.clear)
-                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                    }
-                                }
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .strokeBorder(
-                                            LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
-                                            lineWidth: 0.8
-                                        )
-                                }
-                                .beansCardShadow(radius: 10, y: 4)
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 12) {
+                    if source == .netease {
+                        ForEach(topLists) { topList in
+                            topListCard(topList: topList)
                         }
-                        .buttonStyle(.plain)
-                    }
-                } else {
-                    ForEach(qqTopLists.prefix(6)) { info in
-                        Button {
-                            selectedQQTopList = info
-                        } label: {
-                            Group {
-                                if let cover = info.coverURL {
-                                    CoverImage(url: cover, size: 88, cornerRadius: 14)
-                                        .frame(maxWidth: .infinity)
-                                } else {
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .fill(qqRankGradient(info.name))
-                                        .frame(width: 88, height: 88)
-                                        .overlay {
-                                            Image(systemName: "music.note")
-                                                .font(.system(size: 26, weight: .semibold))
-                                                .foregroundStyle(.white.opacity(0.9))
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                }
-                            }
-                            .padding(6)
-                            .background {
-                                GlassEffectContainer {
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .fill(.clear)
-                                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                }
-                            }
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .strokeBorder(
-                                        LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
-                                        lineWidth: 0.8
-                                    )
-                            }
-                            .beansCardShadow(radius: 10, y: 4)
+                    } else {
+                        ForEach(qqTopLists) { info in
+                            qqTopCard(info: info)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
+                .padding(.vertical, 2)
             }
         }
+    }
+
+    private func topListCard(topList: TopList) -> some View {
+        Button {
+            BeansHaptics.tap()
+            selectedTopList = topList
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                CoverImage(url: topList.coverURL, size: 140, cornerRadius: 18)
+                    .overlay(alignment: .bottomLeading) {
+                        Text(topList.updateFrequency)
+                            .font(BeansFont.appFont(10, .medium))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(.black.opacity(0.42), in: Capsule())
+                            .padding(8)
+                    }
+                Text(topList.name)
+                    .font(BeansFont.appFont(13, .semibold))
+                    .foregroundStyle(Color.beansLabel)
+                    .lineLimit(1)
+                    .frame(width: 140, alignment: .leading)
+            }
+            .padding(8)
+            .background {
+                GlassEffectContainer {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
+                        lineWidth: 0.8
+                    )
+            }
+            .beansCardShadow(radius: 10, y: 4)
+        }
+        .buttonStyle(GlassPressButtonStyle(scale: 0.95))
+    }
+
+    private func qqTopCard(info: QQTopInfo) -> some View {
+        Button {
+            BeansHaptics.tap()
+            selectedQQTopList = info
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                Group {
+                    if let cover = info.coverURL {
+                        CoverImage(url: cover, size: 140, cornerRadius: 18)
+                    } else {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(qqRankGradient(info.name))
+                            .frame(width: 140, height: 140)
+                            .overlay {
+                                Image(systemName: "music.note")
+                                    .font(.system(size: 30, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.9))
+                            }
+                    }
+                }
+                Text(info.name)
+                    .font(BeansFont.appFont(13, .semibold))
+                    .foregroundStyle(Color.beansLabel)
+                    .lineLimit(1)
+                    .frame(width: 140, alignment: .leading)
+            }
+            .padding(8)
+            .background {
+                GlassEffectContainer {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
+                        lineWidth: 0.8
+                    )
+            }
+            .beansCardShadow(radius: 10, y: 4)
+        }
+        .buttonStyle(GlassPressButtonStyle(scale: 0.95))
     }
 
     /// QQ 峰尖榜占位封面：按榜单名确定性取一组渐变，不加载网络图
@@ -274,43 +294,51 @@ struct DiscoverView: View {
         return LinearGradient(colors: palettes[seed], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
+    /// 每日推荐：主题渐变晕染大卡 + 播放/随机 + 前 3 首带序号
     private var dailySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "每日推荐", trailing: "查看全部") {
                 BeansHaptics.tap()
                 showDailyList = true
             }
-            // 每日推荐大卡片：点击查看今日全部推荐
+            // 每日推荐大卡：点击查看今日全部推荐
             Button {
                 BeansHaptics.tap()
                 showDailyList = true
             } label: {
                 HStack(spacing: 14) {
-                    CoverImage(url: dailySongs.first?.coverURL, size: 58, cornerRadius: 13)
-                    VStack(alignment: .leading, spacing: 3) {
+                    CoverImage(url: dailySongs.first?.coverURL, size: 64, cornerRadius: 16)
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("为你精选 \(dailySongs.count) 首")
-                            .font(BeansFont.appFont(16, .semibold))
+                            .font(BeansFont.appFont(17, .bold))
                             .foregroundStyle(Color.beansLabel)
                         Text("每日更新 · 按你的口味推荐")
                             .font(BeansFont.appFont(12))
                             .foregroundStyle(Color.beansSecondary)
                     }
                     Spacer(minLength: 8)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.beansSecondary)
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 34))
+                        .foregroundStyle(
+                            LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
                 }
                 .padding(14)
                 .background {
-            GlassEffectContainer {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            }
-        }
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    LinearGradient(
+                        colors: AccentTheme.current.gradientColors.map { $0.opacity(0.16) },
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                }
+                .background {
+                    GlassEffectContainer {
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(.clear)
+                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    }
+                }
                 .overlay {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .strokeBorder(
                             LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
                             lineWidth: 0.8
@@ -320,7 +348,7 @@ struct DiscoverView: View {
             }
             .buttonStyle(GlassPressButtonStyle(scale: 0.97))
 
-            // 播放全部 / 随机播放：与封面左边缘对齐
+            // 播放全部 / 随机播放
             HStack(spacing: 10) {
                 GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
                     BeansHaptics.tap()
@@ -335,87 +363,100 @@ struct DiscoverView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background {
-            GlassEffectContainer {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                GlassEffectContainer {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
             }
-        }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .beansCardShadow(radius: 8, y: 3)
 
+            // 今日推荐前 3 首：序号 + 歌曲行
             VStack(spacing: 0) {
                 ForEach(Array(dailySongs.prefix(3).enumerated()), id: \.element.id) { index, song in
-                    SongCell(song: song) {
-                        BeansHaptics.tap()
-                        player.play(songs: dailySongs, startAt: index)
+                    HStack(spacing: 12) {
+                        Text("\(index + 1)")
+                            .font(BeansFont.appFont(14, .bold, .rounded))
+                            .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
+                            .frame(width: 22)
+                        SongCell(song: song) {
+                            BeansHaptics.tap()
+                            player.play(songs: dailySongs, startAt: index)
+                        }
                     }
+                    .padding(.horizontal, 14)
                     Divider().overlay(Color.beansSecondary.opacity(0.15))
                 }
             }
-            .padding(.horizontal, 14)
             .padding(.vertical, 6)
             .background {
-            GlassEffectContainer {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                GlassEffectContainer {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                }
             }
-        }
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .beansCardShadow(radius: 8, y: 3)
         }
     }
+
+    /// 歌单广场：横向滑动大卡
     private var personalizedSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "歌单广场")
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 100), spacing: 10)],
-                spacing: 12
-            ) {
-                // 精简：三列小卡片只显示前六个，不再又长又大
-                ForEach(personalized.prefix(6)) { playlist in
-                    Button {
-                        if source == .qq {
-                            selectedQQPlaylist = playlist
-                        } else {
-                            selectedPlaylist = playlist
-                        }
-                    } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            CoverImage(url: playlist.coverURL, size: 88, cornerRadius: 14)
-                                .frame(maxWidth: .infinity)
-                            Text(playlist.name)
-                                .font(BeansFont.appFont(11, .medium))
-                                .foregroundStyle(Color.beansLabel)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                        }
-                        .padding(6)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background {
-                            GlassEffectContainer {
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(.clear)
-                                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 12) {
+                    ForEach(personalized) { playlist in
+                        Button {
+                            if source == .qq {
+                                selectedQQPlaylist = playlist
+                            } else {
+                                selectedPlaylist = playlist
                             }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                CoverImage(url: playlist.coverURL, size: 120, cornerRadius: 18)
+                                    .overlay(alignment: .bottomTrailing) {
+                                        Image(systemName: "play.fill")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundStyle(.white)
+                                            .frame(width: 26, height: 26)
+                                            .background(.black.opacity(0.4), in: Circle())
+                                            .padding(8)
+                                    }
+                                Text(playlist.name)
+                                    .font(BeansFont.appFont(12, .medium))
+                                    .foregroundStyle(Color.beansLabel)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                    .frame(width: 120, alignment: .leading)
+                            }
+                            .padding(8)
+                            .background {
+                                GlassEffectContainer {
+                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                        .fill(.clear)
+                                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                }
+                            }
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                    .strokeBorder(
+                                        LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
+                                        lineWidth: 0.8
+                                    )
+                            }
+                            .beansCardShadow(radius: 10, y: 4)
                         }
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(
-                                    LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
-                                    lineWidth: 0.8
-                                )
-                        }
-                        .beansCardShadow(radius: 10, y: 4)
+                        .buttonStyle(GlassPressButtonStyle(scale: 0.95))
                     }
-                    .buttonStyle(.plain)
                 }
+                .padding(.vertical, 2)
             }
         }
     }
-
-
 
     // MARK: - 动作
 

@@ -96,6 +96,10 @@ enum BeansAccent: String, CaseIterable, Identifiable {
     case pink = "樱粉"
     case sky = "星蓝"
     case violet = "罗兰紫"
+    case cyber = "赛博青"
+    case peach = "蜜桃粉"
+    case gold = "鎏金黑"
+    case emerald = "翡翠绿"
 
     var id: String { rawValue }
 
@@ -112,6 +116,14 @@ enum BeansAccent: String, CaseIterable, Identifiable {
             return [Color(red: 0.39, green: 0.71, blue: 0.96), Color(red: 0.23, green: 0.48, blue: 0.84)]
         case .violet:
             return [Color(red: 0.70, green: 0.62, blue: 0.86), Color(red: 0.49, green: 0.34, blue: 0.76)]
+        case .cyber:
+            return [Color(red: 0.25, green: 0.90, blue: 0.85), Color(red: 0.05, green: 0.55, blue: 0.65)]
+        case .peach:
+            return [Color(red: 1.00, green: 0.62, blue: 0.52), Color(red: 0.95, green: 0.38, blue: 0.55)]
+        case .gold:
+            return [Color(red: 0.92, green: 0.75, blue: 0.35), Color(red: 0.45, green: 0.33, blue: 0.10)]
+        case .emerald:
+            return [Color(red: 0.30, green: 0.85, blue: 0.55), Color(red: 0.05, green: 0.50, blue: 0.35)]
         }
     }
 
@@ -128,6 +140,10 @@ enum BeansAccent: String, CaseIterable, Identifiable {
         case .pink: return UIColor(red: 0.78, green: 0.33, blue: 0.53, alpha: 1)    // 深樱粉
         case .sky: return UIColor(red: 0.20, green: 0.48, blue: 0.84, alpha: 1)     // 深星蓝
         case .violet: return UIColor(red: 0.46, green: 0.34, blue: 0.77, alpha: 1)  // 深罗兰
+        case .cyber: return UIColor(red: 0.05, green: 0.48, blue: 0.55, alpha: 1)     // 深赛博青
+        case .peach: return UIColor(red: 0.82, green: 0.32, blue: 0.45, alpha: 1)     // 深蜜桃
+        case .gold: return UIColor(red: 0.55, green: 0.40, blue: 0.08, alpha: 1)      // 深鎏金
+        case .emerald: return UIColor(red: 0.08, green: 0.45, blue: 0.30, alpha: 1)   // 深翡翠
         }
     }
 
@@ -139,6 +155,10 @@ enum BeansAccent: String, CaseIterable, Identifiable {
         case .pink: return UIColor(red: 0.97, green: 0.60, blue: 0.74, alpha: 1)
         case .sky: return UIColor(red: 0.45, green: 0.72, blue: 0.98, alpha: 1)
         case .violet: return UIColor(red: 0.71, green: 0.62, blue: 0.92, alpha: 1)
+        case .cyber: return UIColor(red: 0.35, green: 0.95, blue: 0.88, alpha: 1)
+        case .peach: return UIColor(red: 1.00, green: 0.68, blue: 0.58, alpha: 1)
+        case .gold: return UIColor(red: 0.94, green: 0.80, blue: 0.45, alpha: 1)
+        case .emerald: return UIColor(red: 0.42, green: 0.92, blue: 0.62, alpha: 1)
         }
     }
 }
@@ -158,8 +178,6 @@ final class ThemeStore: ObservableObject {
     @Published var backgroundSyncAll = true
     /// 当前使用的背景图片文件路径（空串表示未上传图片）
     @Published var backgroundImagePath: String = ""
-    /// 当前内置壁纸（Asset Catalog 随包附带；nil 表示未使用内置壁纸）
-    @Published var builtinWallpaperName: String?
     /// 壁纸库：所有已上传壁纸的文件路径
     @Published var wallpaperPaths: [String] = []
 
@@ -170,19 +188,6 @@ final class ThemeStore: ObservableObject {
     private let wallpaperListKey = "beans.wallpapers.list"
     private let wallpaperDataKey = "beans.wallpapers.data"
     private let deletedKey = "beans.wallpapers.deleted"
-    private let builtinWallpaperKey = "beans.background.builtin"
-
-    /// 随包附带的内置壁纸（程序绘制，随包一起安装，不依赖网络）
-    static let builtinWallpapers: [(name: String, title: String)] = [
-        ("Aurora", "极光"),
-        ("Berry", "莓果"),
-        ("Forest", "林野"),
-        ("Midnight", "午夜"),
-        ("Mint", "薄荷"),
-        ("Ocean", "深海"),
-        ("Sky", "晨空"),
-        ("Sunset", "落日"),
-    ]
 
     private init() {
         accent = BeansAccent(rawValue: UserDefaults.standard.string(forKey: AccentTheme.key) ?? "") ?? .amber
@@ -191,7 +196,6 @@ final class ThemeStore: ObservableObject {
         backgroundHex = UserDefaults.standard.string(forKey: backgroundKey) ?? ""
         backgroundSyncAll = UserDefaults.standard.object(forKey: syncAllKey) as? Bool ?? true
         backgroundImagePath = UserDefaults.standard.string(forKey: backgroundImageKey) ?? ""
-        builtinWallpaperName = UserDefaults.standard.string(forKey: builtinWallpaperKey)
         wallpaperPaths = UserDefaults.standard.stringArray(forKey: wallpaperListKey) ?? []
         // 自动恢复壁纸（覆盖安装/数据迁移后：文件仍在用文件，文件丢失用 base64 备份重建）
         restoreWallpapers()
@@ -283,14 +287,8 @@ final class ThemeStore: ObservableObject {
     private var cachedBackgroundImage: UIImage?
     var customBackgroundImage: UIImage? {
         if let cached = cachedBackgroundImage { return cached }
-        let image: UIImage?
-        if let name = builtinWallpaperName {
-            image = UIImage(named: "BuiltinWallpaper\(name)")
-        } else if !backgroundImagePath.isEmpty {
-            image = UIImage(contentsOfFile: backgroundImagePath)
-        } else {
-            return nil
-        }
+        guard !backgroundImagePath.isEmpty else { return nil }
+        let image = UIImage(contentsOfFile: backgroundImagePath)
         cachedBackgroundImage = image
         return image
     }
@@ -317,8 +315,6 @@ final class ThemeStore: ObservableObject {
             try imageData.write(to: url, options: .atomic)
             wallpaperPaths.append(url.path)
             saveWallpaperList()
-            builtinWallpaperName = nil
-            UserDefaults.standard.removeObject(forKey: builtinWallpaperKey)
             backgroundImagePath = url.path
             UserDefaults.standard.set(url.path, forKey: backgroundImageKey)
             saveWallpaperBackup(url.path, data: imageData)
@@ -331,19 +327,8 @@ final class ThemeStore: ObservableObject {
     /// 从壁纸库选择壁纸应用为当前背景（无需再去相册）
     func applyWallpaper(at path: String) {
         guard FileManager.default.fileExists(atPath: path) else { return }
-        builtinWallpaperName = nil
-        UserDefaults.standard.removeObject(forKey: builtinWallpaperKey)
         backgroundImagePath = path
         UserDefaults.standard.set(path, forKey: backgroundImageKey)
-        invalidateBackgroundCache()
-    }
-
-    /// 应用内置壁纸（随包附带，无需上传；同时清除已上传的文件壁纸）
-    func applyBuiltinWallpaper(_ name: String) {
-        builtinWallpaperName = name
-        UserDefaults.standard.set(name, forKey: builtinWallpaperKey)
-        backgroundImagePath = ""
-        UserDefaults.standard.set("", forKey: backgroundImageKey)
         invalidateBackgroundCache()
     }
 
@@ -364,9 +349,7 @@ final class ThemeStore: ObservableObject {
     /// 清除当前背景（保留壁纸库，可随时重新选择）
     func clearBackgroundImage() {
         backgroundImagePath = ""
-        builtinWallpaperName = nil
         UserDefaults.standard.set("", forKey: backgroundImageKey)
-        UserDefaults.standard.removeObject(forKey: builtinWallpaperKey)
         invalidateBackgroundCache()
     }
 

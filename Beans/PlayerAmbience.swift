@@ -8,6 +8,8 @@ struct AmbientGlowView: View {
     let accent: Color
     let secondary: Color
     let isPlaying: Bool
+    /// 呼吸光晕强度 0~1（0 关闭光晕，1 满强度）
+    var breath: Double = 0.6
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isPlaying)) { timeline in
@@ -21,7 +23,7 @@ struct AmbientGlowView: View {
                 let cy = h * (0.30 + 0.12 * cos(t * 0.20))
                 let r1 = min(w, h) * 0.55
                 let breathe = 0.85 + 0.15 * sin(t * 1.1)
-                let g1 = Gradient(colors: [accent.opacity(0.16 * breathe), accent.opacity(0)])
+                let g1 = Gradient(colors: [accent.opacity(0.16 * breathe * breath), accent.opacity(0)])
                 context.fill(
                     Path(ellipseIn: CGRect(x: cx - r1, y: cy - r1, width: r1 * 2, height: r1 * 2)),
                     with: .radialGradient(g1, center: CGPoint(x: cx, y: cy), startRadius: 0, endRadius: r1)
@@ -31,7 +33,7 @@ struct AmbientGlowView: View {
                 let cx2 = w * (0.5 + 0.20 * cos(t * 0.22 + 1.7))
                 let cy2 = h * (0.72 + 0.12 * sin(t * 0.18 + 2.3))
                 let r2 = min(w, h) * 0.42
-                let g2 = Gradient(colors: [secondary.opacity(0.13), secondary.opacity(0)])
+                let g2 = Gradient(colors: [secondary.opacity(0.13 * breath), secondary.opacity(0)])
                 context.fill(
                     Path(ellipseIn: CGRect(x: cx2 - r2, y: cy2 - r2, width: r2 * 2, height: r2 * 2)),
                     with: .radialGradient(g2, center: CGPoint(x: cx2, y: cy2), startRadius: 0, endRadius: r2)

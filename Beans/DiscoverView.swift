@@ -188,6 +188,14 @@ struct DiscoverView: View {
                                             .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                                     }
                                 }
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .strokeBorder(
+                                            LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
+                                            lineWidth: 0.8
+                                        )
+                                }
+                                .beansCardShadow(radius: 10, y: 4)
                         }
                         .buttonStyle(.plain)
                     }
@@ -220,6 +228,14 @@ struct DiscoverView: View {
                                         .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 }
                             }
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .strokeBorder(
+                                        LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
+                                        lineWidth: 0.8
+                                    )
+                            }
+                            .beansCardShadow(radius: 10, y: 4)
                         }
                         .buttonStyle(.plain)
                     }
@@ -277,7 +293,14 @@ struct DiscoverView: View {
             }
         }
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .beansCardShadow(radius: 8, y: 3)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
+                            lineWidth: 0.8
+                        )
+                }
+                .beansCardShadow(radius: 10, y: 4)
             }
             .buttonStyle(GlassPressButtonStyle(scale: 0.97))
 
@@ -361,6 +384,14 @@ struct DiscoverView: View {
                                     .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                             }
                         }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .strokeBorder(
+                                    LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
+                                    lineWidth: 0.8
+                                )
+                        }
+                        .beansCardShadow(radius: 10, y: 4)
                     }
                     .buttonStyle(.plain)
                 }

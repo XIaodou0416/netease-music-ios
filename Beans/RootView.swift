@@ -30,7 +30,6 @@ enum RootTab: String, CaseIterable, Identifiable {
 struct RootView: View {
     @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
-    @EnvironmentObject private var emailAuth: EmailAuthStore
     @EnvironmentObject private var player: PlayerManager
     @AppStorage("beans.themeMode") private var themeModeRaw = BeansThemeMode.system.rawValue
 
@@ -71,14 +70,6 @@ struct RootView: View {
         .overlay(alignment: .bottom) {
             ToastView(center: ToastCenter.shared)
         }
-        .overlay {
-            if !emailAuth.isLoggedIn {
-                EmailAuthView()
-                    .environmentObject(emailAuth)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 0.3), value: emailAuth.isLoggedIn)
     }
 
     @ViewBuilder

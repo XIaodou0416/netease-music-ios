@@ -90,29 +90,16 @@ struct AppStoreTabBar: View {
     @Binding var selection: RootTab
     @EnvironmentObject private var player: PlayerManager
 
-    @State private var menuTab: RootTab?
-    @State private var anchors: [RootTab: CGFloat] = [:]
     @State private var showQueue = false
-
-    private let menuWidth: CGFloat = 176
 
     var body: some View {
         let _ = theme.accent
         GeometryReader { geo in
             ZStack(alignment: .bottom) {
-                if let menuTab, player.currentSong != nil {
-                    quickMenu(for: menuTab)
-                        .frame(width: menuWidth)
-                        .padding(.bottom, 86)
-                        .offset(x: menuOffset(for: menuTab, width: geo.size.width))
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .zIndex(10)
-                }
                 barCapsule
                     .simultaneousGesture(dragToSelect(width: geo.size.width))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .coordinateSpace(name: "beansTabBar")
         }
         .frame(height: 64)
         .padding(.horizontal, 16)
@@ -172,86 +159,35 @@ struct AppStoreTabBar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        // 原生长按：系统触感 + 快捷菜单（无自定义缩放/涟漪）
-        .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 14, perform: {
-            longPress(tab)
-        })
-        .background(anchorReader(tab))
-    }
-
-    private func anchorReader(_ tab: RootTab) -> some View {
-        GeometryReader { geo in
-            Color.clear
-                .onAppear { anchors[tab] = geo.frame(in: .named("beansTabBar")).midX }
-        }
-    }
-
-    private func menuOffset(for tab: RootTab, width: CGFloat) -> CGFloat {
-        let anchor = anchors[tab] ?? width / 2
-        let half = menuWidth / 2
-        let clamped = min(max(anchor, half), max(width - half, half))
-        return clamped - width / 2
-    }
-
-    private func quickMenu(for tab: RootTab) -> some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 6) {
-                Image(systemName: tab.icon)
-                    .font(.system(size: 11, weight: .semibold))
-                Text(tab.title)
-                    .font(BeansFont.appFont(12, .bold))
-            }
-            .foregroundStyle(Color.beansSecondary)
-            .padding(.bottom, 3)
-
-            menuAction(icon: player.isPlaying ? "pause.fill" : "play.fill",
-                       title: player.isPlaying ? "暂停" : "播放") {
-                player.togglePlayPause()
-                dismissMenu()
-            }
-            menuAction(icon: "backward.fill", title: "上一首") {
-                player.previous()
-                dismissMenu()
-            }
-            menuAction(icon: "forward.fill", title: "下一首") {
-                player.next()
-                dismissMenu()
-            }
-            menuAction(icon: "list.bullet", title: "播放队列") {
-                dismissMenu()
-                showQueue = true
+        // 系统原生 context menu：长按弹出系统菜单（Haptic Touch 由系统提供，与分段控件等原生控件一致）
+        .contextMenu {
+            if player.currentSong != nil {
+                Button {
+                    BeansHaptics.tap()
+                    player.togglePlayPause()
+                } label: {
+                    Label(player.isPlaying ? "暂停" : "播放", systemImage: player.isPlaying ? "pause.fill" : "play.fill")
+                }
+                Button {
+                    BeansHaptics.tap()
+                    player.previous()
+                } label: {
+                    Label("上一首", systemImage: "backward.fill")
+                }
+                Button {
+                    BeansHaptics.tap()
+                    player.next()
+                } label: {
+                    Label("下一首", systemImage: "forward.fill")
+                }
+                Button {
+                    BeansHaptics.tap()
+                    showQueue = true
+                } label: {
+                    Label("播放队列", systemImage: "list.bullet")
+                }
             }
         }
-        .padding(8)
-        .background {
-            GlassEffectContainer {
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .shadow(color: .black.opacity(0.22), radius: 20, y: 10)
-    }
-
-    private func menuAction(icon: String, title: String, action: @escaping () -> Void) -> some View {
-        Button {
-            BeansHaptics.tap()
-            action()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
-                Text(title)
-                    .font(BeansFont.appFont(14, .medium))
-                Spacer(minLength: 0)
-            }
-            .foregroundStyle(Color.beansLabel)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 
     /// 触碰滑动选中：手指在底栏上横向滑动即可切换 tab（与点击 / 长按共存）
@@ -272,9 +208,6 @@ struct AppStoreTabBar: View {
     }
 
     private func tap(_ tab: RootTab) {
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            if menuTab != nil { menuTab = nil }
-        }
         if selection != tab {
             BeansHaptics.select()
             withAnimation(.spring(response: 0.3)) {
@@ -283,18 +216,4 @@ struct AppStoreTabBar: View {
         }
     }
 
-    private func longPress(_ tab: RootTab) {
-        // 系统级 Haptic Touch 触感
-        BeansHaptics.medium()
-        guard player.currentSong != nil else { return }
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
-            menuTab = tab
-        }
-    }
-
-    private func dismissMenu() {
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            menuTab = nil
-        }
-    }
 }

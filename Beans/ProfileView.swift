@@ -263,50 +263,6 @@ struct ProfileView: View {
         }
     }
 
-    /// 内置壁纸格子：点击即应用；当前使用中的显示主题色边框+勾选
-    private func builtinWallpaperCell(name: String, title: String) -> some View {
-        let isActive = theme.builtinWallpaperName == name
-        return Button {
-            BeansHaptics.tap()
-            withAnimation(.easeInOut(duration: 0.3)) {
-                theme.applyBuiltinWallpaper(name)
-            }
-        } label: {
-            ZStack(alignment: .bottomLeading) {
-                if let img = UIImage(named: "BuiltinWallpaper\(name)") {
-                    Image(uiImage: img)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Color.beansGlassFill
-                }
-                LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .center, endPoint: .bottom)
-                Text(title)
-                    .font(BeansFont.appFont(12, .medium))
-                    .foregroundStyle(.white)
-                    .padding(.leading, 8)
-                    .padding(.bottom, 6)
-            }
-            .frame(height: 108)
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(isActive ? Color.beansAmber : .white.opacity(0.18), lineWidth: isActive ? 2.5 : 1)
-            }
-            .overlay(alignment: .topTrailing) {
-                if isActive {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(Color.beansAmber)
-                        .background(Circle().fill(.ultraThinMaterial))
-                        .padding(5)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "外观")
@@ -429,21 +385,6 @@ struct ProfileView: View {
                                     .font(.system(size: 22))
                                     .foregroundStyle(Color.beansAmber)
                             }
-                        }
-                    }
-                    HStack(spacing: 10) {
-                        Image(systemName: "photo.artframe")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Color.beansAmber)
-                            .frame(width: 28)
-                        Text("内置壁纸（随包附带）")
-                            .font(BeansFont.appFont(15))
-                            .foregroundStyle(Color.beansLabel)
-                        Spacer()
-                    }
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
-                        ForEach(ThemeStore.builtinWallpapers, id: \.name) { item in
-                            builtinWallpaperCell(name: item.name, title: item.title)
                         }
                     }
                     // 壁纸库：所有已上传壁纸，点击即应用为当前背景

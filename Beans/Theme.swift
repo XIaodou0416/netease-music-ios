@@ -178,8 +178,6 @@ final class ThemeStore: ObservableObject {
     @Published var backgroundSyncAll = true
     /// 当前使用的背景图片文件路径（空串表示未上传图片）
     @Published var backgroundImagePath: String = ""
-    /// 当前内置壁纸（Asset Catalog 随包附带；nil 表示未使用内置壁纸）
-    @Published var builtinWallpaperName: String?
     /// 壁纸库：所有已上传壁纸的文件路径
     @Published var wallpaperPaths: [String] = []
 
@@ -190,19 +188,6 @@ final class ThemeStore: ObservableObject {
     private let wallpaperListKey = "beans.wallpapers.list"
     private let wallpaperDataKey = "beans.wallpapers.data"
     private let deletedKey = "beans.wallpapers.deleted"
-    private let builtinWallpaperKey = "beans.background.builtin"
-
-    /// 随包附带的内置壁纸（程序绘制，随包一起安装，不依赖网络）
-    static let builtinWallpapers: [(name: String, title: String)] = [
-        ("Aurora", "极光"),
-        ("Berry", "莓果"),
-        ("Forest", "林野"),
-        ("Midnight", "午夜"),
-        ("Mint", "薄荷"),
-        ("Ocean", "深海"),
-        ("Sky", "晨空"),
-        ("Sunset", "落日"),
-    ]
 
     private init() {
         accent = BeansAccent(rawValue: UserDefaults.standard.string(forKey: AccentTheme.key) ?? "") ?? .amber
@@ -211,7 +196,6 @@ final class ThemeStore: ObservableObject {
         backgroundHex = UserDefaults.standard.string(forKey: backgroundKey) ?? ""
         backgroundSyncAll = UserDefaults.standard.object(forKey: syncAllKey) as? Bool ?? true
         backgroundImagePath = UserDefaults.standard.string(forKey: backgroundImageKey) ?? ""
-        builtinWallpaperName = UserDefaults.standard.string(forKey: builtinWallpaperKey)
         wallpaperPaths = UserDefaults.standard.stringArray(forKey: wallpaperListKey) ?? []
         // 自动恢复壁纸（覆盖安装/数据迁移后：文件仍在用文件，文件丢失用 base64 备份重建）
         restoreWallpapers()
@@ -303,14 +287,8 @@ final class ThemeStore: ObservableObject {
     private var cachedBackgroundImage: UIImage?
     var customBackgroundImage: UIImage? {
         if let cached = cachedBackgroundImage { return cached }
-        let image: UIImage?
-        if let name = builtinWallpaperName {
-            image = UIImage(named: "BuiltinWallpaper\(name)")
-        } else if !backgroundImagePath.isEmpty {
-            image = UIImage(contentsOfFile: backgroundImagePath)
-        } else {
-            return nil
-        }
+        guard !backgroundImagePath.isEmpty else { return nil }
+        let image = UIImage(contentsOfFile: backgroundImagePath)
         cachedBackgroundImage = image
         return image
     }
@@ -337,8 +315,6 @@ final class ThemeStore: ObservableObject {
             try imageData.write(to: url, options: .atomic)
             wallpaperPaths.append(url.path)
             saveWallpaperList()
-            builtinWallpaperName = nil
-            UserDefaults.standard.removeObject(forKey: builtinWallpaperKey)
             backgroundImagePath = url.path
             UserDefaults.standard.set(url.path, forKey: backgroundImageKey)
             saveWallpaperBackup(url.path, data: imageData)
@@ -351,19 +327,8 @@ final class ThemeStore: ObservableObject {
     /// 从壁纸库选择壁纸应用为当前背景（无需再去相册）
     func applyWallpaper(at path: String) {
         guard FileManager.default.fileExists(atPath: path) else { return }
-        builtinWallpaperName = nil
-        UserDefaults.standard.removeObject(forKey: builtinWallpaperKey)
         backgroundImagePath = path
         UserDefaults.standard.set(path, forKey: backgroundImageKey)
-        invalidateBackgroundCache()
-    }
-
-    /// 应用内置壁纸（随包附带，无需上传；同时清除已上传的文件壁纸）
-    func applyBuiltinWallpaper(_ name: String) {
-        builtinWallpaperName = name
-        UserDefaults.standard.set(name, forKey: builtinWallpaperKey)
-        backgroundImagePath = ""
-        UserDefaults.standard.set("", forKey: backgroundImageKey)
         invalidateBackgroundCache()
     }
 
@@ -384,9 +349,7 @@ final class ThemeStore: ObservableObject {
     /// 清除当前背景（保留壁纸库，可随时重新选择）
     func clearBackgroundImage() {
         backgroundImagePath = ""
-        builtinWallpaperName = nil
         UserDefaults.standard.set("", forKey: backgroundImageKey)
-        UserDefaults.standard.removeObject(forKey: builtinWallpaperKey)
         invalidateBackgroundCache()
     }
 

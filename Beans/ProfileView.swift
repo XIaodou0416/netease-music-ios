@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UniformTypeIdentifiers
 
 struct ProfileView: View {
     @EnvironmentObject private var theme: ThemeStore
@@ -91,26 +92,27 @@ struct ProfileView: View {
             }
             Button("取消", role: .cancel) {}
         }
-        // 用 .data 让所有文件可选，选中后再校验扩展名（ttf/otf 属于导入类型，直接限定会导致点选无反应）
-        .fileImporter(isPresented: $showFontImporter, allowedContentTypes: [.data]) { result in
-            switch result {
-            case .success(let url):
-                let didAccess = url.startAccessingSecurityScopedResource()
-                defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
-                let ext = url.pathExtension.lowercased()
-                guard ["ttf", "otf", "ttc"].contains(ext) else {
-                    ToastCenter.shared.show("请选择 ttf / otf 字体文件")
-                    return
-                }
-                if let name = FontManager.install(from: url) {
-                    BeansHaptics.success()
-                    ToastCenter.shared.show("字体已应用：\(name)")
-                } else {
-                    ToastCenter.shared.show("字体安装失败，请使用 ttf / otf 文件")
-                }
-            case .failure:
-                break
+        // 字体导入改用 UIDocumentPicker（asCopy 由系统直接复制到沙盒），避免 fileImporter 点选无反应/安全作用域读取失败
+        .fullScreenCover(isPresented: $showFontImporter) {
+            FontDocumentPicker { url in
+                installFont(from: url)
             }
+            .ignoresSafeArea()
+        }
+    }
+
+    /// 校验扩展名并安装字体（asCopy 返回的 URL 已在沙盒内，可直接读取）
+    private func installFont(from url: URL) {
+        let ext = url.pathExtension.lowercased()
+        guard ["ttf", "otf", "ttc"].contains(ext) else {
+            ToastCenter.shared.show("请选择 ttf / otf 字体文件")
+            return
+        }
+        if let name = FontManager.install(from: url) {
+            BeansHaptics.success()
+            ToastCenter.shared.show("字体已应用：\(name)")
+        } else {
+            ToastCenter.shared.show("字体安装失败，请使用 ttf / otf 文件")
         }
     }
 
@@ -280,9 +282,6 @@ struct ProfileView: View {
                         .font(.system(size: 15))
                         .foregroundStyle(Color.beansLabel)
                     Spacer()
-                    Text(themeMode.title)
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.beansSecondary)
                     Image(systemName: appearanceExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.beansSecondary.opacity(0.6))
@@ -701,5 +700,32 @@ struct NetEaseRankSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: - 字体文件选择器（UIDocumentPicker 包装，比 SwiftUI fileImporter 稳定：所有文件可选，系统 asCopy 复制到沙盒）
+
+struct FontDocumentPicker: UIViewControllerRepresentable {
+    let onPick: (URL) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: true)
+        picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = false
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+
+    final class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let parent: FontDocumentPicker
+        init(_ parent: FontDocumentPicker) { self.parent = parent }
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            parent.onPick(url)
+        }
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {}
     }
 }

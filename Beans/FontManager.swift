@@ -49,7 +49,9 @@ enum FontManager {
 
     @discardableResult
     private static func register(_ url: URL) -> String? {
-        guard let provider = CGDataProvider(url: url as CFURL), let font = CGFont(provider) else { return nil }
+        // 用 Data 读取避免安全作用域/CGDataProvider(url:) 兼容问题，iOS 上更稳
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        guard let provider = CGDataProvider(data: data as CFData), let font = CGFont(provider) else { return nil }
         var error: Unmanaged<CFError>?
         guard CTFontManagerRegisterGraphicsFont(font, &error) else { return nil }
         return font.postScriptName as String?

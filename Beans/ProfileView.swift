@@ -17,8 +17,6 @@ struct ProfileView: View {
     @State private var appearanceExpanded = false
     @State private var weekRecord: [PlayRecordItem] = []
     @State private var allRecord: [PlayRecordItem] = []
-    @State private var weekTotal = 0
-    @State private var allTotal = 0
     @State private var rankLoading = false
     @State private var showNetEaseRank = false
     @State private var showFontImporter = false
@@ -170,14 +168,9 @@ struct ProfileView: View {
                         .font(.system(size: 15))
                         .foregroundStyle(Color.beansAmber)
                         .frame(width: 28)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("历史听歌排行")
-                            .font(BeansFont.appFont(15))
-                            .foregroundStyle(Color.beansLabel)
-                        Text(auth.isLoggedIn ? "网易云 · 本周 \(weekTotal) 首 / 累计 \(allTotal) 首" : "登录网易云后同步历史听歌记录")
-                            .font(BeansFont.appFont(11))
-                            .foregroundStyle(Color.beansSecondary)
-                    }
+                    Text("历史听歌排行")
+                        .font(BeansFont.appFont(15))
+                        .foregroundStyle(Color.beansLabel)
                     Spacer()
                     if rankLoading {
                         ProgressView()
@@ -592,8 +585,6 @@ struct ProfileView: View {
         let (wr, ar) = await (w, a)
         weekRecord = wr?.items ?? []
         allRecord = ar?.items ?? []
-        weekTotal = wr?.totalCount ?? 0
-        allTotal = ar?.totalCount ?? 0
         rankLoading = false
     }
 

@@ -149,8 +149,15 @@ struct DiscoverView: View {
             }
         }
         .padding(4)
-        .background(.ultraThinMaterial, in: Capsule())
+        .background {
+            GlassEffectContainer {
+                Capsule()
+                    .fill(.clear)
+                    .glassEffect(.clear, in: Capsule())
+            }
+        }
         .clipShape(Capsule())
+        .beansCardShadow(radius: 6, y: 2)
     }
 
     private var greeting: String {

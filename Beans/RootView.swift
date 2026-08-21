@@ -83,7 +83,7 @@ struct RootView: View {
     }
 }
 
-// MARK: - iOS 原生风格底栏（贴底 + 系统原生材质；保留长按快捷菜单 / 滑动选中 / 涟漪交互）
+// MARK: - 悬浮液态玻璃底栏（iOS 26 glass 三层；长按按压液态反馈 + 快捷菜单 / 滑动选中）
 
 struct AppStoreTabBar: View {
     @EnvironmentObject private var theme: ThemeStore
@@ -92,6 +92,7 @@ struct AppStoreTabBar: View {
 
     @State private var menuTab: RootTab?
     @State private var rippleTab: RootTab?
+    @State private var pressedTab: RootTab?
     @State private var anchors: [RootTab: CGFloat] = [:]
     @State private var showQueue = false
 
@@ -104,24 +105,36 @@ struct AppStoreTabBar: View {
                 if let menuTab, player.currentSong != nil {
                     quickMenu(for: menuTab)
                         .frame(width: menuWidth)
-                        .padding(.bottom, 60)
+                        .padding(.bottom, 86)
                         .offset(x: menuOffset(for: menuTab, width: geo.size.width))
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .zIndex(10)
                 }
-                nativeBar
+                barCapsule
                     .simultaneousGesture(dragToSelect(width: geo.size.width))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .coordinateSpace(name: "beansTabBar")
         }
-        .frame(height: 49)
+        .frame(height: 64)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+        .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
+    }
+
+    /// 悬浮液态玻璃底栏：iOS 26 原生 glass + 高光 + 描边三层，悬浮于内容之上
+    private var barCapsule: some View {
+        HStack(spacing: 4) {
+            ForEach(RootTab.allCases) { tab in
+                tabButton(tab)
+            }
+        }
+        .padding(5)
         .background {
-            // iOS 26 原生液态玻璃：贴底矩形 + 高光 + 描边（与应用商店 tab bar 一致）
             GlassEffectContainer {
-                Rectangle()
+                Capsule()
                     .fill(.clear)
-                    .glassEffect(.clear, in: Rectangle())
+                    .glassEffect(.clear, in: Capsule())
             }
             .overlay {
                 LinearGradient(
@@ -130,27 +143,18 @@ struct AppStoreTabBar: View {
                 )
             }
             .overlay {
-                Rectangle()
+                Capsule()
                     .strokeBorder(
                         LinearGradient(
-                            colors: [.white.opacity(0.4), .white.opacity(0.06)],
+                            colors: [.white.opacity(0.45), .white.opacity(0.08)],
                             startPoint: .top, endPoint: .bottom
                         ),
                         lineWidth: 0.8
                     )
             }
         }
-        .ignoresSafeArea(edges: .bottom)
-        .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
-    }
-
-    /// 原生 tab bar 布局：贴底 + 系统原生材质（iOS 26 即系统原生液态玻璃）
-    private var nativeBar: some View {
-        HStack(spacing: 0) {
-            ForEach(RootTab.allCases) { tab in
-                tabButton(tab)
-            }
-        }
+        .clipShape(Capsule())
+        .shadow(color: .black.opacity(0.14), radius: 16, y: 8)
     }
 
     private func tabButton(_ tab: RootTab) -> some View {
@@ -160,17 +164,22 @@ struct AppStoreTabBar: View {
             VStack(spacing: 3) {
                 Image(systemName: tab.icon)
                     .symbolVariant(selection == tab ? .fill : .none)
-                    .font(.system(size: 22, weight: .medium))
+                    .font(.system(size: 17, weight: .medium))
                 Text(tab.title)
                     .font(BeansFont.appFont(10, .medium))
             }
             .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
             .frame(maxWidth: .infinity)
-            .padding(.top, 7)
-            .padding(.bottom, 5)
-            .scaleEffect(rippleTab == tab ? 1.12 : 1)
-            .animation(.spring(response: 0.4, dampingFraction: 0.55), value: rippleTab)
+            .padding(.vertical, 9)
+            .scaleEffect(pressedTab == tab ? 0.86 : (rippleTab == tab ? 1.1 : 1))
+            .animation(.spring(response: 0.3, dampingFraction: 0.5), value: pressedTab)
             .background {
+                if selection == tab && pressedTab != tab {
+                    Capsule().fill(Color.beansAmber.opacity(0.14))
+                }
+                if pressedTab == tab {
+                    Capsule().fill(.white.opacity(0.16))
+                }
                 if rippleTab == tab {
                     LiquidRippleEffect()
                 }
@@ -178,9 +187,27 @@ struct AppStoreTabBar: View {
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
-        .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 14) {
+        .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 14, pressing: { isPressing in
+            if isPressing {
+                BeansHaptics.tap()
+                rippleTab = tab
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.5)) {
+                    pressedTab = tab
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if pressedTab == nil {
+                        withAnimation(.easeOut(duration: 0.2)) { rippleTab = nil }
+                    }
+                }
+            } else {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                    pressedTab = nil
+                }
+                withAnimation(.easeOut(duration: 0.2)) { rippleTab = nil }
+            }
+        }, perform: {
             longPress(tab)
-        }
+        })
         .background(anchorReader(tab))
     }
 

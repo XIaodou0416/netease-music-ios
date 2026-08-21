@@ -90,15 +90,16 @@ struct SearchView: View {
     @State private var selectedArtist: Artist?
     @State private var debounceTask: Task<Void, Never>?
     @State private var searchTask: Task<Void, Never>?
-    @FocusState private var focused: Bool
+    /// UIKit 输入框控制器（提交拼音、收起键盘等由它统一处理）
+    @State private var searchController = SearchFieldController()
 
     var body: some View {
         let _ = theme.accent
         ZStack(alignment: .top) {
             // 页面背景：同步开启时显示壁纸/背景色，否则默认氛围渐变
             GlassBackdrop(customColor: theme.backgroundSyncAll ? theme.customBackground : nil)
-            // 实例级 UITabBar 液态玻璃透明度（滑块即时生效）
-            TabBarAppearanceConfigurator(alpha: theme.tabBarAlpha)
+            // 实例级 UITabBar 清透风格（固定全透明，无需调节）
+            TabBarAppearanceConfigurator()
             VStack(spacing: 0) {
                 headerTitle
                     .padding(.horizontal, 20)
@@ -194,16 +195,21 @@ struct SearchView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(Color.beansSecondary)
-            TextField("搜索歌曲、歌手、专辑", text: $keyword)
-                .font(BeansFont.appFont(15))
-                .foregroundStyle(Color.beansLabel)
-                .focused($focused)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
-                .onSubmit {
-                    // 输入法回车：先失焦提交拼音再延迟读取，避免中文输入法未上屏时读到旧值
-                    commitSearch()
+            // UIKit 输入框：回车/点搜索时先 unmarkText 强制提交拼音，再读取最新文本，
+            // 根治 SwiftUI TextField 在中文组字中 onSubmit 后输入消失、搜索无结果的问题
+            SearchTextField(
+                text: $keyword,
+                controller: searchController,
+                placeholder: "搜索歌曲、歌手、专辑",
+                textColor: UIColor.beansLabel,
+                onSubmit: { text in
+                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else { return }
+                    debounceTask?.cancel()
+                    Task { await startSearch(trimmed) }
                 }
+            )
+            .frame(maxWidth: .infinity)
             if searching {
                 ProgressView()
                     .controlSize(.small)
@@ -225,7 +231,12 @@ struct SearchView: View {
                 .buttonStyle(.plain)
             }
             Button {
-                commitSearch()
+                // 先提交拼音再读取，避免组字中读到旧值或输入被清空
+                let text = searchController.commit()
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                debounceTask?.cancel()
+                Task { await startSearch(trimmed) }
             } label: {
                 Text("搜索")
                     .font(BeansFont.appFont(13, .semibold))
@@ -361,7 +372,7 @@ struct SearchView: View {
         Button {
             BeansHaptics.tap()
             keyword = word
-            focused = false
+            searchController.dismissKeyboard()
             debounceTask?.cancel()
             Task { await startSearch(word) }
         } label: {
@@ -602,38 +613,19 @@ struct SearchView: View {
 
     // MARK: - 动作
 
+    /// 重新搜索（错误重试按钮调用：读取当前输入框文本）
     private func submitSearch() {
-        // 键盘搜索键：系统已把输入法文本提交到 binding，直接搜索
         debounceTask?.cancel()
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         Task { await startSearch(trimmed) }
     }
 
-    /// 点搜索按钮 / 输入法回车：
-    /// 优先直接搜索已上屏文本；若输入法还在组字（拼音未上屏），
-    /// 等待短时间让拼音自动提交后再读取。
-    /// 重点：绝不在组字中失焦（失焦会取消组字，导致输入框被清空、搜索无结果）。
-    private func commitSearch() {
-        let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
-        debounceTask?.cancel()
-        if !trimmed.isEmpty {
-            Task { await startSearch(trimmed) }
-            return
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            let t = self.keyword.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !t.isEmpty else { return }
-            self.debounceTask?.cancel()
-            Task { await self.startSearch(t) }
-        }
-    }
-
     /// 点击歌手 / 专辑：以其名称搜索歌曲
     private func searchBy(_ name: String) {
         BeansHaptics.tap()
         keyword = name
-        focused = false
+        searchController.dismissKeyboard()
         debounceTask?.cancel()
         resultType = .song
         Task { await startSearch(name) }
@@ -692,5 +684,99 @@ struct SearchView: View {
             }
         }
         await searchTask?.value
+    }
+}
+
+// MARK: - 搜索输入框（UIKit 封装：根治中文输入法提交问题）
+// SwiftUI TextField 在中文拼音组字中触发 onSubmit 时，binding 可能尚未拿到提交后的文本，
+// 且提交瞬间的状态更新可能丢弃未上屏的组字，表现为“输入内容消失、搜索无结果”。
+// 改用 UITextField 后：
+//  1) 回车/点搜索前先 unmarkText() 强制把拼音提交为汉字，再直接读 field.text（必定最新）；
+//  2) 输入内容由 UIKit 持有，SwiftUI 重绘不会清空输入框。
+
+/// 搜索输入框控制器：持有 UITextField 弱引用，供“搜索”按钮与热搜标签操作
+final class SearchFieldController {
+    weak var textField: UITextField?
+
+    /// 提交拼音组字并返回最新文本，同时收起键盘（点“搜索”按钮调用）
+    func commit() -> String {
+        guard let field = textField else { return "" }
+        if field.markedTextRange != nil {
+            field.unmarkText()
+        }
+        let text = field.text ?? ""
+        field.resignFirstResponder()
+        return text
+    }
+
+    /// 收起键盘（点热搜标签 / 歌手 / 专辑时调用）
+    func dismissKeyboard() {
+        textField?.resignFirstResponder()
+    }
+}
+
+struct SearchTextField: UIViewRepresentable {
+    @Binding var text: String
+    let controller: SearchFieldController
+    var placeholder: String = ""
+    let textColor: UIColor
+    let onSubmit: (String) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeUIView(context: Context) -> UITextField {
+        let field = UITextField()
+        field.placeholder = placeholder
+        field.font = BeansFont.appUIFont(15)
+        field.textColor = textColor
+        field.autocorrectionType = .no
+        field.autocapitalizationType = .none
+        field.spellCheckingType = .no
+        field.returnKeyType = .search
+        field.clearButtonMode = .never
+        field.delegate = context.coordinator
+        field.text = text
+        field.addTarget(context.coordinator, action: #selector(Coordinator.textChanged(_:)), for: .editingChanged)
+        controller.textField = field
+        return field
+    }
+
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        // 同步最新绑定值；同时刷新 coordinator 持有的父视图，保证闭包/绑定始终是最新实例
+        context.coordinator.parent = self
+        if uiView.text != text {
+            uiView.text = text
+        }
+        uiView.font = BeansFont.appUIFont(15)
+        uiView.textColor = textColor
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: SearchTextField
+
+        init(_ parent: SearchTextField) {
+            self.parent = parent
+        }
+
+        @objc func textChanged(_ field: UITextField) {
+            parent.text = field.text ?? ""
+        }
+
+        func textFieldShouldReturn(_ field: UITextField) -> Bool {
+            // 输入法回车：先强制提交拼音再读取，确保拿到完整中文文本
+            if field.markedTextRange != nil {
+                field.unmarkText()
+            }
+            let text = field.text ?? ""
+            parent.onSubmit(text)
+            field.resignFirstResponder()
+            return true
+        }
+
+        func textFieldDidEndEditing(_ field: UITextField) {
+            parent.text = field.text ?? ""
+        }
     }
 }

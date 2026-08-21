@@ -25,8 +25,8 @@ struct DiscoverView: View {
         ZStack {
             // 主页背景：壁纸/背景色永远在发现页生效（homeMode），同步开启时其他页面也生效
             GlassBackdrop(customColor: theme.customBackground, homeMode: true)
-            // 实例级 UITabBar 液态玻璃透明度（滑块即时生效）
-            TabBarAppearanceConfigurator(alpha: theme.tabBarAlpha)
+            // 实例级 UITabBar 清透风格（固定全透明，无需调节）
+            TabBarAppearanceConfigurator()
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
                     header

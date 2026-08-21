@@ -66,4 +66,12 @@ enum BeansFont {
         }
         return .system(size: size, weight: weight, design: design)
     }
+
+    /// UIKit 版字体（UITextField 等 SwiftUI 不覆盖的控件用）
+    static func appUIFont(_ size: CGFloat, _ weight: UIFont.Weight = .regular) -> UIFont {
+        if let name = FontManager.installedFontName {
+            return UIFont(name: name, size: size) ?? .systemFont(ofSize: size, weight: weight)
+        }
+        return .systemFont(ofSize: size, weight: weight)
+    }
 }

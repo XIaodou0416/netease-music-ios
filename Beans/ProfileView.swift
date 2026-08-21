@@ -37,8 +37,8 @@ struct ProfileView: View {
         ZStack {
             // 页面背景：同步开启时显示壁纸/背景色，否则默认氛围渐变
             GlassBackdrop(customColor: theme.backgroundSyncAll ? theme.customBackground : nil)
-            // 实例级 UITabBar 液态玻璃透明度（滑块即时生效）
-            TabBarAppearanceConfigurator(alpha: theme.tabBarAlpha)
+            // 实例级 UITabBar 清透风格（固定全透明，无需调节）
+            TabBarAppearanceConfigurator()
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     userCard
@@ -480,27 +480,6 @@ struct ProfileView: View {
                 .tint(Color.beansAmber)
 
                 Divider().overlay(Color.beansSecondary.opacity(0.15))
-
-                HStack(spacing: 12) {
-                    Image(systemName: "rectangle.bottomthird.inset.filled")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.beansAmber)
-                        .frame(width: 28)
-                    Text("底栏透明度")
-                        .font(BeansFont.appFont(15))
-                        .foregroundStyle(Color.beansLabel)
-                    Spacer()
-                    Slider(value: Binding(
-                        get: { theme.tabBarAlpha },
-                        set: { theme.setTabBarAlpha($0) }
-                    ), in: 0.1...1.0)
-                        .tint(Color.beansAmber)
-                        .frame(width: 130)
-                    Text("\(Int(theme.tabBarAlpha * 100))%")
-                        .font(BeansFont.appFont(12, .regular, .monospaced))
-                        .foregroundStyle(Color.beansSecondary)
-                        .frame(width: 38, alignment: .trailing)
-                }
 
                 HStack {
                     Button {

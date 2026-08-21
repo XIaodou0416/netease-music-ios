@@ -17,8 +17,8 @@ struct LibraryView: View {
         ZStack {
             // 页面背景：同步开启时显示壁纸/背景色，否则默认氛围渐变
             GlassBackdrop(customColor: theme.backgroundSyncAll ? theme.customBackground : nil)
-            // 实例级 UITabBar 液态玻璃透明度（滑块即时生效）
-            TabBarAppearanceConfigurator(alpha: theme.tabBarAlpha)
+            // 实例级 UITabBar 清透风格（固定全透明，无需调节）
+            TabBarAppearanceConfigurator()
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     header

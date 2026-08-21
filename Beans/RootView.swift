@@ -89,37 +89,30 @@ struct RootView: View {
 }
 
 
-// MARK: - 系统 TabBar 液态玻璃透明度调节（实例级，滑块即时生效）
+// MARK: - 系统 TabBar 清透风格（实例级配置）
 // 系统 TabView 创建之后，`UITabBar.appearance()` 全局代理对已存在的实例不再生效，
 // 所以每个 tab 页面内放一个 TabBarAppearanceConfigurator，通过 tabBarController
-// 拿到当前 UITabBar 实例，直接设置 standardAppearance；滑块调整 alpha 后立即刷新。
+// 拿到当前 UITabBar 实例，直接设置固定清透外观（全透明、无阴影）。
 
 struct TabBarAppearanceConfigurator: UIViewControllerRepresentable {
-    /// 底栏液态玻璃透明度（0.1 ~ 1.0，越小越透）
-    var alpha: CGFloat
-
     func makeUIViewController(context: Context) -> UIViewController {
         let controller = UIViewController()
         controller.view.backgroundColor = .clear
-        DispatchQueue.main.async { Self.apply(alpha: alpha, from: controller) }
+        DispatchQueue.main.async { Self.apply(from: controller) }
         return controller
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        DispatchQueue.main.async { Self.apply(alpha: alpha, from: uiViewController) }
+        DispatchQueue.main.async { Self.apply(from: uiViewController) }
     }
 
-    private static func apply(alpha: CGFloat, from controller: UIViewController) {
+    /// 固定清透风格：全透明背景、无阴影；选中态用主题色，
+    /// 材质与模糊完全交给系统对底层页面内容的渲染，不再支持手动调节透明度
+    private static func apply(from controller: UIViewController) {
         guard let tabBar = controller.tabBarController?.tabBar else { return }
         let appearance = UITabBarAppearance()
-        // 透明配置 + 按主题取底色，透明度由滑块控制（越小越透）
         appearance.configureWithTransparentBackground()
-        appearance.backgroundColor = UIColor { traits in
-            let base = traits.userInterfaceStyle == .dark
-                ? UIColor(white: 0.06, alpha: 1)
-                : UIColor(white: 0.97, alpha: 1)
-            return base.withAlphaComponent(min(max(alpha, 0.1), 1.0))
-        }
+        appearance.backgroundColor = .clear
         appearance.shadowColor = .clear
         tabBar.standardAppearance = appearance
         tabBar.scrollEdgeAppearance = appearance

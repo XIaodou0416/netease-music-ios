@@ -180,8 +180,6 @@ final class ThemeStore: ObservableObject {
     @Published var backgroundImagePath: String = ""
     /// 壁纸库：所有已上传壁纸的文件路径
     @Published var wallpaperPaths: [String] = []
-    /// 底栏液态玻璃透明度（0.1 ~ 1.0，越小越透）
-    @Published var tabBarAlpha: CGFloat = 0.55
 
     private let customAccentKey = "beans.accent.custom"
     private let backgroundKey = "beans.background.custom"
@@ -190,7 +188,6 @@ final class ThemeStore: ObservableObject {
     private let wallpaperListKey = "beans.wallpapers.list"
     private let wallpaperDataKey = "beans.wallpapers.data"
     private let deletedKey = "beans.wallpapers.deleted"
-    private let tabBarAlphaKey = "beans.tabbar.alpha"
 
     private init() {
         accent = BeansAccent(rawValue: UserDefaults.standard.string(forKey: AccentTheme.key) ?? "") ?? .amber
@@ -200,7 +197,6 @@ final class ThemeStore: ObservableObject {
         backgroundSyncAll = UserDefaults.standard.object(forKey: syncAllKey) as? Bool ?? true
         backgroundImagePath = UserDefaults.standard.string(forKey: backgroundImageKey) ?? ""
         wallpaperPaths = UserDefaults.standard.stringArray(forKey: wallpaperListKey) ?? []
-        tabBarAlpha = UserDefaults.standard.object(forKey: tabBarAlphaKey) as? CGFloat ?? 0.55
         // 自动恢复壁纸（覆盖安装/数据迁移后：文件仍在用文件，文件丢失用 base64 备份重建）
         restoreWallpapers()
     }
@@ -282,12 +278,6 @@ final class ThemeStore: ObservableObject {
     func setBackgroundSyncAll(_ on: Bool) {
         backgroundSyncAll = on
         UserDefaults.standard.set(on, forKey: syncAllKey)
-    }
-
-    /// 底栏透明度（越小越透），持久化保存
-    func setTabBarAlpha(_ value: CGFloat) {
-        tabBarAlpha = min(max(value, 0.1), 1.0)
-        UserDefaults.standard.set(tabBarAlpha, forKey: tabBarAlphaKey)
     }
 
     /// 自定义强调色 Color

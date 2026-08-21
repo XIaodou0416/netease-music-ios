@@ -46,7 +46,7 @@ struct CommentsSheet: View {
                         List {
                             Section {
                                 Text("《\(song.name)》 · 共 \(page.total) 条评论")
-                                    .font(.system(size: 12))
+                                    .font(BeansFont.appFont(12))
                                     .foregroundStyle(Color.beansSecondary)
                             }
                             if !page.hot.isEmpty {
@@ -69,7 +69,7 @@ struct CommentsSheet: View {
                                         Task { await loadMore() }
                                     } label: {
                                         Text("加载更多")
-                                            .font(.system(size: 14, weight: .semibold))
+                                            .font(BeansFont.appFont(14, .semibold))
                                             .foregroundStyle(Color.beansAmber)
                                             .frame(maxWidth: .infinity)
                                     }
@@ -121,7 +121,7 @@ struct CommentsSheet: View {
                 List {
                     Section {
                         Text("《\(song.name)》 · QQ 音乐 \(qqComments.count) 条评论")
-                            .font(.system(size: 12))
+                            .font(BeansFont.appFont(12))
                             .foregroundStyle(Color.beansSecondary)
                     }
                     Section("评论") {
@@ -165,12 +165,12 @@ struct CommentRow: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 8) {
                     Text(comment.nickname)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(BeansFont.appFont(13, .medium))
                         .foregroundStyle(Color.beansSecondary)
                         .lineLimit(1)
                     if comment.isHot {
                         Text("热评")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(BeansFont.appFont(9, .bold))
                             .foregroundStyle(Color.white)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -178,17 +178,17 @@ struct CommentRow: View {
                     }
                     Spacer()
                     Text(beansRelativeTime(comment.time))
-                        .font(.system(size: 11))
+                        .font(BeansFont.appFont(11))
                         .foregroundStyle(Color.beansSecondary.opacity(0.8))
                 }
                 Text(comment.content)
-                    .font(.system(size: 14))
+                    .font(BeansFont.appFont(14))
                     .foregroundStyle(Color.beansLabel)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack {
                     Spacer()
                     Label("\(comment.likedCount)", systemImage: "heart")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(BeansFont.appFont(11, .medium))
                         .foregroundStyle(Color.beansSecondary)
                         .labelStyle(.trailingIcon)
                 }

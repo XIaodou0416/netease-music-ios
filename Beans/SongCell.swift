@@ -36,7 +36,7 @@ struct SongCell: View {
                 NowPlayingIndicator()
             } else {
                 Text(song.formattedDuration)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(BeansFont.appFont(12, .regular, .monospaced))
                     .foregroundStyle(Color.beansSecondary)
             }
         }

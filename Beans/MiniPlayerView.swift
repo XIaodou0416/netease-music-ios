@@ -34,11 +34,11 @@ struct MiniPlayerView: View {
                 CoverImage(url: player.currentSong?.coverURL, size: 40, cornerRadius: 8)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(player.currentSong?.name ?? "")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(BeansFont.appFont(14, .semibold))
                         .foregroundStyle(Color.beansLabel)
                         .lineLimit(1)
                     Text(currentLyricLine?.text ?? player.currentSong?.artists ?? "")
-                        .font(.system(size: 12))
+                        .font(BeansFont.appFont(12))
                         .foregroundStyle(Color.beansSecondary)
                         .lineLimit(1)
                         .truncationMode(.tail)

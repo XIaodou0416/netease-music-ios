@@ -52,11 +52,11 @@ struct QueueView: View {
             CoverImage(url: song.coverURL, size: 42, cornerRadius: 9)
             VStack(alignment: .leading, spacing: 3) {
                 Text(song.name)
-                    .font(.system(size: 15, weight: isCurrent ? .semibold : .regular))
+                    .font(BeansFont.appFont(15, isCurrent ? .semibold : .regular))
                     .foregroundStyle(isCurrent ? Color.beansAmber : Color.beansLabel)
                     .lineLimit(1)
                 Text(song.artists)
-                    .font(.system(size: 12))
+                    .font(BeansFont.appFont(12))
                     .foregroundStyle(Color.beansSecondary)
                     .lineLimit(1)
             }
@@ -71,7 +71,7 @@ struct QueueView: View {
                 }
             } else {
                 Text(song.formattedDuration)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(BeansFont.appFont(12, .regular, .monospaced))
                     .foregroundStyle(Color.beansSecondary)
             }
         }

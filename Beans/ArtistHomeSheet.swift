@@ -81,13 +81,13 @@ struct ArtistHomeSheet: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(artist?.name ?? artistName)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(BeansFont.appFont(20, .bold))
                     .foregroundStyle(Color.beansLabel)
                     .lineLimit(1)
                 Text(artistSource == .qq
                      ? "热门歌曲 \(hotSongs.count) 首"
                      : "热门歌曲 \(hotSongs.count) 首 · 专辑 \(albums.count) 张")
-                    .font(.system(size: 12))
+                    .font(BeansFont.appFont(12))
                     .foregroundStyle(Color.beansSecondary)
             }
             Spacer()
@@ -98,12 +98,12 @@ struct ArtistHomeSheet: View {
     private var hotSongsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("热门歌曲")
-                .font(.system(size: 17, weight: .bold))
+                .font(BeansFont.appFont(17, .bold))
                 .foregroundStyle(Color.beansLabel)
                 .padding(.horizontal, 16)
             if hotSongs.isEmpty {
                 Text("暂无歌曲")
-                    .font(.system(size: 13))
+                    .font(BeansFont.appFont(13))
                     .foregroundStyle(Color.beansSecondary)
                     .padding(.horizontal, 16)
             } else {
@@ -115,17 +115,17 @@ struct ArtistHomeSheet: View {
                         } label: {
                             HStack(spacing: 12) {
                                 Text("\(index + 1)")
-                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .font(BeansFont.appFont(13, .semibold, .rounded))
                                     .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
                                     .frame(width: 22)
                                 CoverImage(url: song.coverURL, size: 40, cornerRadius: 8)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(song.name)
-                                        .font(.system(size: 14, weight: .medium))
+                                        .font(BeansFont.appFont(14, .medium))
                                         .foregroundStyle(Color.beansLabel)
                                         .lineLimit(1)
                                     Text(song.album)
-                                        .font(.system(size: 11))
+                                        .font(BeansFont.appFont(11))
                                         .foregroundStyle(Color.beansSecondary)
                                         .lineLimit(1)
                                 }
@@ -145,12 +145,12 @@ struct ArtistHomeSheet: View {
     private var albumsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("专辑")
-                .font(.system(size: 17, weight: .bold))
+                .font(BeansFont.appFont(17, .bold))
                 .foregroundStyle(Color.beansLabel)
                 .padding(.horizontal, 16)
             if albums.isEmpty {
                 Text("暂无专辑")
-                    .font(.system(size: 13))
+                    .font(BeansFont.appFont(13))
                     .foregroundStyle(Color.beansSecondary)
                     .padding(.horizontal, 16)
             } else {
@@ -163,12 +163,12 @@ struct ArtistHomeSheet: View {
                                 CoverImage(url: album.coverURL, size: 88, cornerRadius: 12)
                                     .frame(maxWidth: .infinity)
                                 Text(album.name)
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(BeansFont.appFont(11, .medium))
                                     .foregroundStyle(Color.beansLabel)
                                     .lineLimit(1)
                                 if let count = album.trackCount {
                                     Text("\(count) 首")
-                                        .font(.system(size: 10))
+                                        .font(BeansFont.appFont(10))
                                         .foregroundStyle(Color.beansSecondary)
                                 }
                             }

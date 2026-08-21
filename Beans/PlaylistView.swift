@@ -43,16 +43,16 @@ struct PlaylistView: View {
                 CoverImage(url: playlist.coverURL, size: 96, cornerRadius: 18)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(playlist.name)
-                        .font(.system(size: 18, weight: .bold))
+                        .font(BeansFont.appFont(18, .bold))
                         .foregroundStyle(Color.beansLabel)
                         .lineLimit(2)
                     if !playlist.creatorName.isEmpty {
                         Text(playlist.creatorName)
-                            .font(.system(size: 12))
+                            .font(BeansFont.appFont(12))
                             .foregroundStyle(Color.beansSecondary)
                     }
                     Text("\(tracks.count) 首")
-                        .font(.system(size: 12))
+                        .font(BeansFont.appFont(12))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 Spacer(minLength: 0)

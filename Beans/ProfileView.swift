@@ -140,10 +140,10 @@ struct ProfileView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(auth.user?.nickname ?? (auth.isLoggedIn ? "未登录" : "免登录 · 点击登录"))
-                        .font(.system(size: 20, weight: .bold))
+                        .font(BeansFont.appFont(20, .bold))
                         .foregroundStyle(Color.beansLabel)
                     Text(auth.isLoggedIn ? "UID \(auth.user?.uid ?? 0)" : "登录后可同步网易云歌单")
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(BeansFont.appFont(12, .regular, .monospaced))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 Spacer()
@@ -185,12 +185,12 @@ struct ProfileView: View {
                     .background(Color.beansGlassFill, in: Circle())
                 VStack(alignment: .leading, spacing: 3) {
                     Text("QQ 音乐")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(BeansFont.appFont(15, .semibold))
                         .foregroundStyle(Color.beansLabel)
                     Text(qqAuth.isLoggedIn
                          ? "已登录：\(qqAuth.nickname.isEmpty ? "QQ 账号" : qqAuth.nickname)"
                          : "登录后可播放 QQ 音乐歌曲")
-                        .font(.system(size: 12))
+                        .font(BeansFont.appFont(12))
                         .foregroundStyle(Color.beansSecondary)
                         .lineLimit(1)
                 }
@@ -279,7 +279,7 @@ struct ProfileView: View {
                         .foregroundStyle(Color.beansAmber)
                         .frame(width: 28)
                     Text("主题模式")
-                        .font(.system(size: 15))
+                        .font(BeansFont.appFont(15))
                         .foregroundStyle(Color.beansLabel)
                     Spacer()
                     Image(systemName: appearanceExpanded ? "chevron.up" : "chevron.down")
@@ -324,7 +324,7 @@ struct ProfileView: View {
                         .foregroundStyle(Color.beansAmber)
                         .frame(width: 28)
                     Text("自定义强调色")
-                        .font(.system(size: 15))
+                        .font(BeansFont.appFont(15))
                         .foregroundStyle(Color.beansLabel)
                     Spacer()
                     ColorPicker("", selection: Binding(
@@ -339,7 +339,7 @@ struct ProfileView: View {
                         BeansHaptics.select()
                     } label: {
                         Text("恢复预设")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(BeansFont.appFont(13, .medium))
                             .foregroundStyle(Color.beansAmber)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
@@ -348,7 +348,7 @@ struct ProfileView: View {
                     .buttonStyle(.plain)
                     Spacer()
                     Text(theme.customAccentHex == nil ? "使用预设主题" : "已自定义")
-                        .font(.system(size: 12))
+                        .font(BeansFont.appFont(12))
                         .foregroundStyle(Color.beansSecondary)
                 }
 
@@ -360,7 +360,7 @@ struct ProfileView: View {
                             .foregroundStyle(Color.beansAmber)
                             .frame(width: 28)
                         Text("主页背景色")
-                            .font(.system(size: 15))
+                            .font(BeansFont.appFont(15))
                             .foregroundStyle(Color.beansLabel)
                         Spacer()
                         ColorPicker("", selection: Binding(
@@ -378,7 +378,7 @@ struct ProfileView: View {
                         PhotosPicker(selection: $bgImageItem, matching: .images) {
                             HStack(spacing: 8) {
                                 Text("上传壁纸（可多张）")
-                                    .font(.system(size: 15))
+                                    .font(BeansFont.appFont(15))
                                     .foregroundStyle(Color.beansLabel)
                                 Spacer()
                                 Image(systemName: "plus.circle.fill")
@@ -400,7 +400,7 @@ struct ProfileView: View {
                                 .font(.system(size: 13))
                                 .foregroundStyle(Color.beansSecondary)
                             Text("还没有壁纸，上传后会显示在这里")
-                                .font(.system(size: 12))
+                                .font(BeansFont.appFont(12))
                                 .foregroundStyle(Color.beansSecondary)
                             Spacer()
                         }
@@ -412,7 +412,7 @@ struct ProfileView: View {
                                 BeansHaptics.select()
                             } label: {
                                 Text("清除当前背景")
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(BeansFont.appFont(13, .medium))
                                     .foregroundStyle(.red)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
@@ -422,7 +422,7 @@ struct ProfileView: View {
                         }
                         Spacer()
                         Text(theme.customBackgroundImage == nil ? "当前：默认背景" : "当前：已应用壁纸")
-                            .font(.system(size: 12))
+                            .font(BeansFont.appFont(12))
                             .foregroundStyle(Color.beansSecondary)
                     }
                 Toggle(isOn: Binding(
@@ -434,7 +434,7 @@ struct ProfileView: View {
                             .font(.system(size: 12))
                             .foregroundStyle(Color.beansAmber)
                         Text("同步到搜索 / 音乐库 / 我的")
-                            .font(.system(size: 13))
+                            .font(BeansFont.appFont(13))
                             .foregroundStyle(Color.beansLabel)
                     }
                 }
@@ -446,7 +446,7 @@ struct ProfileView: View {
                         BeansHaptics.select()
                     } label: {
                         Text("恢复默认背景")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(BeansFont.appFont(13, .medium))
                             .foregroundStyle(Color.beansAmber)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
@@ -464,11 +464,11 @@ struct ProfileView: View {
                         .foregroundStyle(Color.beansAmber)
                         .frame(width: 28)
                     Text("全局字体")
-                        .font(.system(size: 15))
+                        .font(BeansFont.appFont(15))
                         .foregroundStyle(Color.beansLabel)
                     Spacer()
                     Text(FontManager.installedFontName ?? "系统默认")
-                        .font(.system(size: 12))
+                        .font(BeansFont.appFont(12))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 HStack(spacing: 12) {
@@ -476,7 +476,7 @@ struct ProfileView: View {
                         showFontImporter = true
                     } label: {
                         Text("上传字体")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(BeansFont.appFont(13, .medium))
                             .foregroundStyle(Color.beansAmber)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
@@ -489,7 +489,7 @@ struct ProfileView: View {
                         ToastCenter.shared.show("已恢复系统默认字体")
                     } label: {
                         Text("恢复默认字体")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(BeansFont.appFont(13, .medium))
                             .foregroundStyle(Color.beansAmber)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
@@ -499,7 +499,7 @@ struct ProfileView: View {
                     Spacer()
                 }
                 Text("支持 ttf / otf 字体，上传后全局生效（含歌词），重启保留")
-                    .font(.system(size: 12))
+                    .font(BeansFont.appFont(12))
                     .foregroundStyle(Color.beansSecondary)
 
             }
@@ -553,12 +553,12 @@ struct ProfileView: View {
                     .foregroundStyle(Color.beansAmber)
                     .frame(width: 28)
                 Text(title)
-                    .font(.system(size: 15))
+                    .font(BeansFont.appFont(15))
                     .foregroundStyle(Color.beansLabel)
                 Spacer()
                 if !value.isEmpty {
                     Text(value)
-                        .font(.system(size: 13))
+                        .font(BeansFont.appFont(13))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 Image(systemName: "chevron.right")
@@ -600,10 +600,10 @@ struct ProfileView: View {
             SectionHeader(title: "关于")
             VStack(spacing: 8) {
                 Label(appVersionText, systemImage: "beats.headphones")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(BeansFont.appFont(14, .semibold))
                     .foregroundStyle(Color.beansLabel)
                 Text("仅供学习交流，纯 AI 实现此应用\n接入网易云音乐、QQ 音乐等公开接口，请勿用于商业用途")
-                    .font(.system(size: 12))
+                    .font(BeansFont.appFont(12))
                     .foregroundStyle(Color.beansSecondary)
                     .multilineTextAlignment(.center)
             }
@@ -616,7 +616,7 @@ struct ProfileView: View {
                 confirmLogout = true
             } label: {
                 Text("退出登录")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(BeansFont.appFont(15, .semibold))
                     .foregroundStyle(Color.red)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -665,22 +665,22 @@ struct NetEaseRankSheet: View {
                             } label: {
                                 HStack(spacing: 12) {
                                     Text("\(index + 1)")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                                        .font(BeansFont.appFont(13, .bold, .rounded))
                                         .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
                                         .frame(width: 24)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(item.song.name)
-                                            .font(.system(size: 15))
+                                            .font(BeansFont.appFont(15))
                                             .foregroundStyle(Color.beansLabel)
                                             .lineLimit(1)
                                         Text(item.song.artists)
-                                            .font(.system(size: 12))
+                                            .font(BeansFont.appFont(12))
                                             .foregroundStyle(Color.beansSecondary)
                                             .lineLimit(1)
                                     }
                                     Spacer()
                                     Text("\(item.playCount) 次")
-                                        .font(.system(size: 12, design: .monospaced))
+                                        .font(BeansFont.appFont(12, .regular, .monospaced))
                                         .foregroundStyle(Color.beansSecondary)
                                 }
                                 .padding(.vertical, 2)

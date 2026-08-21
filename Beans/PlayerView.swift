@@ -250,11 +250,11 @@ struct PlayerView: View {
 
             VStack(spacing: 2) {
                 Text(player.isBuffering ? "加载中…" : (player.isPlaying ? "正在播放" : "已暂停"))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(BeansFont.appFont(12, .semibold))
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
                 Text(song?.album ?? "Beans 音乐")
-                    .font(.system(size: 10))
+                    .font(BeansFont.appFont(10))
                     .foregroundStyle(palette.secondary.opacity(0.85))
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -384,7 +384,7 @@ struct PlayerView: View {
                     .minimumScaleFactor(0.55)
                     .multilineTextAlignment(.center)
                 Text(subtitle)
-                    .font(.system(size: 14))
+                    .font(BeansFont.appFont(14))
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -417,12 +417,12 @@ struct PlayerView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(song?.name ?? "")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(BeansFont.appFont(14, .semibold))
                         .foregroundStyle(palette.text)
                         .lineLimit(1)
                         .truncationMode(.tail)
                     Text(song?.artists ?? "")
-                        .font(.system(size: 12))
+                        .font(BeansFont.appFont(12))
                         .foregroundStyle(palette.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -479,17 +479,17 @@ struct PlayerView: View {
                 .font(.system(size: 44, weight: .light))
                 .foregroundStyle(palette.secondary)
             Text("暂无播放内容")
-                .font(.system(size: 16, weight: .medium))
+                .font(BeansFont.appFont(16, .medium))
                 .foregroundStyle(palette.text)
             Text("返回选择一首歌曲即可开始播放")
-                .font(.system(size: 13))
+                .font(BeansFont.appFont(13))
                 .foregroundStyle(palette.secondary)
             Button {
                 BeansHaptics.tap()
                 dismiss()
             } label: {
                 Text("返回")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(BeansFont.appFont(14, .semibold))
                     .foregroundStyle(palette.text)
                     .padding(.horizontal, 26)
                     .padding(.vertical, 10)
@@ -516,10 +516,10 @@ struct PlayerView: View {
                     .font(.system(size: 30, weight: .light))
                     .foregroundStyle(palette.secondary.opacity(0.7))
                 Text("暂无歌词")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(BeansFont.appFont(14, .medium))
                     .foregroundStyle(palette.text)
                 Text("点击左上角封面返回专辑视图")
-                    .font(.system(size: 11))
+                    .font(BeansFont.appFont(11))
                     .foregroundStyle(palette.secondary.opacity(0.8))
             }
             Spacer(minLength: 40)
@@ -558,12 +558,12 @@ struct PlayerView: View {
             HStack(spacing: 6) {
                 seekPillButton("gobackward.15") { player.seekBy(-15) }
                 Text(beansTimeString(player.progress))
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(BeansFont.appFont(10, .regular, .monospaced))
                     .foregroundStyle(palette.secondary)
                     .frame(minWidth: 34, alignment: .leading)
                 Spacer(minLength: 0)
                 Text(beansTimeString(player.duration))
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(BeansFont.appFont(10, .regular, .monospaced))
                     .foregroundStyle(palette.secondary)
                     .frame(minWidth: 34, alignment: .trailing)
                 seekPillButton("goforward.15") { player.seekBy(15) }
@@ -1072,7 +1072,7 @@ struct LyricSettingsSheet: View {
                 Section("字号") {
                     HStack(spacing: 12) {
                         Text("A")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(BeansFont.appFont(13, .semibold))
                         Slider(
                             value: Binding(
                                 get: { Double(fontSize) },
@@ -1083,10 +1083,10 @@ struct LyricSettingsSheet: View {
                         )
                         .tint(Color.beansAmber)
                         Text("A")
-                            .font(.system(size: 22, weight: .bold))
+                            .font(BeansFont.appFont(22, .bold))
                     }
                     Text("\(fontSize) pt")
-                        .font(.footnote)
+                        .font(BeansFont.appFont(13))
                         .foregroundStyle(Color.beansSecondary)
                 }
 
@@ -1107,7 +1107,7 @@ struct LyricSettingsSheet: View {
                             .foregroundStyle(glowLevel > 2 ? Color.beansAmber : Color.beansSecondary)
                     }
                     Text(glowName(glowLevel))
-                        .font(.footnote)
+                        .font(BeansFont.appFont(13))
                         .foregroundStyle(Color.beansSecondary)
                 }
 
@@ -1118,7 +1118,7 @@ struct LyricSettingsSheet: View {
                     ))
                     .tint(Color.beansAmber)
                     Text("开启后一直使用你选择的歌词颜色与渐变；关闭时自动跟随歌曲封面取色调整")
-                        .font(.footnote)
+                        .font(BeansFont.appFont(13))
                         .foregroundStyle(Color.beansSecondary)
                 }
 
@@ -1131,7 +1131,7 @@ struct LyricSettingsSheet: View {
                         gradMode = 0
                         BeansHaptics.select()
                     }
-                    .font(.system(size: 13))
+                    .font(BeansFont.appFont(13))
                     .foregroundStyle(Color.beansAmber)
                 }
 
@@ -1144,7 +1144,7 @@ struct LyricSettingsSheet: View {
                         gradMode = 0
                         BeansHaptics.select()
                     }
-                    .font(.system(size: 13))
+                    .font(BeansFont.appFont(13))
                     .foregroundStyle(Color.beansAmber)
                 }
             }

@@ -27,10 +27,10 @@ struct LoginView: View {
                     .font(.system(size: 54, weight: .light))
                     .foregroundStyle(LinearGradient.beansAccent)
                 Text("Beans")
-                    .font(.system(size: 34, weight: .bold))
+                    .font(BeansFont.appFont(34, .bold))
                     .foregroundStyle(Color.beansLabel)
                 Text("登录网易云音乐，同步你的歌单")
-                    .font(.system(size: 14))
+                    .font(BeansFont.appFont(14))
                     .foregroundStyle(Color.beansSecondary)
 
                 qrArea
@@ -62,7 +62,7 @@ struct LoginView: View {
                     Image(systemName: "arrow.clockwise.circle.fill")
                         .font(.system(size: 34))
                     Text(isError ? errorText : "二维码已过期")
-                        .font(.system(size: 13))
+                        .font(BeansFont.appFont(13))
                     GlassButton(title: "刷新", systemName: "arrow.clockwise", prominent: true) {
                         startLogin()
                     }
@@ -80,27 +80,27 @@ struct LoginView: View {
             switch status {
             case .loading:
                 Text("正在生成二维码…")
-                    .font(.system(size: 13))
+                    .font(BeansFont.appFont(13))
                     .foregroundStyle(Color.beansSecondary)
             case .waiting:
                 Label("请使用网易云音乐 App 扫码", systemImage: "qrcode.viewfinder")
-                    .font(.system(size: 13))
+                    .font(BeansFont.appFont(13))
                     .foregroundStyle(Color.beansSecondary)
             case .scanned:
                 Label("已扫码，请在手机上确认登录", systemImage: "checkmark.circle")
-                    .font(.system(size: 13))
+                    .font(BeansFont.appFont(13))
                     .foregroundStyle(Color.beansSage)
             case .success:
                 Label("登录成功，正在同步歌单…", systemImage: "checkmark.seal.fill")
-                    .font(.system(size: 13))
+                    .font(BeansFont.appFont(13))
                     .foregroundStyle(Color.beansSage)
             case .expired:
                 Text("二维码已过期")
-                    .font(.system(size: 13))
+                    .font(BeansFont.appFont(13))
                     .foregroundStyle(Color.beansSecondary)
             case .error(let message):
                 Text(message)
-                    .font(.system(size: 13))
+                    .font(BeansFont.appFont(13))
                     .foregroundStyle(Color.red.opacity(0.85))
                     .multilineTextAlignment(.center)
             }

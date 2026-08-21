@@ -211,7 +211,7 @@ struct AppStoreTabBar: View {
                 Image(systemName: tab.icon)
                     .font(.system(size: 11, weight: .semibold))
                 Text(tab.title)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(BeansFont.appFont(12, .bold))
             }
             .foregroundStyle(Color.beansSecondary)
             .padding(.bottom, 3)
@@ -265,7 +265,7 @@ struct AppStoreTabBar: View {
                 Image(systemName: icon)
                     .font(.system(size: 13, weight: .semibold))
                 Text(title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(BeansFont.appFont(14, .medium))
                 Spacer(minLength: 0)
             }
             .foregroundStyle(Color.beansLabel)

@@ -121,7 +121,7 @@ struct SearchView: View {
                 .foregroundStyle(Color.beansLabel)
             Spacer(minLength: 0)
             Label(provider.rawValue, systemImage: provider.icon)
-                .font(.system(size: 12, weight: .semibold))
+                .font(BeansFont.appFont(12, .semibold))
                 .foregroundStyle(Color.beansSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
@@ -155,7 +155,7 @@ struct SearchView: View {
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(Color.beansSecondary)
             TextField("搜索歌曲、歌手、专辑", text: $keyword)
-                .font(.system(size: 15))
+                .font(BeansFont.appFont(15))
                 .foregroundStyle(Color.beansLabel)
                 .focused($focused)
                 .autocorrectionDisabled()
@@ -188,7 +188,7 @@ struct SearchView: View {
                 commitSearch()
             } label: {
                 Text("搜索")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(BeansFont.appFont(13, .semibold))
                     .foregroundStyle(Color.beansAmber)
                     .padding(.horizontal, 13)
                     .padding(.vertical, 6)
@@ -229,7 +229,7 @@ struct SearchView: View {
                         Image(systemName: p.icon)
                             .font(.system(size: 11, weight: .semibold))
                         Text(p.rawValue)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(BeansFont.appFont(13, .semibold))
                     }
                     .foregroundStyle(provider == p ? Color.white : Color.beansSecondary)
                     .frame(maxWidth: .infinity)
@@ -277,7 +277,7 @@ struct SearchView: View {
                     }
                 } label: {
                     Text(type.rawValue)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(BeansFont.appFont(13, .semibold))
                         .foregroundStyle(resultType == type ? Color.beansLabel : Color.beansSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
@@ -306,7 +306,7 @@ struct SearchView: View {
                     SectionHeader(title: "\(provider.rawValue)热搜")
                     Spacer()
                     Text("点击直接搜索")
-                        .font(.system(size: 11))
+                        .font(BeansFont.appFont(11))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 .padding(.top, 6)
@@ -338,11 +338,11 @@ struct SearchView: View {
         } label: {
             HStack(spacing: 12) {
                 Text("\(index + 1)")
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .font(BeansFont.appFont(16, .bold, .rounded))
                     .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
                     .frame(width: 26, alignment: .leading)
                 Text(word)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(BeansFont.appFont(15, .medium))
                     .foregroundStyle(Color.beansLabel)
                     .lineLimit(1)
                 Spacer(minLength: 8)
@@ -388,7 +388,7 @@ struct SearchView: View {
                     LazyVStack(spacing: 0) {
                         HStack {
                             Text("找到 \(songResults.count) 首 · \(provider.rawValue)")
-                                .font(.system(size: 12))
+                                .font(BeansFont.appFont(12))
                                 .foregroundStyle(Color.beansSecondary)
                             Spacer()
                             Button {
@@ -396,7 +396,7 @@ struct SearchView: View {
                                 player.play(songs: songResults, startAt: 0)
                             } label: {
                                 Label("播放全部", systemImage: "play.fill")
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(BeansFont.appFont(12, .semibold))
                                     .foregroundStyle(Color.beansAmber)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
@@ -444,7 +444,7 @@ struct SearchView: View {
                     LazyVStack(spacing: 0) {
                         HStack {
                             Text("找到 \(artistResults.count) 位 · \(provider.rawValue)")
-                                .font(.system(size: 12))
+                                .font(BeansFont.appFont(12))
                                 .foregroundStyle(Color.beansSecondary)
                             Spacer()
                         }
@@ -458,11 +458,11 @@ struct SearchView: View {
                                     CoverImage(url: artist.coverURL, size: 46, cornerRadius: 23)
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(artist.name)
-                                            .font(.system(size: 15, weight: .medium))
+                                            .font(BeansFont.appFont(15, .medium))
                                             .foregroundStyle(Color.beansLabel)
                                             .lineLimit(1)
                                         Text("查看歌手主页")
-                                            .font(.system(size: 12))
+                                            .font(BeansFont.appFont(12))
                                             .foregroundStyle(Color.beansSecondary)
                                     }
                                     Spacer(minLength: 8)
@@ -508,7 +508,7 @@ struct SearchView: View {
                     LazyVStack(spacing: 0) {
                         HStack {
                             Text("找到 \(albumResults.count) 张 · \(provider.rawValue)")
-                                .font(.system(size: 12))
+                                .font(BeansFont.appFont(12))
                                 .foregroundStyle(Color.beansSecondary)
                             Spacer()
                         }
@@ -521,11 +521,11 @@ struct SearchView: View {
                                     CoverImage(url: album.coverURL, size: 46, cornerRadius: 10)
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(album.name)
-                                            .font(.system(size: 15, weight: .medium))
+                                            .font(BeansFont.appFont(15, .medium))
                                             .foregroundStyle(Color.beansLabel)
                                             .lineLimit(1)
                                         Text(album.artistName.isEmpty ? "未知歌手" : album.artistName)
-                                            .font(.system(size: 12))
+                                            .font(BeansFont.appFont(12))
                                             .foregroundStyle(Color.beansSecondary)
                                     }
                                     Spacer(minLength: 8)

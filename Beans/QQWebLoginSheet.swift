@@ -18,7 +18,7 @@ struct QQWebLoginPanel: View {
         let _ = theme.accent
         VStack(spacing: 10) {
             Text("在下方网页右上角点「登录」，用手机 QQ 扫码或 QQ 号密码登录，完成后自动同步")
-                .font(.system(size: 12))
+                .font(BeansFont.appFont(12))
                 .foregroundStyle(Color.beansSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
@@ -42,7 +42,7 @@ struct QQWebLoginPanel: View {
 
             if !message.isEmpty {
                 Text(message)
-                    .font(.system(size: 12))
+                    .font(BeansFont.appFont(12))
                     .foregroundStyle(message.hasPrefix("✓") ? Color.beansSage : Color.red.opacity(0.85))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
@@ -59,7 +59,7 @@ struct QQWebLoginPanel: View {
                     }
                     Text(syncing ? "正在读取登录状态…" : "同步登录状态")
                 }
-                .font(.system(size: 14, weight: .semibold))
+                .font(BeansFont.appFont(14, .semibold))
                 .foregroundStyle(Color.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
@@ -146,13 +146,13 @@ struct QQCookieImportPanel: View {
         let _ = theme.accent
         VStack(spacing: 12) {
             Text("电脑浏览器打开 https://y.qq.com 登录 QQ 后，按 F12 → Network → 刷新页面，点任意请求，复制 Request Headers 里的整段 Cookie 粘贴到下方")
-                .font(.system(size: 12))
+                .font(BeansFont.appFont(12))
                 .foregroundStyle(Color.beansSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
 
             TextEditor(text: $cookieText)
-                .font(.system(size: 11, design: .monospaced))
+                .font(BeansFont.appFont(11, .regular, .monospaced))
                 .scrollContentBackground(.hidden)
                 .padding(10)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -162,7 +162,7 @@ struct QQCookieImportPanel: View {
 
             if !message.isEmpty {
                 Text(message)
-                    .font(.system(size: 12))
+                    .font(BeansFont.appFont(12))
                     .foregroundStyle(message.hasPrefix("✓") ? Color.beansSage : Color.red.opacity(0.85))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
@@ -172,7 +172,7 @@ struct QQCookieImportPanel: View {
                 importCookie()
             } label: {
                 Label("导入 Cookie", systemImage: "arrow.down.doc")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(BeansFont.appFont(14, .semibold))
                     .foregroundStyle(Color.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)

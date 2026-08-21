@@ -223,7 +223,7 @@ struct GlassButton: View {
                 }
                 Text(title)
             }
-            .font(.system(size: 15, weight: .semibold))
+            .font(BeansFont.appFont(15, .semibold))
             .foregroundStyle(prominent ? Color.black : Color.beansLabel)
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
@@ -277,7 +277,7 @@ struct EmptyStateView: View {
                 .font(.system(size: 44, weight: .light))
                 .foregroundStyle(Color.beansSecondary)
             Text(text)
-                .font(.system(size: 14))
+                .font(BeansFont.appFont(14))
                 .foregroundStyle(Color.beansSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -296,7 +296,7 @@ struct ErrorStateView: View {
                 .font(.system(size: 40, weight: .light))
                 .foregroundStyle(Color.beansSecondary)
             Text(message)
-                .font(.system(size: 14))
+                .font(BeansFont.appFont(14))
                 .foregroundStyle(Color.beansSecondary)
                 .multilineTextAlignment(.center)
             GlassButton(title: "重试", systemName: "arrow.clockwise", action: retry)
@@ -429,7 +429,7 @@ struct ToastView: View {
     var body: some View {
         let _ = theme.accent
         Text(center.message ?? "")
-            .font(.system(size: 14, weight: .medium))
+            .font(BeansFont.appFont(14, .medium))
             .foregroundStyle(Color.beansLabel)
             .lineLimit(2)
             .multilineTextAlignment(.center)

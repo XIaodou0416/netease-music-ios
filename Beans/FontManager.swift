@@ -58,12 +58,12 @@ enum FontManager {
     }
 }
 
-/// 全局字体快捷入口：已上传字体且可用时返回自定义字体，否则回退系统字体
+/// 全局字体快捷入口：已上传字体时全局使用自定义字体，否则回退系统字体（支持 design 回退）
 enum BeansFont {
-    static func appFont(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
-        if let name = FontManager.installedFontName, UIFont(name: name, size: size) != nil {
+    static func appFont(_ size: CGFloat, _ weight: Font.Weight = .regular, _ design: Font.Design = .default) -> Font {
+        if let name = FontManager.installedFontName {
             return .custom(name, size: size)
         }
-        return .system(size: size, weight: weight)
+        return .system(size: size, weight: weight, design: design)
     }
 }

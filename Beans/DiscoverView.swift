@@ -107,7 +107,7 @@ struct DiscoverView: View {
                         .font(BeansFont.appFont(26, .bold))
                         .foregroundStyle(Color.beansLabel)
                     Text(auth.user?.nickname ?? "")
-                        .font(.system(size: 13))
+                        .font(BeansFont.appFont(13))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 Spacer()
@@ -132,7 +132,7 @@ struct DiscoverView: View {
                         Image(systemName: p.icon)
                             .font(.system(size: 11, weight: .semibold))
                         Text(p.rawValue)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(BeansFont.appFont(13, .semibold))
                     }
                     .foregroundStyle(source == p ? Color.white : Color.beansSecondary)
                     .frame(maxWidth: .infinity)
@@ -257,10 +257,10 @@ struct DiscoverView: View {
                     CoverImage(url: dailySongs.first?.coverURL, size: 58, cornerRadius: 13)
                     VStack(alignment: .leading, spacing: 3) {
                         Text("为你精选 \(dailySongs.count) 首")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(BeansFont.appFont(16, .semibold))
                             .foregroundStyle(Color.beansLabel)
                         Text("每日更新 · 按你的口味推荐")
-                            .font(.system(size: 12))
+                            .font(BeansFont.appFont(12))
                             .foregroundStyle(Color.beansSecondary)
                     }
                     Spacer(minLength: 8)
@@ -347,7 +347,7 @@ struct DiscoverView: View {
                             CoverImage(url: playlist.coverURL, size: 88, cornerRadius: 14)
                                 .frame(maxWidth: .infinity)
                             Text(playlist.name)
-                                .font(.system(size: 11, weight: .medium))
+                                .font(BeansFont.appFont(11, .medium))
                                 .foregroundStyle(Color.beansLabel)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
@@ -602,13 +602,13 @@ struct TopListDetailView: View {
             CoverImage(url: topList.coverURL, size: 88, cornerRadius: 16)
             VStack(alignment: .leading, spacing: 6) {
                 Text(topList.name)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(BeansFont.appFont(18, .bold))
                     .foregroundStyle(Color.beansLabel)
                 Text(topList.updateFrequency)
-                    .font(.system(size: 12))
+                    .font(BeansFont.appFont(12))
                     .foregroundStyle(Color.beansSecondary)
                 Text("\(tracks.count) 首")
-                    .font(.system(size: 12))
+                    .font(BeansFont.appFont(12))
                     .foregroundStyle(Color.beansSecondary)
             }
             Spacer()

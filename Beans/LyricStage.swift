@@ -105,6 +105,7 @@ struct LyricStageLandscapeView: View {
     @State private var dragStart: Double = 0
     @State private var coverLoaded = false
     @State private var showPlaylists = false
+    @State private var showSettingsSheet = false
     @State private var playlistLoading = false
 
     /// 二分查找当前歌词行（与歌词页一致，避免逐行扫描）
@@ -249,6 +250,19 @@ struct LyricStageLandscapeView: View {
                         }
                         Spacer()
 
+                        // 舞台设置（粒子密度等）
+                        Button {
+                            BeansHaptics.tap()
+                            showSettingsSheet = true
+                        } label: {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 40, height: 40)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
+                        .buttonStyle(.plain)
+
                         // 收藏歌单
                         Button {
                             BeansHaptics.tap()
@@ -263,37 +277,6 @@ struct LyricStageLandscapeView: View {
                                 .background(.ultraThinMaterial, in: Circle())
                         }
                         .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 10)
-
-                    // 粒子密度滑块（常驻，随时可调）
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("粒子密度")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.85))
-                            Spacer()
-                            Text("\(density) × \(density)")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(.white)
-                        }
-                        Slider(
-                            value: Binding(
-                                get: { Double(density) },
-                                set: { density = Int($0) }
-                            ),
-                            in: 10...60,
-                            step: 2
-                        )
-                        .tint(.white)
-                    }
-                    .padding(14)
-                    .frame(maxWidth: 340)
-                    .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .strokeBorder(.white.opacity(0.12), lineWidth: 0.8)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 10)
@@ -367,6 +350,16 @@ struct LyricStageLandscapeView: View {
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .ignoresSafeArea()
+        .sheet(isPresented: $showSettingsSheet) {
+            StageSettingsSheet(
+                density: Binding(
+                    get: { density },
+                    set: { density = $0 }
+                )
+            )
+            .presentationDetents([.height(220)])
+            .presentationDragIndicator(.visible)
+        }
         .task(id: density) {
             coverLoaded = false
             particles = await ParticleCoverSampler.sample(from: coverURL, grid: density)
@@ -387,6 +380,49 @@ struct LyricStageLandscapeView: View {
             BeansHaptics.success()
             withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
                 showPlaylists = false
+            }
+        }
+    }
+}
+
+// MARK: - 空间舞台设置面板（粒子密度等）
+struct StageSettingsSheet: View {
+    @Binding var density: Int
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 18) {
+                HStack {
+                    Text("粒子密度")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.beansLabel)
+                    Spacer()
+                    Text("\(density) × \(density)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color.beansAmber)
+                }
+                Slider(
+                    value: Binding(
+                        get: { Double(density) },
+                        set: { density = Int($0) }
+                    ),
+                    in: 10...60,
+                    step: 2
+                )
+                .tint(Color.beansAmber)
+                Text("粒子越密，封面越清晰；调节后立即生效")
+                    .font(.footnote)
+                    .foregroundStyle(Color.beansSecondary)
+                Spacer()
+            }
+            .padding(20)
+            .navigationTitle("空间舞台设置")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") { dismiss() }
+                }
             }
         }
     }

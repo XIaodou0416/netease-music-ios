@@ -50,6 +50,7 @@ struct SearchView: View {
     @State private var searching = false
     @State private var errorMessage: String?
     @State private var showAddToPlaylist: Song?
+    @State private var selectedArtist: Artist?
     @State private var debounceTask: Task<Void, Never>?
     @State private var searchTask: Task<Void, Never>?
     @FocusState private var focused: Bool
@@ -105,6 +106,10 @@ struct SearchView: View {
             AddToPlaylistSheet(song: song)
                 .environmentObject(auth)
         }
+        .sheet(item: $selectedArtist) { artist in
+            ArtistHomeSheet(artist: artist)
+                .environmentObject(player)
+        }
     }
 
     // MARK: - 顶部标题
@@ -112,7 +117,7 @@ struct SearchView: View {
     private var headerTitle: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text("搜索")
-                .font(.system(size: 30, weight: .bold))
+                .font(BeansFont.appFont(30, .bold))
                 .foregroundStyle(Color.beansLabel)
             Spacer(minLength: 0)
             Label(provider.rawValue, systemImage: provider.icon)
@@ -446,7 +451,8 @@ struct SearchView: View {
                         .padding(.vertical, 8)
                         ForEach(artistResults) { artist in
                             Button {
-                                searchBy(artist.name)
+                                BeansHaptics.tap()
+                                selectedArtist = artist
                             } label: {
                                 HStack(spacing: 12) {
                                     CoverImage(url: artist.coverURL, size: 46, cornerRadius: 23)
@@ -455,12 +461,12 @@ struct SearchView: View {
                                             .font(.system(size: 15, weight: .medium))
                                             .foregroundStyle(Color.beansLabel)
                                             .lineLimit(1)
-                                        Text("搜索该歌手的歌曲")
+                                        Text("查看歌手主页")
                                             .font(.system(size: 12))
                                             .foregroundStyle(Color.beansSecondary)
                                     }
                                     Spacer(minLength: 8)
-                                    Image(systemName: "magnifyingglass")
+                                    Image(systemName: "chevron.right")
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundStyle(Color.beansSecondary)
                                 }

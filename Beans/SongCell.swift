@@ -23,11 +23,11 @@ struct SongCell: View {
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(song.name)
-                    .font(.system(size: 15, weight: isCurrent ? .semibold : .regular))
+                    .font(BeansFont.appFont(15, isCurrent ? .semibold : .regular))
                     .foregroundStyle(isCurrent ? Color.beansAmber : Color.beansLabel)
                     .lineLimit(1)
                 Text(song.artists.isEmpty ? song.album : song.artists)
-                    .font(.system(size: 12))
+                    .font(BeansFont.appFont(12))
                     .foregroundStyle(Color.beansSecondary)
                     .lineLimit(1)
             }

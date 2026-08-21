@@ -1,0 +1,67 @@
+import SwiftUI
+import CoreText
+
+/// 全局字体管理：把用户上传的 ttf/otf 复制到 Documents/Fonts 并动态注册，App 重启后自动重新注册
+enum FontManager {
+    static let storedFontNameKey = "beans.globalFont"
+
+    static var installedFontName: String? {
+        get { UserDefaults.standard.string(forKey: storedFontNameKey) }
+        set { UserDefaults.standard.set(newValue, forKey: storedFontNameKey) }
+    }
+
+    private static var fontsDirectory: URL {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let dir = docs.appendingPathComponent("Fonts", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    /// 启动时重新注册已安装的字体（覆盖安装后 Documents 保留，字体继续生效）
+    static func reinstallIfNeeded() {
+        guard installedFontName != nil else { return }
+        guard let files = try? FileManager.default.contentsOfDirectory(at: fontsDirectory, includingPropertiesForKeys: nil) else { return }
+        for file in files where ["ttf", "otf", "ttc"].contains(file.pathExtension.lowercased()) {
+            register(file)
+        }
+    }
+
+    /// 安装用户选择的字体文件（先清空旧字体再复制注册），返回注册成功后的字体名
+    @discardableResult
+    static func install(from sourceURL: URL) -> String? {
+        let file = fontsDirectory.appendingPathComponent(sourceURL.lastPathComponent)
+        if let files = try? FileManager.default.contentsOfDirectory(at: fontsDirectory, includingPropertiesForKeys: nil) {
+            for f in files { try? FileManager.default.removeItem(at: f) }
+        }
+        if FileManager.default.fileExists(atPath: file.path) { try? FileManager.default.removeItem(at: file) }
+        guard (try? FileManager.default.copyItem(at: sourceURL, to: file)) != nil else { return nil }
+        guard let name = register(file) else { return nil }
+        installedFontName = name
+        return name
+    }
+
+    static func clear() {
+        installedFontName = nil
+        if let files = try? FileManager.default.contentsOfDirectory(at: fontsDirectory, includingPropertiesForKeys: nil) {
+            for f in files { try? FileManager.default.removeItem(at: f) }
+        }
+    }
+
+    @discardableResult
+    private static func register(_ url: URL) -> String? {
+        guard let provider = CGDataProvider(url: url as CFURL), let font = CGFont(provider) else { return nil }
+        var error: Unmanaged<CFError>?
+        guard CTFontManagerRegisterGraphicsFont(font, &error) else { return nil }
+        return font.postScriptName as String?
+    }
+}
+
+/// 全局字体快捷入口：已上传字体且可用时返回自定义字体，否则回退系统字体
+enum BeansFont {
+    static func appFont(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        if let name = FontManager.installedFontName, UIFont(name: name, size: size) != nil {
+            return .custom(name, size: size)
+        }
+        return .system(size: size, weight: weight)
+    }
+}

@@ -6,6 +6,20 @@ struct ArtistHomeSheet: View {
     @EnvironmentObject private var player: PlayerManager
     @Environment(\.dismiss) private var dismiss
     let artistName: String
+    var artistSource: SongSource = .netease
+    var artistID: String?
+
+    init(artist: Artist) {
+        self.artistName = artist.name
+        self.artistSource = artist.source
+        self.artistID = artist.id
+    }
+
+    init(artistName: String, artistSource: SongSource = .netease) {
+        self.artistName = artistName
+        self.artistSource = artistSource
+        self.artistID = nil
+    }
 
     @State private var artist: Artist?
     @State private var hotSongs: [Song] = []
@@ -27,7 +41,9 @@ struct ArtistHomeSheet: View {
                         VStack(alignment: .leading, spacing: 20) {
                             artistHeader
                             hotSongsSection
-                            albumsSection
+                            if artistSource != .qq {
+                                albumsSection
+                            }
                         }
                         .padding(.top, 8)
                         .padding(.bottom, 24)
@@ -68,7 +84,9 @@ struct ArtistHomeSheet: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Color.beansLabel)
                     .lineLimit(1)
-                Text("热门歌曲 \(hotSongs.count) 首 · 专辑 \(albums.count) 张")
+                Text(artistSource == .qq
+                     ? "热门歌曲 \(hotSongs.count) 首"
+                     : "热门歌曲 \(hotSongs.count) 首 · 专辑 \(albums.count) 张")
                     .font(.system(size: 12))
                     .foregroundStyle(Color.beansSecondary)
             }
@@ -188,21 +206,34 @@ struct ArtistHomeSheet: View {
     private func load() async {
         loading = true
         errorMessage = nil
+        if artistSource == .qq {
+            await loadQQArtist()
+        } else {
+            await loadNetEaseArtist()
+        }
+    }
+
+    private func loadNetEaseArtist() async {
         do {
-            let artists = try await NetEaseAPI.shared.searchArtists(keyword: artistName, limit: 5)
-            guard let first = artists.first else {
-                errorMessage = "未找到歌手「\(artistName)」"
-                loading = false
-                return
+            let id: Int
+            if let artistID, let parsed = Int(artistID.replacingOccurrences(of: "netease-", with: "")), parsed > 0 {
+                id = parsed
+            } else {
+                let artists = try await NetEaseAPI.shared.searchArtists(keyword: artistName, limit: 5)
+                guard let first = artists.first else {
+                    errorMessage = "未找到歌手「\(artistName)」"
+                    loading = false
+                    return
+                }
+                artist = first
+                id = Int(first.id.replacingOccurrences(of: "netease-", with: "")) ?? 0
             }
-            artist = first
-            let id = Int(first.id.replacingOccurrences(of: "netease-", with: "")) ?? 0
             async let songs = (try? NetEaseAPI.shared.artistHotSongs(artistID: id)) ?? []
             async let albums = (try? NetEaseAPI.shared.artistAlbums(artistID: id)) ?? []
             let (s, a) = await (songs, albums)
             hotSongs = s
             self.albums = a
-            // 接口异常时赶底：用搜索补全歌手歌曲（避免“暂无”）
+            // 接口异常时兜底：用搜索补全歌手歌曲（避免“暂无”）
             if hotSongs.isEmpty, let fallback = try? await NetEaseAPI.shared.search(keyword: artistName, limit: 30) {
                 hotSongs = fallback
             }
@@ -211,5 +242,22 @@ struct ArtistHomeSheet: View {
             errorMessage = error.localizedDescription
             loading = false
         }
+    }
+
+    /// QQ 歌手：优先用歌手 mid 拉热门歌曲，失败则按歌手名搜索 QQ 歌曲（保证不是网易云数据）
+    private func loadQQArtist() async {
+        var mid: String? = nil
+        if let artistID, !artistID.hasPrefix("qq-") {
+            mid = artistID
+        } else if let first = (try? await QQMusicAPI.shared.searchArtists(keyword: artistName, limit: 5))?.first {
+            artist = first
+            mid = first.id
+        }
+        var songs = (try? await QQMusicAPI.shared.artistHotSongs(mid: mid, name: artistName)) ?? []
+        if songs.isEmpty {
+            songs = (try? await QQMusicAPI.shared.searchSongs(keyword: artistName, limit: 50)) ?? []
+        }
+        hotSongs = songs
+        loading = false
     }
 }

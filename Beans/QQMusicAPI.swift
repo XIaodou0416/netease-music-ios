@@ -574,6 +574,45 @@ final class QQMusicAPI {
         return list.compactMap { song(from: $0) }
     }
 
+    /// QQ 歌手热门歌曲（fcg_v8_singer_track_cp；mid 为空或接口异常时返回空，由调用方按歌手名搜索兜底）
+    func artistHotSongs(mid: String?, name: String, limit: Int = 50) async throws -> [Song] {
+        guard let mid, !mid.isEmpty else { return [] }
+        let url = "https://c.y.qq.com/v8/fcg-bin/fcg_v8_singer_track_cp.fcg?singer_mid=\(mid)&order=listen&begin=0&num=\(limit)&format=json"
+        guard let json = try? await get(url) else { return [] }
+        let data = json["data"] as? [String: Any] ?? [:]
+        let list = data["list"] as? [[String: Any]] ?? []
+        return list.compactMap { item -> Song? in
+            guard let music = item["musicData"] as? [String: Any] else { return nil }
+            return song(from: music)
+        }
+    }
+
+    /// QQ 歌手专辑（fcg_v8_singer_album；接口异常时返回空）
+    func artistAlbums(mid: String?, name: String, limit: Int = 30) async throws -> [Album] {
+        guard let mid, !mid.isEmpty else { return [] }
+        let url = "https://c.y.qq.com/v8/fcg-bin/fcg_v8_singer_album.fcg?singer_mid=\(mid)&order=time&begin=0&num=\(limit)&format=json"
+        guard let json = try? await get(url) else { return [] }
+        let data = json["data"] as? [String: Any] ?? [:]
+        let list = data["list"] as? [[String: Any]] ?? []
+        var albums: [Album] = []
+        for item in list {
+            let albumName = item["albumName"] as? String ?? ""
+            guard !albumName.isEmpty else { continue }
+            let albumMid = item["albumMID"] as? String ?? ""
+            var pic = item["pic"] as? String ?? ""
+            if pic.hasPrefix("http://") { pic = "https://" + pic.dropFirst(7) }
+            albums.append(Album(
+                id: "qq-album-\(albumMid)-\(albumName)",
+                name: albumName,
+                artistName: name,
+                coverURL: pic.isEmpty ? Self.photoURL(albumMid.isEmpty ? nil : albumMid) : URL(string: pic),
+                source: .qq,
+                trackCount: item["songnum"] as? Int
+            ))
+        }
+        return albums
+    }
+
     /// 通用 QQ 歌曲解析（各接口字段略有差异，此处统一容错）
     private func song(from item: [String: Any]) -> Song? {
         let mid = item["songmid"] as? String ?? (item["mid"] as? String ?? "")

@@ -248,7 +248,7 @@ struct SectionHeader: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.system(size: 20, weight: .bold))
+                .font(BeansFont.appFont(20, .bold))
                 .foregroundStyle(Color.beansLabel)
             Spacer()
             if let trailing {
@@ -256,7 +256,7 @@ struct SectionHeader: View {
                     onTrailingTap?()
                 } label: {
                     Text(trailing)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(BeansFont.appFont(13, .medium))
                         .foregroundStyle(Color.beansSecondary)
                 }
                 .buttonStyle(.plain)

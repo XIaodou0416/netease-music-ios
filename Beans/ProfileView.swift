@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UniformTypeIdentifiers
 
 struct ProfileView: View {
     @EnvironmentObject private var theme: ThemeStore
@@ -20,6 +21,7 @@ struct ProfileView: View {
     @State private var allTotal = 0
     @State private var rankLoading = false
     @State private var showNetEaseRank = false
+    @State private var showFontImporter = false
     @ObservedObject private var qqAuth = QQMusicAuth.shared
 
     private var themeMode: BeansThemeMode {
@@ -89,6 +91,25 @@ struct ProfileView: View {
                 ToastCenter.shared.show("已退出 QQ 音乐")
             }
             Button("取消", role: .cancel) {}
+        }
+        .fileImporter(isPresented: $showFontImporter, allowedContentTypes: [
+            UTType(filenameExtension: "ttf") ?? .data,
+            UTType(filenameExtension: "otf") ?? .data,
+            UTType(filenameExtension: "ttc") ?? .data
+        ]) { result in
+            switch result {
+            case .success(let url):
+                let didAccess = url.startAccessingSecurityScopedResource()
+                defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+                if let name = FontManager.install(from: url) {
+                    BeansHaptics.success()
+                    ToastCenter.shared.show("字体已应用：\(name)")
+                } else {
+                    ToastCenter.shared.show("字体安装失败，请使用 ttf / otf 文件")
+                }
+            case .failure:
+                break
+            }
         }
     }
 
@@ -441,6 +462,52 @@ struct ProfileView: View {
                     .buttonStyle(.plain)
                     Spacer()
                 }
+
+                Divider().overlay(Color.beansSecondary.opacity(0.15))
+
+                HStack {
+                    Image(systemName: "textformat")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.beansAmber)
+                        .frame(width: 28)
+                    Text("全局字体")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.beansLabel)
+                    Spacer()
+                    Text(FontManager.installedFontName ?? "系统默认")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.beansSecondary)
+                }
+                HStack(spacing: 12) {
+                    Button {
+                        showFontImporter = true
+                    } label: {
+                        Text("上传字体")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.beansAmber)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(.ultraThinMaterial, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        FontManager.clear()
+                        BeansHaptics.select()
+                        ToastCenter.shared.show("已恢复系统默认字体")
+                    } label: {
+                        Text("恢复默认字体")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.beansAmber)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(.ultraThinMaterial, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                }
+                Text("支持 ttf / otf 字体，上传后全局生效（含歌词），重启保留")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.beansSecondary)
 
             }
             .padding(16)

@@ -167,7 +167,7 @@ struct AppStoreTabBar: View {
                 Image(systemName: tab.icon)
                     .font(.system(size: 17, weight: .medium))
                 Text(tab.title)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(BeansFont.appFont(10, .medium))
             }
             .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
             .frame(maxWidth: .infinity)

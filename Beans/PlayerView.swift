@@ -27,6 +27,8 @@ struct PlayerView: View {
     @State private var showDownloadPicker = false
     @State private var showLyricSettings = false
     @State private var showArtistHome = false
+    @State private var pickedArtistName = ""
+    @State private var showArtistPicker = false
     @State private var dominantColor: RGBColor?
     @Namespace private var coverNS
     @AppStorage("beans.lyricFontSize") private var lyricFontSize = 17
@@ -37,8 +39,6 @@ struct PlayerView: View {
     @AppStorage("beans.lyricGradEnd") private var lyricGradEndRaw = ""
     /// 渐变模式：0=跟随封面自动取色（默认），1=始终保持用户自定义渐变
     @AppStorage("beans.lyricGradMode") private var lyricGradMode = 0
-    /// 歌词字体：system=系统默认，lastresort=LastResort 游戏占位字体
-    @AppStorage("beans.lyricFont") private var lyricFontName = "system"
 
     private var song: Song? { player.currentSong }
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
@@ -169,15 +169,24 @@ struct PlayerView: View {
                 gradStartRaw: $lyricGradStartRaw,
                 gradEndRaw: $lyricGradEndRaw,
                 gradMode: $lyricGradMode,
-                fontName: $lyricFontName,
                 palette: palette
             )
         }
         .sheet(isPresented: $showArtistHome) {
-            if !primaryArtistName.isEmpty {
-                ArtistHomeSheet(artistName: primaryArtistName)
+            if !pickedArtistName.isEmpty {
+                ArtistHomeSheet(artistName: pickedArtistName, artistSource: song?.source ?? .netease)
                     .environmentObject(player)
             }
+        }
+        .confirmationDialog("选择歌手", isPresented: $showArtistPicker, titleVisibility: .visible) {
+            ForEach(Array(artistNames.enumerated()), id: \.offset) { _, name in
+                Button(name) {
+                    pickedArtistName = name
+                    BeansHaptics.tap()
+                    showArtistHome = true
+                }
+            }
+            Button("取消", role: .cancel) {}
         }
         .confirmationDialog("下载《\(song?.name ?? "当前歌曲")》", isPresented: $showDownloadPicker, titleVisibility: .visible) {
             ForEach(DownloadQuality.allCases) { quality in
@@ -369,7 +378,7 @@ struct PlayerView: View {
 
             VStack(spacing: 6) {
                 Text(song?.name ?? "未在播放")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(BeansFont.appFont(22, .bold))
                     .foregroundStyle(palette.text)
                     .lineLimit(2)
                     .minimumScaleFactor(0.55)
@@ -450,7 +459,7 @@ struct PlayerView: View {
                 if lyrics.isEmpty {
                     emptyLyricsView
                 } else {
-                    LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, gradientStart: lyricGradStart, gradientEnd: lyricGradEnd, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius, fontName: lyricFontName) { line in
+                    LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, gradientStart: lyricGradStart, gradientEnd: lyricGradEnd, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
                         BeansHaptics.tap()
                         player.seek(to: line.time)
                     }
@@ -730,21 +739,30 @@ struct PlayerView: View {
 
     // MARK: - 动作
 
-    /// 首位歌手名（用于跳转歌手主页）
-    private var primaryArtistName: String {
-        guard let artists = song?.artists else { return "" }
+    /// 全部歌手名（多歌手歌曲点击时弹出选择，避免只打开第一位）
+    private var artistNames: [String] {
+        guard let artists = song?.artists else { return [] }
         return artists
             .replacingOccurrences(of: " / ", with: "/")
             .split(separator: "/")
-            .first?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .description ?? ""
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).description }
+            .filter { !$0.isEmpty }
+    }
+
+    /// 首位歌手名（用于跳转歌手主页）
+    private var primaryArtistName: String {
+        artistNames.first ?? ""
     }
 
     private func openArtistHome() {
         guard !primaryArtistName.isEmpty else { return }
         BeansHaptics.tap()
-        showArtistHome = true
+        if artistNames.count > 1 {
+            showArtistPicker = true
+        } else {
+            pickedArtistName = primaryArtistName
+            showArtistHome = true
+        }
     }
 
     private func toggleLyrics() {
@@ -875,7 +893,6 @@ struct LyricsSection: View {
     var gradientEnd: Color? = nil
     var baseFontSize: CGFloat = 17
     var glowRadius: CGFloat = 9
-    var fontName: String = "system"
     let onTapLine: (LyricLine) -> Void
 
     /// 二分查找当前行（歌词按时间升序），避免逐行扫描降低 CPU
@@ -945,9 +962,7 @@ struct LyricsSection: View {
         }
         let glowColor = isCurrent ? (gradientStart ?? accent) : accent
 
-        let lineFont: Font = fontName == "lastresort"
-            ? .custom("LastResort", size: size)
-            : .system(size: size, weight: isCurrent ? .bold : .regular, design: .rounded)
+        let lineFont: Font = BeansFont.appFont(size)
 
         return Text(line.text.isEmpty ? "♪" : line.text)
             .font(lineFont)
@@ -988,7 +1003,6 @@ struct LyricSettingsSheet: View {
     @Binding var gradStartRaw: String
     @Binding var gradEndRaw: String
     @Binding var gradMode: Int
-    @Binding var fontName: String
     let palette: CoverPalette
     @Environment(\.dismiss) private var dismiss
 
@@ -1089,17 +1103,6 @@ struct LyricSettingsSheet: View {
                             .foregroundStyle(glowLevel > 2 ? Color.beansAmber : Color.beansSecondary)
                     }
                     Text(glowName(glowLevel))
-                        .font(.footnote)
-                        .foregroundStyle(Color.beansSecondary)
-                }
-
-                Section("歌词字体") {
-                    Picker("字体", selection: $fontName) {
-                        Text("系统默认").tag("system")
-                        Text("LastResort 游戏字体").tag("lastresort")
-                    }
-                    .pickerStyle(.segmented)
-                    Text("LastResort 为占位符号字体，歌词会显示为特殊图形而非可读文字")
                         .font(.footnote)
                         .foregroundStyle(Color.beansSecondary)
                 }

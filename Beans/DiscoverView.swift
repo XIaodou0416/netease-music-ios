@@ -104,7 +104,7 @@ struct DiscoverView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(greeting)
-                        .font(.system(size: 26, weight: .bold))
+                        .font(BeansFont.appFont(26, .bold))
                         .foregroundStyle(Color.beansLabel)
                     Text(auth.user?.nickname ?? "")
                         .font(.system(size: 13))

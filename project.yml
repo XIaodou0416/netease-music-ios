@@ -33,8 +33,6 @@ targets:
           UIColorName: LaunchBackgroundColor
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        UIAppFonts:
-          - LastResort.ttf
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
         NSAppTransportSecurity:

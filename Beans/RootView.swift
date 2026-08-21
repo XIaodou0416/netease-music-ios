@@ -116,11 +116,29 @@ struct AppStoreTabBar: View {
             .coordinateSpace(name: "beansTabBar")
         }
         .frame(height: 49)
-        .background(.bar)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.primary.opacity(0.08))
-                .frame(height: 0.5)
+        .background {
+            // iOS 26 原生液态玻璃：贴底矩形 + 高光 + 描边（与应用商店 tab bar 一致）
+            GlassEffectContainer {
+                Rectangle()
+                    .fill(.clear)
+                    .glassEffect(.clear, in: Rectangle())
+            }
+            .overlay {
+                LinearGradient(
+                    colors: [.white.opacity(0.22), .clear, .white.opacity(0.05)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            }
+            .overlay {
+                Rectangle()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(0.4), .white.opacity(0.06)],
+                            startPoint: .top, endPoint: .bottom
+                        ),
+                        lineWidth: 0.8
+                    )
+            }
         }
         .ignoresSafeArea(edges: .bottom)
         .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }

@@ -13,7 +13,7 @@ struct CoverParticle: Identifiable {
 
 enum ParticleCoverSampler {
     /// 把封面缩略图采样成粒子点阵（颜色来自真实像素，形成粒子化封面）
-    static func sample(from url: URL?, grid: Int = 22) async -> [CoverParticle] {
+    static func sample(from url: URL?, grid: Int = 40) async -> [CoverParticle] {
         guard let url else { return [] }
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
@@ -47,7 +47,7 @@ enum ParticleCoverSampler {
                         baseX: CGFloat(x) / CGFloat(w),
                         baseY: CGFloat(y) / CGFloat(h),
                         color: Color(red: r, green: g, blue: b),
-                        size: 2.0 + (CGFloat(x % 7) / 7.0) * 2.4,
+                        size: 2.6 + (CGFloat(x % 7) / 7.0) * 2.6,
                         phase: Double(idx) * 0.66
                     ))
                     idx += 1
@@ -78,7 +78,7 @@ struct ParticleCoverView: View {
                     let y = p.baseY * h + cos(t * 0.42 + p.phase) * 5 - drift * 1.0
                     let r = p.size * (0.82 + sin(t * 1.1 + p.phase) * 0.18)
                     let rect = CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)
-                    context.fill(Path(ellipseIn: rect), with: .color(p.color.opacity(0.92)))
+                    context.fill(Path(ellipseIn: rect), with: .color(p.color.opacity(0.97)))
                 }
             }
         }
@@ -129,9 +129,9 @@ struct LyricStageLandscapeView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let landscape = geo.size.width > geo.size.height
-            let stageW = landscape ? geo.size.width : geo.size.height
-            let stageH = landscape ? geo.size.height : geo.size.width
+            // 固定横屏方向：无论手机如何放置，画面始终同一个方向
+            let stageW = geo.size.height
+            let stageH = geo.size.width
             let coverSide = min(stageW * 0.72, stageH * 0.86)
 
             ZStack {
@@ -149,7 +149,6 @@ struct LyricStageLandscapeView: View {
                     ParticleCoverView(particles: particles, isPlaying: player.isPlaying)
                         .frame(width: coverSide, height: coverSide)
                         .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
-                        .animation(.linear(duration: 0.1), value: angle)
                         .shadow(color: .black.opacity(0.6), radius: 40, y: 0)
                 } else {
                     ProgressView("粒子封面加载中…")
@@ -221,13 +220,13 @@ struct LyricStageLandscapeView: View {
                 .frame(width: stageW, height: stageH)
             }
             .frame(width: stageW, height: stageH)
-            .rotationEffect(.degrees(landscape ? 0 : -90))
+            .rotationEffect(.degrees(-90))
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .ignoresSafeArea()
         .onReceive(timer) { _ in
-            if autoRotate && !dragging && player.isPlaying {
-                angle = (angle + 0.35).truncatingRemainder(dividingBy: 360)
+            if autoRotate && !dragging {
+                angle = (angle + 0.6).truncatingRemainder(dividingBy: 360)
             }
         }
         .gesture(

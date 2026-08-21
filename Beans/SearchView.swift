@@ -291,7 +291,17 @@ struct SearchView: View {
             }
         }
         .padding(4)
-        .background(Color.black.opacity(colorScheme == .dark ? 0.18 : 0.05), in: Capsule())
+        .background {
+            GlassEffectContainer {
+                Capsule()
+                    .fill(.clear)
+                    .glassEffect(.clear, in: Capsule())
+            }
+        }
+        .overlay {
+            Capsule().strokeBorder(.white.opacity(0.16), lineWidth: 0.8)
+        }
+        .clipShape(Capsule())
         .clipShape(Capsule())
         .padding(.horizontal, 20)
         .padding(.bottom, 4)
@@ -401,6 +411,9 @@ struct SearchView: View {
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
                                     .background(.ultraThinMaterial, in: Capsule())
+                                    .overlay {
+                                        Capsule().strokeBorder(.white.opacity(0.16), lineWidth: 0.8)
+                                    }
                             }
                             .buttonStyle(.plain)
                         }
@@ -485,11 +498,25 @@ struct SearchView: View {
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundStyle(Color.beansSecondary)
                                 }
-                                .padding(.vertical, 6)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
                                 .contentShape(Rectangle())
+                                .background {
+                                    GlassEffectContainer {
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .fill(.clear)
+                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                    }
+                                }
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .strokeBorder(
+                                            LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
+                                            lineWidth: 0.8
+                                        )
+                                }
                             }
-                            .buttonStyle(.plain)
-                            Divider().overlay(Color.beansSecondary.opacity(0.15))
+                            .buttonStyle(GlassPressButtonStyle(scale: 0.97))
                         }
                     }
                     .padding(.horizontal, 20)
@@ -548,11 +575,25 @@ struct SearchView: View {
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundStyle(Color.beansSecondary)
                                 }
-                                .padding(.vertical, 6)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
                                 .contentShape(Rectangle())
+                                .background {
+                                    GlassEffectContainer {
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .fill(.clear)
+                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                    }
+                                }
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .strokeBorder(
+                                            LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
+                                            lineWidth: 0.8
+                                        )
+                                }
                             }
-                            .buttonStyle(.plain)
-                            Divider().overlay(Color.beansSecondary.opacity(0.15))
+                            .buttonStyle(GlassPressButtonStyle(scale: 0.97))
                         }
                     }
                     .padding(.horizontal, 20)

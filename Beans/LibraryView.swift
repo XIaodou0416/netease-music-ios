@@ -66,6 +66,22 @@ struct LibraryView: View {
                 Task { await auth.loadLibrary() }
             }
         }
+        .padding(16)
+        .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: .rect(cornerRadius: 24))
+            }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
+                    lineWidth: 0.8
+                )
+        }
+        .beansCardShadow(radius: 10, y: 4)
         .padding(.top, 8)
     }
 
@@ -96,6 +112,22 @@ struct LibraryView: View {
                                     .font(BeansFont.appFont(11))
                                     .foregroundStyle(Color.beansSecondary)
                             }
+                            .padding(8)
+                            .background {
+                                GlassEffectContainer {
+                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .fill(.clear)
+                                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                }
+                            }
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .strokeBorder(
+                                        LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
+                                        lineWidth: 0.8
+                                    )
+                            }
+                            .beansCardShadow(radius: 8, y: 3)
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
@@ -133,6 +165,15 @@ struct LibraryView: View {
                     .font(BeansFont.appFont(12, .medium))
                     .foregroundStyle(Color.beansSecondary)
             }
+            .padding(8)
+            .frame(maxWidth: .infinity)
+            .background {
+                GlassEffectContainer {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
+            }
         }
         .buttonStyle(.plain)
     }
@@ -153,6 +194,16 @@ struct LibraryView: View {
                         Divider().overlay(Color.beansSecondary.opacity(0.15))
                     }
                 }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background {
+                    GlassEffectContainer {
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(.clear)
+                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    }
+                }
+                .beansCardShadow(radius: 8, y: 3)
             }
         }
     }
@@ -191,6 +242,16 @@ struct LibraryView: View {
                         Divider().overlay(Color.beansSecondary.opacity(0.15))
                     }
                 }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background {
+                    GlassEffectContainer {
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(.clear)
+                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    }
+                }
+                .beansCardShadow(radius: 8, y: 3)
             }
         }
     }

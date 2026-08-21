@@ -246,7 +246,11 @@ struct SectionHeader: View {
     var onTrailingTap: (() -> Void)?
 
     var body: some View {
-        HStack {
+        HStack(spacing: 10) {
+            // 主题渐变竖条装饰
+            Capsule()
+                .fill(LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .top, endPoint: .bottom))
+                .frame(width: 4, height: 18)
             Text(title)
                 .font(BeansFont.appFont(20, .bold))
                 .foregroundStyle(Color.beansLabel)
@@ -255,11 +259,21 @@ struct SectionHeader: View {
                 Button {
                     onTrailingTap?()
                 } label: {
-                    Text(trailing)
-                        .font(BeansFont.appFont(13, .medium))
-                        .foregroundStyle(Color.beansSecondary)
+                    HStack(spacing: 4) {
+                        Text(trailing)
+                            .font(BeansFont.appFont(13, .semibold))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundStyle(Color.beansAmber)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay {
+                        Capsule().strokeBorder(.white.opacity(0.15), lineWidth: 0.8)
+                    }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(GlassPressButtonStyle(scale: 0.92))
             }
         }
     }

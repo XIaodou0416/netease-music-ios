@@ -106,7 +106,7 @@ struct DiscoverView: View {
                     Text(greeting)
                         .font(BeansFont.appFont(26, .bold))
                         .foregroundStyle(Color.beansLabel)
-                    Text(auth.user?.nickname ?? "")
+                    Text(auth.user?.nickname ?? "发现好音乐")
                         .font(BeansFont.appFont(13))
                         .foregroundStyle(Color.beansSecondary)
                 }
@@ -115,6 +115,22 @@ struct DiscoverView: View {
                     Task { await load() }
                 }
             }
+            .padding(16)
+            .background {
+                GlassEffectContainer {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.clear, in: .rect(cornerRadius: 24))
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
+                        lineWidth: 0.8
+                    )
+            }
+            .beansCardShadow(radius: 10, y: 4)
             providerPicker
         }
         .padding(.top, 8)

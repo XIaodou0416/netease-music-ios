@@ -213,6 +213,11 @@ struct PlayerView: View {
             )
             CoverBlurBackground(url: song?.coverURL, scheme: colorScheme)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            AmbientGlowView(
+                accent: palette.accent,
+                secondary: palette.secondary,
+                isPlaying: player.isPlaying
+            )
             LinearGradient(
                 colors: colorScheme == .dark
                     ? [.black.opacity(0.22), .clear, .black.opacity(0.34)]
@@ -360,20 +365,38 @@ struct PlayerView: View {
                 toggleLyrics()
             } label: {
                 ZStack {
-                    // 氛围光晕（封面主色）
-                    Circle()
-                        .fill(palette.accent.opacity(0.22))
-                        .frame(width: size * 1.38, height: size * 1.38)
-                        .blur(radius: 46)
-                    // 液态玻璃托盘
-                    GlassEffectContainer {
-                        RoundedRectangle(cornerRadius: min(30, size * 0.10), style: .continuous)
-                            .fill(.clear)
-                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: min(30, size * 0.10), style: .continuous))
+                    // 动态装饰层（呼吸光晕 + 浮动托盘）：封面本体静止，避免布局重算
+                    TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !player.isPlaying)) { timeline in
+                        let t = timeline.date.timeIntervalSinceReferenceDate
+                        let breathe = player.isPlaying ? 1.0 + 0.05 * sin(t * 2.0) : 1.0
+                        let lift = player.isPlaying ? CGFloat(sin(t * 1.3)) * 5 : 0
+                        ZStack {
+                            // 主色光晕（呼吸）
+                            Circle()
+                                .fill(palette.accent.opacity(0.24))
+                                .frame(width: size * 1.38, height: size * 1.38)
+                                .blur(radius: 46)
+                                .scaleEffect(breathe)
+                            // 次色光晕（反向呼吸，增加层次）
+                            Circle()
+                                .fill(palette.secondary.opacity(0.15))
+                                .frame(width: size * 1.10, height: size * 1.10)
+                                .blur(radius: 40)
+                                .scaleEffect(2.0 - breathe)
+                            // 液态玻璃托盘（微浮动）
+                            GlassEffectContainer {
+                                RoundedRectangle(cornerRadius: min(30, size * 0.10), style: .continuous)
+                                    .fill(.clear)
+                                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: min(30, size * 0.10), style: .continuous))
+                            }
+                            .frame(width: size * 1.10, height: size * 1.10)
+                            .shadow(color: .black.opacity(0.28), radius: 26, y: 12)
+                            .offset(y: lift)
+                        }
                     }
-                    .frame(width: size * 1.10, height: size * 1.10)
-                    .shadow(color: .black.opacity(0.28), radius: 26, y: 12)
-                    // 封面
+                    .allowsHitTesting(false)
+
+                    // 封面（静态）
                     CoverImage(url: song?.coverURL, size: size, cornerRadius: min(24, size * 0.08))
                         .matchedGeometryEffect(id: "playerCover", in: coverNS)
                         .overlay {

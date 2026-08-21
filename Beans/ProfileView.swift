@@ -34,18 +34,24 @@ struct ProfileView: View {
 
     var body: some View {
         let _ = theme.accent
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                userCard
-                qqCard
-                settingsSection
-                aboutSection
+        ZStack {
+            // 页面背景：同步开启时显示壁纸/背景色，否则默认氛围渐变
+            GlassBackdrop(customColor: theme.backgroundSyncAll ? theme.customBackground : nil)
+            // 实例级 UITabBar 液态玻璃透明度（滑块即时生效）
+            TabBarAppearanceConfigurator(alpha: theme.tabBarAlpha)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    userCard
+                    qqCard
+                    settingsSection
+                    aboutSection
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 190)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 190)
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
         .onChange(of: bgImageItem) { _, item in
             guard let item else { return }
             Task {

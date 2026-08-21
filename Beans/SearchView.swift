@@ -95,6 +95,10 @@ struct SearchView: View {
     var body: some View {
         let _ = theme.accent
         ZStack(alignment: .top) {
+            // 页面背景：同步开启时显示壁纸/背景色，否则默认氛围渐变
+            GlassBackdrop(customColor: theme.backgroundSyncAll ? theme.customBackground : nil)
+            // 实例级 UITabBar 液态玻璃透明度（滑块即时生效）
+            TabBarAppearanceConfigurator(alpha: theme.tabBarAlpha)
             VStack(spacing: 0) {
                 headerTitle
                     .padding(.horizontal, 20)

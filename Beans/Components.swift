@@ -47,6 +47,13 @@ struct GlassBackdrop: View {
     @Environment(\.colorScheme) private var colorScheme
     /// 自定义背景色（nil 使用默认氛围渐变）
     var customColor: Color? = nil
+    /// 主页模式：即使“同步到全部页面”关闭，也始终显示壁纸/背景色（仅发现页传 true）
+    var homeMode: Bool = false
+
+    /// 当前页面是否启用自定义背景：同步开启时全部页面生效，关闭时仅主页生效
+    private var showCustomBackground: Bool {
+        theme.backgroundSyncAll || homeMode
+    }
 
     /// 背景图上叠加的可读性遮罩：浅色模式几乎不压暗，深色模式适度压暗
     private var wallpaperOverlay: [Color] {
@@ -58,11 +65,12 @@ struct GlassBackdrop: View {
     var body: some View {
         let _ = theme.accent
         ZStack {
-            // 上传图片优先：同步开启时全 App 生效；固定全屏布局 + 小图柔化，图片再小也不会撑大 UI
-            if let image = theme.customBackgroundImage, theme.backgroundSyncAll {
+            // 上传图片优先：主页永远显示；同步开启时搜索/音乐库/我的也显示。
+            // 固定全屏布局 + 小图柔化，图片再小也不会撑大 UI
+            if let image = theme.customBackgroundImage, showCustomBackground {
                 WallpaperImage(image: image)
                 LinearGradient(colors: wallpaperOverlay, startPoint: .top, endPoint: .bottom)
-            } else if let customColor {
+            } else if showCustomBackground, let customColor {
                 LinearGradient(
                     colors: [customColor.opacity(0.9), customColor.opacity(0.55)],
                     startPoint: .top, endPoint: .bottom

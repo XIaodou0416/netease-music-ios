@@ -4,7 +4,6 @@ struct DiscoverView: View {
     @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
-    @Environment(\.colorScheme) private var colorScheme
 
     @State private var topLists: [TopList] = []
     @State private var dailySongs: [Song] = []
@@ -24,23 +23,10 @@ struct DiscoverView: View {
     var body: some View {
         let _ = theme.accent
         ZStack {
-            // 仅主页模式：自定义背景只应用在发现页（图片优先，其次颜色）
-            if !theme.backgroundSyncAll, let image = theme.customBackgroundImage {
-                WallpaperImage(image: image)
-                LinearGradient(
-                    colors: colorScheme == .dark
-                        ? [.black.opacity(0.35), .black.opacity(0.55)]
-                        : [.black.opacity(0.08), .black.opacity(0.18)],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            } else if !theme.backgroundSyncAll, let custom = theme.customBackground {
-                LinearGradient(
-                    colors: [custom.opacity(0.85), custom.opacity(0.5)],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            }
+            // 主页背景：壁纸/背景色永远在发现页生效（homeMode），同步开启时其他页面也生效
+            GlassBackdrop(customColor: theme.customBackground, homeMode: true)
+            // 实例级 UITabBar 液态玻璃透明度（滑块即时生效）
+            TabBarAppearanceConfigurator(alpha: theme.tabBarAlpha)
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
                     header

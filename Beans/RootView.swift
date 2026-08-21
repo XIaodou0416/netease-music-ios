@@ -44,31 +44,25 @@ struct RootView: View {
     var body: some View {
         let _ = theme.accent
         ZStack {
-            // 免登录：默认进入主界面；自定义背景同步开启时全局生效
-            GlassBackdrop(customColor: theme.backgroundSyncAll ? theme.customBackground : nil)
-
             // 系统原生 TabView：iOS 26 上 UITabBar 自动使用原生液态玻璃，
-            // 按压折射反馈、拖动效果、高光均由系统渲染（与应用商店等系统 App 一致）
+            // 按压折射反馈、拖动效果、高光均由系统渲染（与应用商店等系统 App 一致）。
+            // 背景（壁纸/背景色）由每个 tab 页面内部的 GlassBackdrop 渲染，
+            // 因为系统 TabView 的内容层会盖住 RootView 底层的 ZStack 背景。
             TabView(selection: $selection) {
                 DiscoverView()
-                    .background(Color.clear)
                     .tabItem { Label("发现", systemImage: "sparkles") }
                     .tag(RootTab.discover)
                 SearchView()
-                    .background(Color.clear)
                     .tabItem { Label("搜索", systemImage: "magnifyingglass") }
                     .tag(RootTab.search)
                 LibraryView()
-                    .background(Color.clear)
                     .tabItem { Label("音乐库", systemImage: "music.note.list") }
                     .tag(RootTab.library)
                 ProfileView()
-                    .background(Color.clear)
                     .tabItem { Label("我的", systemImage: "person.crop.circle") }
                     .tag(RootTab.profile)
             }
             .tint(Color.beansAmber)
-            .background(Color.clear)
 
             // 迷你播放器：悬浮在系统 TabBar 上方
             VStack(spacing: 0) {
@@ -82,10 +76,6 @@ struct RootView: View {
             }
         }
         .preferredColorScheme(themeMode.colorScheme)
-        .onAppear { TabBarStyler.apply(alpha: theme.tabBarAlpha) }
-        .onChange(of: theme.tabBarAlpha) { _, newAlpha in
-            TabBarStyler.apply(alpha: newAlpha)
-        }
         .fullScreenCover(isPresented: $showPlayer) {
             PlayerView()
                 .environmentObject(player)
@@ -99,10 +89,28 @@ struct RootView: View {
 }
 
 
-// MARK: - 系统 TabBar 液态玻璃透明度调节（动态应用到 UITabBar，深浅模式自适应）
+// MARK: - 系统 TabBar 液态玻璃透明度调节（实例级，滑块即时生效）
+// 系统 TabView 创建之后，`UITabBar.appearance()` 全局代理对已存在的实例不再生效，
+// 所以每个 tab 页面内放一个 TabBarAppearanceConfigurator，通过 tabBarController
+// 拿到当前 UITabBar 实例，直接设置 standardAppearance；滑块调整 alpha 后立即刷新。
 
-enum TabBarStyler {
-    static func apply(alpha: CGFloat) {
+struct TabBarAppearanceConfigurator: UIViewControllerRepresentable {
+    /// 底栏液态玻璃透明度（0.1 ~ 1.0，越小越透）
+    var alpha: CGFloat
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        let controller = UIViewController()
+        controller.view.backgroundColor = .clear
+        DispatchQueue.main.async { Self.apply(alpha: alpha, from: controller) }
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        DispatchQueue.main.async { Self.apply(alpha: alpha, from: uiViewController) }
+    }
+
+    private static func apply(alpha: CGFloat, from controller: UIViewController) {
+        guard let tabBar = controller.tabBarController?.tabBar else { return }
         let appearance = UITabBarAppearance()
         // 透明配置 + 按主题取底色，透明度由滑块控制（越小越透）
         appearance.configureWithTransparentBackground()
@@ -113,10 +121,9 @@ enum TabBarStyler {
             return base.withAlphaComponent(min(max(alpha, 0.1), 1.0))
         }
         appearance.shadowColor = .clear
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
-        if #available(iOS 15.0, *) {
-            UITabBar.appearance().tintColor = UIColor.beansAmber
-        }
+        tabBar.standardAppearance = appearance
+        tabBar.scrollEdgeAppearance = appearance
+        tabBar.tintColor = UIColor.beansAmber
+        tabBar.isTranslucent = true
     }
 }

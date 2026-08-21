@@ -98,7 +98,7 @@ struct DiscoverView: View {
         }
     }
 
-    /// 顶部问候区：大标题 + 主题渐变细线 + 刷新按钮
+    /// 顶部问候区：大标题 + 刷新按钮
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center) {
@@ -116,11 +116,6 @@ struct DiscoverView: View {
                     Task { await load() }
                 }
             }
-            Capsule()
-                .fill(LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .leading, endPoint: .trailing))
-                .frame(height: 3)
-                .frame(maxWidth: .infinity)
-                .opacity(0.85)
         }
         .padding(.top, 8)
     }
@@ -155,9 +150,6 @@ struct DiscoverView: View {
         }
         .padding(4)
         .background(.ultraThinMaterial, in: Capsule())
-        .overlay {
-            Capsule().strokeBorder(.white.opacity(0.16), lineWidth: 0.8)
-        }
         .clipShape(Capsule())
     }
 
@@ -222,13 +214,6 @@ struct DiscoverView: View {
                         .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                 }
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
-                        lineWidth: 0.8
-                    )
-            }
             .beansCardShadow(radius: 10, y: 4)
         }
         .buttonStyle(GlassPressButtonStyle(scale: 0.95))
@@ -267,13 +252,6 @@ struct DiscoverView: View {
                         .fill(.clear)
                         .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                 }
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
-                        lineWidth: 0.8
-                    )
             }
             .beansCardShadow(radius: 10, y: 4)
         }
@@ -325,24 +303,11 @@ struct DiscoverView: View {
                 }
                 .padding(14)
                 .background {
-                    LinearGradient(
-                        colors: AccentTheme.current.gradientColors.map { $0.opacity(0.16) },
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    )
-                }
-                .background {
                     GlassEffectContainer {
                         RoundedRectangle(cornerRadius: 24, style: .continuous)
                             .fill(.clear)
                             .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                     }
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
-                            lineWidth: 0.8
-                        )
                 }
                 .beansCardShadow(radius: 10, y: 4)
             }
@@ -441,13 +406,6 @@ struct DiscoverView: View {
                                         .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                                 }
                             }
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .strokeBorder(
-                                        LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
-                                        lineWidth: 0.8
-                                    )
-                            }
                             .beansCardShadow(radius: 10, y: 4)
                         }
                         .buttonStyle(GlassPressButtonStyle(scale: 0.95))
@@ -520,9 +478,11 @@ struct QQTopListDetailView: View {
                     List {
                         Section {
                             ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
-                                SongCell(song: song) {
+                                SongCell(song: song, glassRow: true) {
                                     player.play(songs: tracks, startAt: index)
                                 }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                             }
                         }
                     }
@@ -571,9 +531,11 @@ struct QQPlaylistSongsSheet: View {
                     List {
                         Section {
                             ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
-                                SongCell(song: song) {
+                                SongCell(song: song, glassRow: true) {
                                     player.play(songs: tracks, startAt: index)
                                 }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                             }
                         }
                     }
@@ -631,10 +593,12 @@ struct DailySongsSheet: View {
                     }
                     Section {
                         ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-                            SongCell(song: song) {
+                            SongCell(song: song, glassRow: true) {
                                 BeansHaptics.tap()
                                 player.play(songs: songs, startAt: index)
                             }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                     }
                 }
@@ -671,9 +635,11 @@ struct TopListDetailView: View {
                         header
                         Section {
                             ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
-                                SongCell(song: song) {
+                                SongCell(song: song, glassRow: true) {
                                     player.play(songs: tracks, startAt: index)
                                 }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                             }
                         }
                     }

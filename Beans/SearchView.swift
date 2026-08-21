@@ -127,15 +127,7 @@ struct SearchView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(.ultraThinMaterial, in: Capsule())
-                    .overlay {
-                        Capsule().strokeBorder(.white.opacity(0.15), lineWidth: 0.8)
-                    }
             }
-            Capsule()
-                .fill(LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .leading, endPoint: .trailing))
-                .frame(height: 3)
-                .frame(maxWidth: .infinity)
-                .opacity(0.85)
         }
     }
 
@@ -200,9 +192,6 @@ struct SearchView: View {
                     .padding(.horizontal, 13)
                     .padding(.vertical, 6)
                     .background(.ultraThinMaterial, in: Capsule())
-                    .overlay {
-                        Capsule().strokeBorder(.white.opacity(0.15), lineWidth: 0.8)
-                    }
             }
             .buttonStyle(GlassPressButtonStyle(scale: 0.9))
         }
@@ -214,17 +203,6 @@ struct SearchView: View {
                     .fill(.clear)
                     .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             }
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(colors: [.white.opacity(0.35), .white.opacity(0.06)], startPoint: .top, endPoint: .bottom),
-                    lineWidth: 0.8
-                )
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(.white.opacity(0.18), lineWidth: 0.8)
         }
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .beansCardShadow(radius: 8, y: 3)
@@ -261,9 +239,6 @@ struct SearchView: View {
         }
         .padding(4)
         .background(.ultraThinMaterial, in: Capsule())
-        .overlay {
-            Capsule().strokeBorder(.white.opacity(0.16), lineWidth: 0.8)
-        }
         .clipShape(Capsule())
     }
 
@@ -312,10 +287,6 @@ struct SearchView: View {
                     .glassEffect(.clear, in: Capsule())
             }
         }
-        .overlay {
-            Capsule().strokeBorder(.white.opacity(0.16), lineWidth: 0.8)
-        }
-        .clipShape(Capsule())
         .clipShape(Capsule())
         .padding(.horizontal, 20)
         .padding(.bottom, 4)
@@ -361,20 +332,10 @@ struct SearchView: View {
             Task { await startSearch(word) }
         } label: {
             HStack(spacing: 12) {
-                Group {
-                    if index < 3 {
-                        Text("\(index + 1)")
-                            .font(BeansFont.appFont(14, .bold, .rounded))
-                            .foregroundStyle(.white)
-                            .frame(width: 24, height: 24)
-                            .background(LinearGradient.beansAccent, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    } else {
-                        Text("\(index + 1)")
-                            .font(BeansFont.appFont(14, .bold, .rounded))
-                            .foregroundStyle(Color.beansSecondary)
-                            .frame(width: 24, alignment: .leading)
-                    }
-                }
+                Text("\(index + 1)")
+                    .font(BeansFont.appFont(14, .bold, .rounded))
+                    .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
+                    .frame(width: 24, alignment: .leading)
                 Text(word)
                     .font(BeansFont.appFont(15, .medium))
                     .foregroundStyle(Color.beansLabel)
@@ -435,9 +396,6 @@ struct SearchView: View {
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 5)
                                     .background(.ultraThinMaterial, in: Capsule())
-                                    .overlay {
-                                        Capsule().strokeBorder(.white.opacity(0.16), lineWidth: 0.8)
-                                    }
                             }
                             .buttonStyle(.plain)
                         }
@@ -455,13 +413,6 @@ struct SearchView: View {
                                         .fill(.clear)
                                         .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 }
-                            }
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .strokeBorder(
-                                        LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                                        lineWidth: 0.8
-                                    )
                             }
                         }
                     }
@@ -532,13 +483,6 @@ struct SearchView: View {
                                             .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                                     }
                                 }
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .strokeBorder(
-                                            LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                                            lineWidth: 0.8
-                                        )
-                                }
                             }
                             .buttonStyle(GlassPressButtonStyle(scale: 0.97))
                         }
@@ -608,13 +552,6 @@ struct SearchView: View {
                                             .fill(.clear)
                                             .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                                     }
-                                }
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .strokeBorder(
-                                            LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                                            lineWidth: 0.8
-                                        )
                                 }
                             }
                             .buttonStyle(GlassPressButtonStyle(scale: 0.97))

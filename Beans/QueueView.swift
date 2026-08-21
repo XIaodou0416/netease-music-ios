@@ -16,6 +16,8 @@ struct QueueView: View {
                         Section("接下来 (\(player.queue.count) 首)") {
                             ForEach(Array(player.queue.enumerated()), id: \.element.id) { index, song in
                                 row(song, index: index)
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
                             }
                             .onDelete { offsets in
                                 let indices = offsets.map { $0 }
@@ -25,6 +27,9 @@ struct QueueView: View {
                             }
                         }
                     }
+                    .scrollContentBackground(.hidden)
+                    .listStyle(.plain)
+                    .background(LinearGradient.beansBackdrop)
                 }
             }
             .navigationTitle("播放队列")
@@ -75,7 +80,16 @@ struct QueueView: View {
                     .foregroundStyle(Color.beansSecondary)
             }
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .contentShape(Rectangle())
+        .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
         .onTapGesture {
             if player.queue.indices.contains(index) {
                 player.playQueueIndex(index)

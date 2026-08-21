@@ -23,12 +23,17 @@ struct SimiSongsSheet: View {
                     List {
                         Section("根据《\(player.currentSong?.name ?? "")》推荐") {
                             ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-                                SongCell(song: song) {
+                                SongCell(song: song, glassRow: true) {
                                     player.play(songs: songs, startAt: index)
                                 }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                             }
                         }
                     }
+                    .scrollContentBackground(.hidden)
+                    .listStyle(.plain)
+                    .background(LinearGradient.beansBackdrop)
                 }
             }
             .navigationTitle("相似歌曲")

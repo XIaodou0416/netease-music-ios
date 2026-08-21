@@ -26,10 +26,6 @@ struct QQWebLoginPanel: View {
             ZStack {
                 QQWebView(onLoaded: { pageLoaded = true })
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .strokeBorder(.white.opacity(0.18), lineWidth: 1)
-                    }
                     .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
                     .padding(.horizontal, 20)
 

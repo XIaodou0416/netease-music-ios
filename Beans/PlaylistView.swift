@@ -33,12 +33,17 @@ struct PlaylistView: View {
                         header
                         Section {
                             ForEach(Array(displayedTracks.enumerated()), id: \.element.id) { index, song in
-                                SongCell(song: song) {
+                                SongCell(song: song, glassRow: true) {
                                     player.play(songs: displayedTracks, startAt: index)
                                 }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                             }
                         }
                     }
+                    .scrollContentBackground(.hidden)
+                    .listStyle(.plain)
+                    .background(LinearGradient.beansBackdrop)
                 }
             }
             .navigationTitle(playlist.name)
@@ -116,7 +121,14 @@ struct PlaylistView: View {
                 .buttonStyle(GlassPressButtonStyle())
             }
         }
-        .padding(.vertical, 10)
+        .padding(14)
+        .background {
+            GlassEffectContainer {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            }
+        }
     }
 
     /// 歌单内搜索 + 排序后的列表

@@ -138,12 +138,6 @@ struct ProfileView: View {
                     }
                     .frame(width: 64, height: 64)
                     .clipShape(Circle())
-                    .overlay {
-                        Circle().strokeBorder(
-                            LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .topLeading, endPoint: .bottomTrailing),
-                            lineWidth: 2.5
-                        )
-                    }
                     .background(Color.beansGlassFill, in: Circle())
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -181,13 +175,6 @@ struct ProfileView: View {
                     .glassEffect(.clear, in: .rect(cornerRadius: 24))
             }
         }
-        .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),
-                    lineWidth: 0.8
-                )
-        }
         .beansCardShadow(radius: 10, y: 4)
     }
 
@@ -213,13 +200,6 @@ struct ProfileView: View {
                     .fill(.clear)
                     .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                    lineWidth: 0.8
-                )
         }
     }
 
@@ -263,13 +243,6 @@ struct ProfileView: View {
                         .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                 }
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                        lineWidth: 0.8
-                    )
-            }
             .beansCardShadow(radius: 9, y: 3)
         }
         .buttonStyle(GlassPressButtonStyle(scale: 0.97))
@@ -295,13 +268,6 @@ struct ProfileView: View {
                 .frame(height: 108)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(
-                            isActive ? Color.beansAmber : .white.opacity(0.18),
-                            lineWidth: isActive ? 2.5 : 1
-                        )
-                }
                 .overlay(alignment: .bottomTrailing) {
                     if isActive {
                         Image(systemName: "checkmark.circle.fill")
@@ -363,13 +329,6 @@ struct ProfileView: View {
                             .fill(.clear)
                             .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(colors: [.white.opacity(0.4), .white.opacity(0.08)], startPoint: .top, endPoint: .bottom),
-                            lineWidth: 0.8
-                        )
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .contentShape(Rectangle())
@@ -687,13 +646,6 @@ struct ProfileView: View {
                         .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                 }
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                        lineWidth: 0.8
-                    )
-            }
             .beansCardShadow(radius: 9, y: 3)
 
             Button(role: .destructive) {
@@ -767,11 +719,24 @@ struct NetEaseRankSheet: View {
                                         .font(BeansFont.appFont(12, .regular, .monospaced))
                                         .foregroundStyle(Color.beansSecondary)
                                 }
-                                .padding(.vertical, 2)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .contentShape(Rectangle())
+                                .background {
+                                    GlassEffectContainer {
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .fill(.clear)
+                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                    }
+                                }
                             }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                     }
+                    .scrollContentBackground(.hidden)
                     .listStyle(.plain)
+                    .background(LinearGradient.beansBackdrop)
                 }
             }
             .navigationTitle("听歌排行")

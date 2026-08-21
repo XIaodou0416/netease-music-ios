@@ -11,14 +11,19 @@ struct HistoryView: View {
                 } else {
                     List {
                         ForEach(Array(player.history.enumerated()), id: \.element.id) { index, song in
-                            SongCell(song: song) {
+                            SongCell(song: song, glassRow: true) {
                                 player.play(songs: player.history, startAt: index)
                             }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                         .onDelete { offsets in
                             player.removeHistory(at: offsets)
                         }
                     }
+                    .scrollContentBackground(.hidden)
+                    .listStyle(.plain)
+                    .background(LinearGradient.beansBackdrop)
                 }
             }
             .navigationTitle("最近播放")

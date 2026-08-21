@@ -68,11 +68,6 @@ struct LibraryView: View {
                     Task { await auth.loadLibrary() }
                 }
             }
-            Capsule()
-                .fill(LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .leading, endPoint: .trailing))
-                .frame(height: 3)
-                .frame(maxWidth: .infinity)
-                .opacity(0.85)
             // 统计胶囊行
             HStack(spacing: 10) {
                 statPill(icon: "square.stack.fill", value: "\(auth.playlists.count)", label: "歌单")
@@ -107,13 +102,6 @@ struct LibraryView: View {
                     .fill(.clear)
                     .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                    lineWidth: 0.8
-                )
         }
     }
 
@@ -159,13 +147,6 @@ struct LibraryView: View {
                                         .fill(.clear)
                                         .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                                 }
-                            }
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .strokeBorder(
-                                        LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
-                                        lineWidth: 0.8
-                                    )
                             }
                             .beansCardShadow(radius: 8, y: 3)
                         }

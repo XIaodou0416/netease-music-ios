@@ -192,11 +192,7 @@ struct GlassIconButton: View {
                 .foregroundStyle(active ? Color.beansAmber : Color.beansLabel)
                 .frame(width: size, height: size)
                 .background {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .overlay {
-                            Circle().strokeBorder(.white.opacity(0.12), lineWidth: 0.6)
-                        }
+                    Circle().fill(.ultraThinMaterial)
                 }
                 .clipShape(Circle())
                 .contentShape(Circle())
@@ -246,34 +242,24 @@ struct SectionHeader: View {
     var onTrailingTap: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: 10) {
-            // 主题渐变竖条装饰
-            Capsule()
-                .fill(LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .top, endPoint: .bottom))
-                .frame(width: 4, height: 18)
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(title)
-                .font(BeansFont.appFont(20, .bold))
+                .font(BeansFont.appFont(21, .bold))
                 .foregroundStyle(Color.beansLabel)
             Spacer()
             if let trailing {
                 Button {
                     onTrailingTap?()
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 3) {
                         Text(trailing)
-                            .font(BeansFont.appFont(13, .semibold))
+                            .font(BeansFont.appFont(13, .medium))
                         Image(systemName: "chevron.right")
                             .font(.system(size: 10, weight: .semibold))
                     }
-                    .foregroundStyle(Color.beansAmber)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .overlay {
-                        Capsule().strokeBorder(.white.opacity(0.15), lineWidth: 0.8)
-                    }
+                    .foregroundStyle(Color.beansSecondary)
                 }
-                .buttonStyle(GlassPressButtonStyle(scale: 0.92))
+                .buttonStyle(GlassPressButtonStyle(scale: 0.9))
             }
         }
     }

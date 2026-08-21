@@ -137,16 +137,6 @@ struct AppStoreTabBar: View {
             }
             .overlay {
                 Capsule()
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [.white.opacity(0.45), .white.opacity(0.10)],
-                            startPoint: .top, endPoint: .bottom
-                        ),
-                        lineWidth: 0.8
-                    )
-            }
-            .overlay {
-                Capsule()
                     .fill(
                         LinearGradient(
                             colors: [.white.opacity(0.16), .clear],
@@ -240,16 +230,6 @@ struct AppStoreTabBar: View {
                 RoundedRectangle(cornerRadius: 26, style: .continuous)
                     .fill(.clear)
                     .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [.white.opacity(0.4), .white.opacity(0.08)],
-                            startPoint: .top, endPoint: .bottom
-                        ),
-                        lineWidth: 1
-                    )
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))

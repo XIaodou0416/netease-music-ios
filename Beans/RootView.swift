@@ -91,6 +91,7 @@ struct AppStoreTabBar: View {
     @EnvironmentObject private var player: PlayerManager
 
     @State private var showQueue = false
+    @Namespace private var tabNS
 
     var body: some View {
         let _ = theme.accent
@@ -104,6 +105,7 @@ struct AppStoreTabBar: View {
         .frame(height: 64)
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
+        .animation(.spring(response: 0.4, dampingFraction: 0.78), value: selection)
         .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
     }
 
@@ -159,6 +161,24 @@ struct AppStoreTabBar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .background {
+            if selection == tab {
+                // 液态玻璃选中滑块：切换 tab 时平滑滑动（仿分段控件液态效果）
+                GlassEffectContainer {
+                    Capsule()
+                        .fill(.clear)
+                        .glassEffect(.clear, in: Capsule())
+                }
+                .overlay {
+                    LinearGradient(
+                        colors: [.white.opacity(0.28), .clear],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                }
+                .matchedGeometryEffect(id: "beansTabPill", in: tabNS)
+            }
+        }
+        .clipShape(Capsule())
         // 系统原生 context menu：长按弹出系统菜单（Haptic Touch 由系统提供，与分段控件等原生控件一致）
         .contextMenu {
             if player.currentSong != nil {

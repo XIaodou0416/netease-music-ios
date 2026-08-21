@@ -1,17 +1,5 @@
 import SwiftUI
 
-/// 详情页液态玻璃背景：清透磨砂、深浅模式自适应
-private struct LiquidGlassDetailBackground: View {
-    var body: some View {
-        GlassEffectContainer {
-            Rectangle()
-                .fill(.clear)
-                .glassEffect(.clear, in: Rectangle())
-        }
-        .ignoresSafeArea()
-    }
-}
-
 struct DiscoverView: View {
     @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
@@ -433,27 +421,22 @@ struct QQTopListDetailView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                LiquidGlassDetailBackground()
-                Group {
-                    if loading {
-                        LoadingStateView()
-                    } else if let errorMessage {
-                        ErrorStateView(message: errorMessage) {
-                            Task { await load() }
-                        }
-                    } else {
-                        List {
-                            Section {
-                                ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
-                                    SongCell(song: song) {
-                                        player.play(songs: tracks, startAt: index)
-                                    }
-                                    .listRowBackground(Color.clear)
+            Group {
+                if loading {
+                    LoadingStateView()
+                } else if let errorMessage {
+                    ErrorStateView(message: errorMessage) {
+                        Task { await load() }
+                    }
+                } else {
+                    List {
+                        Section {
+                            ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
+                                SongCell(song: song) {
+                                    player.play(songs: tracks, startAt: index)
                                 }
                             }
                         }
-                        .scrollContentBackground(.hidden)
                     }
                 }
             }
@@ -489,27 +472,22 @@ struct QQPlaylistSongsSheet: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                LiquidGlassDetailBackground()
-                Group {
-                    if loading {
-                        LoadingStateView()
-                    } else if let errorMessage {
-                        ErrorStateView(message: errorMessage) {
-                            Task { await load() }
-                        }
-                    } else {
-                        List {
-                            Section {
-                                ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
-                                    SongCell(song: song) {
-                                        player.play(songs: tracks, startAt: index)
-                                    }
-                                    .listRowBackground(Color.clear)
+            Group {
+                if loading {
+                    LoadingStateView()
+                } else if let errorMessage {
+                    ErrorStateView(message: errorMessage) {
+                        Task { await load() }
+                    }
+                } else {
+                    List {
+                        Section {
+                            ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
+                                SongCell(song: song) {
+                                    player.play(songs: tracks, startAt: index)
                                 }
                             }
                         }
-                        .scrollContentBackground(.hidden)
                     }
                 }
             }
@@ -544,39 +522,34 @@ struct DailySongsSheet: View {
     var body: some View {
         let _ = theme.accent
         NavigationStack {
-            ZStack {
-                LiquidGlassDetailBackground()
-                Group {
-                    if songs.isEmpty {
-                        EmptyStateView(icon: "sparkles", text: "今日推荐加载中，下拉刷新试试")
-                    } else {
-                        List {
-                            Section {
-                                HStack(spacing: 12) {
-                                    GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
-                                        BeansHaptics.tap()
-                                        player.play(songs: songs, startAt: 0)
-                                    }
-                                    GlassButton(title: "随机播放", systemName: "shuffle") {
-                                        BeansHaptics.tap()
-                                        player.play(songs: songs, startAt: Int.random(in: 0..<songs.count))
-                                    }
-                                }
-                                .listRowBackground(Color.clear)
-                                .padding(.vertical, 8)
+            Group {
+                if songs.isEmpty {
+                    EmptyStateView(icon: "sparkles", text: "今日推荐加载中，下拉刷新试试")
+                } else {
+                    List {
+                    Section {
+                        HStack(spacing: 12) {
+                            GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
+                                BeansHaptics.tap()
+                                player.play(songs: songs, startAt: 0)
                             }
-                            Section {
-                                ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-                                    SongCell(song: song) {
-                                        BeansHaptics.tap()
-                                        player.play(songs: songs, startAt: index)
-                                    }
-                                    .listRowBackground(Color.clear)
-                                }
+                            GlassButton(title: "随机播放", systemName: "shuffle") {
+                                BeansHaptics.tap()
+                                player.play(songs: songs, startAt: Int.random(in: 0..<songs.count))
                             }
                         }
-                        .scrollContentBackground(.hidden)
+                        .listRowBackground(Color.clear)
+                        .padding(.vertical, 8)
                     }
+                    Section {
+                        ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
+                            SongCell(song: song) {
+                                BeansHaptics.tap()
+                                player.play(songs: songs, startAt: index)
+                            }
+                        }
+                    }
+                }
                 }
             }
             .navigationTitle("今日推荐")
@@ -598,29 +571,23 @@ struct TopListDetailView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                LiquidGlassDetailBackground()
-                Group {
-                    if loading {
-                        LoadingStateView()
-                    } else if let errorMessage {
-                        ErrorStateView(message: errorMessage) {
-                            Task { await load() }
-                        }
-                    } else {
-                        List {
-                            header
-                                .listRowBackground(Color.clear)
-                            Section {
-                                ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
-                                    SongCell(song: song) {
-                                        player.play(songs: tracks, startAt: index)
-                                    }
-                                    .listRowBackground(Color.clear)
+            Group {
+                if loading {
+                    LoadingStateView()
+                } else if let errorMessage {
+                    ErrorStateView(message: errorMessage) {
+                        Task { await load() }
+                    }
+                } else {
+                    List {
+                        header
+                        Section {
+                            ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
+                                SongCell(song: song) {
+                                    player.play(songs: tracks, startAt: index)
                                 }
                             }
                         }
-                        .scrollContentBackground(.hidden)
                     }
                 }
             }

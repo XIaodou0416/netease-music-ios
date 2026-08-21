@@ -360,19 +360,40 @@ struct PlayerView: View {
                 toggleLyrics()
             } label: {
                 ZStack {
+                    // 氛围光晕（封面主色）
                     Circle()
-                        .fill(palette.accent.opacity(0.18))
-                        .frame(width: size * 1.20, height: size * 1.20)
-                        .blur(radius: 38)
+                        .fill(palette.accent.opacity(0.22))
+                        .frame(width: size * 1.38, height: size * 1.38)
+                        .blur(radius: 46)
+                    // 液态玻璃托盘
+                    GlassEffectContainer {
+                        RoundedRectangle(cornerRadius: min(30, size * 0.10), style: .continuous)
+                            .fill(.clear)
+                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: min(30, size * 0.10), style: .continuous))
+                    }
+                    .frame(width: size * 1.10, height: size * 1.10)
+                    .shadow(color: .black.opacity(0.28), radius: 26, y: 12)
+                    // 封面
                     CoverImage(url: song?.coverURL, size: size, cornerRadius: min(24, size * 0.08))
                         .matchedGeometryEffect(id: "playerCover", in: coverNS)
                         .overlay {
                             RoundedRectangle(cornerRadius: min(24, size * 0.08), style: .continuous)
-                                .strokeBorder(.white.opacity(0.22), lineWidth: 1)
+                                .strokeBorder(.white.opacity(0.28), lineWidth: 1)
                         }
-                        .shadow(color: .black.opacity(0.35), radius: 22, y: 10)
+                        .overlay {
+                            // 顶部玻璃反光
+                            RoundedRectangle(cornerRadius: min(24, size * 0.08), style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.white.opacity(0.28), .white.opacity(0.03), .clear],
+                                        startPoint: .top, endPoint: .center
+                                    )
+                                )
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: min(24, size * 0.08), style: .continuous))
+                        .shadow(color: .black.opacity(0.38), radius: 24, y: 12)
                 }
-                .frame(width: size, height: size)
+                .frame(width: size * 1.10, height: size * 1.10)
             }
             .buttonStyle(GlassPressButtonStyle(scale: 0.96))
 
@@ -383,8 +404,9 @@ struct PlayerView: View {
                     .lineLimit(2)
                     .minimumScaleFactor(0.55)
                     .multilineTextAlignment(.center)
+                    .shadow(color: palette.accent.opacity(0.30), radius: 10)
                 Text(subtitle)
-                    .font(BeansFont.appFont(14))
+                    .font(BeansFont.appFont(14, .medium))
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)

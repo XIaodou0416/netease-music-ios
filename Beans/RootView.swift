@@ -102,14 +102,14 @@ struct AppStoreTabBar: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(height: 64)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
+        .frame(height: 62)
+        .padding(.horizontal, 14)
+        .padding(.bottom, 6)
         .animation(.spring(response: 0.4, dampingFraction: 0.78), value: selection)
         .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
     }
 
-    /// 悬浮液态玻璃底栏：iOS 26 原生 glass + 高光 + 描边三层，悬浮于内容之上
+    /// iOS 26 原生液态玻璃悬浮底栏：顶部大圆角、底边贴近屏幕、真实玻璃折射 + 环境高光、无硬边框
     private var barCapsule: some View {
         HStack(spacing: 4) {
             ForEach(RootTab.allCases) { tab in
@@ -118,30 +118,45 @@ struct AppStoreTabBar: View {
         }
         .padding(5)
         .background {
+            // 液态玻璃主体：系统 glassEffect 智能模糊下方内容，通透半透明
             GlassEffectContainer {
-                Capsule()
+                barShape()
                     .fill(.clear)
-                    .glassEffect(.clear, in: Capsule())
+                    .glassEffect(.clear, in: barShape())
             }
+            // 微弱环境高光反光（左上 → 右下），还原真实玻璃折射光感
             .overlay {
                 LinearGradient(
-                    colors: [.white.opacity(0.22), .clear, .white.opacity(0.05)],
+                    colors: [.white.opacity(0.28), .white.opacity(0.06), .clear, .white.opacity(0.03)],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 )
             }
-            .overlay {
-                Capsule()
-                    .strokeBorder(
+            // 极淡顶部边缘光，非生硬边框
+            .overlay(alignment: .top) {
+                barShape()
+                    .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
+                    .mask(
                         LinearGradient(
-                            colors: [.white.opacity(0.45), .white.opacity(0.08)],
+                            colors: [.white.opacity(0.9), .clear],
                             startPoint: .top, endPoint: .bottom
-                        ),
-                        lineWidth: 0.8
+                        )
                     )
             }
         }
-        .clipShape(Capsule())
-        .shadow(color: .black.opacity(0.14), radius: 16, y: 8)
+        .clipShape(barShape())
+        // 微弱柔和外阴影
+        .shadow(color: .black.opacity(0.10), radius: 18, y: 6)
+    }
+
+    /// 悬浮条外形：顶部大圆角、底部贴近屏幕（直角）
+    private func barShape() -> UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 28,
+            bottomLeadingRadius: 0,
+            bottomTrailingRadius: 0,
+            topTrailingRadius: 28,
+            style: .continuous
+        )
     }
 
     private func tabButton(_ tab: RootTab) -> some View {
@@ -156,6 +171,7 @@ struct AppStoreTabBar: View {
                     .font(BeansFont.appFont(10, .medium))
             }
             .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
+            .opacity(selection == tab ? 1 : 0.55)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 9)
             .contentShape(Rectangle())

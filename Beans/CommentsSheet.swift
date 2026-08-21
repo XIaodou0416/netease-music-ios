@@ -95,8 +95,7 @@ struct CommentsSheet: View {
         errorMessage = nil
         do {
             if song.source == .qq {
-                guard let mid = song.qqMid else { throw NetEaseError.unknown("缺少 QQ 歌曲标识") }
-                qqComments = try await QQMusicAPI.shared.comments(songmid: mid)
+                qqComments = try await QQMusicAPI.shared.comments(songID: song.id)
             } else {
                 let result = try await NetEaseAPI.shared.songComments(id: song.id, limit: limit, offset: offset)
                 if reset {

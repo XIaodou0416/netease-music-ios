@@ -361,11 +361,11 @@ final class QQMusicAPI {
 
     // MARK: - 评论区 / 排行榜 / 推荐 / 歌单
 
-    /// QQ 音乐评论（fcg_global_comment_h5，与 wp_MusicApi 一致；musicu GlobalCommentRead 已停用返回 40000）
-    func comments(songmid: String, limit: Int = 25) async throws -> [SongComment] {
-        let json = try await postForm("https://c.y.qq.com/base/fcgi-bin/fcg_global_comment_h5.fcg", body: [
+    /// QQ 音乐评论（fcg_global_comment_h5；topid 必须用数字 songid 并带 cid/reqtype，用 songmid 会返回空）
+    func comments(songID: Int, limit: Int = 25) async throws -> [SongComment] {
+        let json = try await postForm("https://c.y.qq.com/base/fcgi-bin/fcg_global_comment_h5.fcg?format=json&cid=205360772&reqtype=2", body: [
             "biztype": 1,
-            "topid": songmid,
+            "topid": songID,
             "LoginUin": 0,
             "cmd": 8,
             "pagenum": 0,
@@ -518,9 +518,22 @@ final class QQMusicAPI {
         }
     }
 
-    /// QQ 每日推荐（峰尖榜·总榜前 30）
+    /// QQ 每日推荐：热歌/新歌/飙升 三榜混合，按日期种子确定性打乱，每日轮换且与单个榜单内容区分
     func recommendSongs(limit: Int = 30) async throws -> [Song] {
-        try await topListSongs(topid: 4, limit: limit)
+        let day = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 0
+        var songs: [Song] = []
+        var seen = Set<String>()
+        let per = max(8, (limit + 2) / 3)
+        for topid in [26, 27, 62] {
+            guard let list = try? await topListSongs(topid: topid, limit: per) else { continue }
+            for song in list where !seen.contains(song.identityKey) {
+                seen.insert(song.identityKey)
+                songs.append(song)
+            }
+        }
+        var rng = SeededRNG(state: UInt64(day) &* 2654435761)
+        songs.shuffle(using: &rng)
+        return Array(songs.prefix(limit))
     }
 
     /// QQ 推荐歌单
@@ -596,5 +609,14 @@ final class QQMusicAPI {
             }
         }
         return (current as? [[String: Any]]) ?? []
+    }
+}
+
+/// 可播种随机数生成器（用于每日推荐按日期确定性打乱，同一天内刷新结果一致）
+private struct SeededRNG: RandomNumberGenerator {
+    var state: UInt64
+    mutating func next() -> UInt64 {
+        state = state &* 6364136223846793005 &+ 1442695040888963407
+        return state
     }
 }

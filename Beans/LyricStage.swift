@@ -172,7 +172,7 @@ struct LyricStageLandscapeView: View {
                         .fill(Color.white.opacity(0.4))
                         .frame(width: 44, height: 3)
                         .cornerRadius(1.5)
-                    Text(currentIndex.map { "($0 + 1)/(lyrics.count)" } ?? "")
+                    Text(currentIndex.map { index in "\(index + 1)/\(lyrics.count)" } ?? "")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.white.opacity(0.55))
                 }

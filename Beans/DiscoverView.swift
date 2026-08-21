@@ -20,6 +20,8 @@ struct DiscoverView: View {
     @State private var qqTopLists: [QQTopInfo] = []
     @State private var selectedQQTopList: QQTopInfo?
     @State private var selectedQQPlaylist: Playlist?
+    /// 沉浸视觉（新样式）开关：开启后歌单广场变为 3D 歌单架
+    @AppStorage("beans.immersiveVisual") private var immersiveVisual = false
 
     var body: some View {
         let _ = theme.accent
@@ -330,39 +332,50 @@ struct DiscoverView: View {
     private var personalizedSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "歌单广场")
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 100), spacing: 10)],
-                spacing: 12
-            ) {
-                // 精简：三列小卡片只显示前六个，不再又长又大
-                ForEach(personalized.prefix(6)) { playlist in
-                    Button {
-                        if source == .qq {
-                            selectedQQPlaylist = playlist
-                        } else {
-                            selectedPlaylist = playlist
-                        }
-                    } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            CoverImage(url: playlist.coverURL, size: 88, cornerRadius: 14)
-                                .frame(maxWidth: .infinity)
-                            Text(playlist.name)
-                                .font(BeansFont.appFont(11, .medium))
-                                .foregroundStyle(Color.beansLabel)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                        }
-                        .padding(6)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background {
-                            GlassEffectContainer {
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(.clear)
-                                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            if immersiveVisual {
+                // 沉浸模式：3D 歌单架（横滑卡片带 3D 倾斜）
+                ImmersivePlaylistShelf(playlists: Array(personalized.prefix(8))) { playlist in
+                    if source == .qq {
+                        selectedQQPlaylist = playlist
+                    } else {
+                        selectedPlaylist = playlist
+                    }
+                }
+            } else {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 100), spacing: 10)],
+                    spacing: 12
+                ) {
+                    // 精简：三列小卡片只显示前六个，不再又长又大
+                    ForEach(personalized.prefix(6)) { playlist in
+                        Button {
+                            if source == .qq {
+                                selectedQQPlaylist = playlist
+                            } else {
+                                selectedPlaylist = playlist
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                CoverImage(url: playlist.coverURL, size: 88, cornerRadius: 14)
+                                    .frame(maxWidth: .infinity)
+                                Text(playlist.name)
+                                    .font(BeansFont.appFont(11, .medium))
+                                    .foregroundStyle(Color.beansLabel)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            .padding(6)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background {
+                                GlassEffectContainer {
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .fill(.clear)
+                                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                }
                             }
                         }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

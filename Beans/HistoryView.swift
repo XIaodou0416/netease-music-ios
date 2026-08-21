@@ -15,6 +15,9 @@ struct HistoryView: View {
                                 player.play(songs: player.history, startAt: index)
                             }
                         }
+                        .onDelete { offsets in
+                            player.removeHistory(at: offsets)
+                        }
                     }
                 }
             }

@@ -1,5 +1,13 @@
 import SwiftUI
 
+/// 歌单内排序方式
+enum PlaylistSortMode: String, CaseIterable, Identifiable {
+    case original = "默认"
+    case name = "歌名"
+    case duration = "时长"
+    var id: String { rawValue }
+}
+
 struct PlaylistView: View {
     @EnvironmentObject private var player: PlayerManager
     @EnvironmentObject private var auth: AuthStore
@@ -8,6 +16,8 @@ struct PlaylistView: View {
     @State private var tracks: [Song] = []
     @State private var loading = true
     @State private var errorMessage: String?
+    @State private var searchText = ""
+    @State private var sortMode: PlaylistSortMode = .original
 
     var body: some View {
         NavigationStack {
@@ -22,9 +32,9 @@ struct PlaylistView: View {
                     List {
                         header
                         Section {
-                            ForEach(Array(tracks.enumerated()), id: \.element.id) { index, song in
+                            ForEach(Array(displayedTracks.enumerated()), id: \.element.id) { index, song in
                                 SongCell(song: song) {
-                                    player.play(songs: tracks, startAt: index)
+                                    player.play(songs: displayedTracks, startAt: index)
                                 }
                             }
                         }
@@ -59,14 +69,75 @@ struct PlaylistView: View {
             }
             HStack(spacing: 10) {
                 GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
-                    player.play(songs: tracks, startAt: 0)
+                    player.play(songs: displayedTracks, startAt: 0)
                 }
                 GlassButton(title: "随机播放", systemName: "shuffle") {
-                    player.play(songs: tracks, startAt: Int.random(in: 0..<tracks.count))
+                    if !displayedTracks.isEmpty {
+                        player.play(songs: displayedTracks, startAt: Int.random(in: 0..<displayedTracks.count))
+                    }
                 }
+            }
+            HStack(spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.beansSecondary)
+                    TextField("搜索歌单内歌曲", text: $searchText)
+                        .font(BeansFont.appFont(14))
+                        .autocorrectionDisabled()
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.beansSecondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                Menu {
+                    Picker("排序", selection: $sortMode) {
+                        ForEach(PlaylistSortMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.beansAmber)
+                        .frame(width: 38, height: 38)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .buttonStyle(GlassPressButtonStyle())
             }
         }
         .padding(.vertical, 10)
+    }
+
+    /// 歌单内搜索 + 排序后的列表
+    private var displayedTracks: [Song] {
+        var list = tracks
+        let kw = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !kw.isEmpty {
+            list = list.filter { song in
+                song.name.lowercased().contains(kw)
+                    || song.artists.lowercased().contains(kw)
+                    || song.album.lowercased().contains(kw)
+            }
+        }
+        switch sortMode {
+        case .original: break
+        case .name:
+            list.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        case .duration:
+            list.sort { $0.duration < $1.duration }
+        }
+        return list
     }
 
     private func load() async {

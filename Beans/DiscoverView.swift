@@ -52,13 +52,13 @@ struct DiscoverView: View {
                     LoadingStateView()
                 } else {
                     if !dailySongs.isEmpty {
-                        dailySection
+                        dailySection.sectionEntrance(delay: 0)
                     }
                     if !topLists.isEmpty {
-                        topListsSection
+                        topListsSection.sectionEntrance(delay: 0.08)
                     }
                     if !personalized.isEmpty {
-                        personalizedSection
+                        personalizedSection.sectionEntrance(delay: 0.16)
                     }
 
                 }

@@ -524,6 +524,8 @@ struct ProfileView: View {
                     showHistory = true
                 }
                 Divider().overlay(Color.beansSecondary.opacity(0.15))
+                row(icon: "play.circle.fill", title: "累计播放", value: "\(player.playCounts.values.reduce(0, +)) 次") {}
+                Divider().overlay(Color.beansSecondary.opacity(0.15))
                 row(icon: "chart.bar.fill", title: "听歌排行", value: rankValue) {
                     if auth.isLoggedIn, !weekRecord.isEmpty || !allRecord.isEmpty {
                         showNetEaseRank = true

@@ -394,12 +394,49 @@ struct ProgressLine: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.beansSecondary.opacity(0.25))
                 Capsule()
-                    .fill(Color.beansAmber)
-                    .frame(width: geo.size.width * ratio)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.beansAmber, Color.beansAmber.opacity(0.5)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(geo.size.width * ratio, 6))
+                    .overlay(alignment: .trailing) {
+                        Circle()
+                            .fill(Color.beansAmber)
+                            .frame(width: 5, height: 5)
+                            .shadow(color: Color.beansAmber.opacity(0.5), radius: 2.5)
+                    }
             }
         }
     }
 }
+// MARK: - 板块进入动画（首页错落渐入，纯视觉不影响布局）
+
+struct SectionEntrance: ViewModifier {
+    @State private var appeared = false
+    var delay: Double = 0
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 14)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.5).delay(delay)) {
+                    appeared = true
+                }
+            }
+    }
+}
+
+extension View {
+    /// 页面内板块错落渐入：opacity + 轻微上移，不影响布局
+    func sectionEntrance(delay: Double = 0) -> some View {
+        modifier(SectionEntrance(delay: delay))
+    }
+}
+
 // MARK: - 全局轻提示（Toast，收藏/歌单等操作反馈用）
 
 @MainActor

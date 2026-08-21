@@ -40,6 +40,8 @@ struct PlayerView: View {
     @AppStorage("beans.lyricGradEnd") private var lyricGradEndRaw = ""
     /// 渐变模式：0=跟随封面自动取色（默认），1=始终保持用户自定义渐变
     @AppStorage("beans.lyricGradMode") private var lyricGradMode = 0
+    /// 歌词行距（14~40，默认 24）
+    @AppStorage("beans.lyricSpacing") private var lyricLineSpacing = 24
     /// 播放器氛围：背景流动开关 / 速度 / 呼吸光晕强度
     @AppStorage("beans.playerFlowOn") private var playerFlowOn = true
     @AppStorage("beans.playerFlowSpeed") private var playerFlowSpeed = 1
@@ -181,6 +183,7 @@ struct PlayerView: View {
                 gradStartRaw: $lyricGradStartRaw,
                 gradEndRaw: $lyricGradEndRaw,
                 gradMode: $lyricGradMode,
+                lineSpacing: $lyricLineSpacing,
                 palette: palette
             )
         }
@@ -536,7 +539,7 @@ struct PlayerView: View {
                 if lyrics.isEmpty {
                     emptyLyricsView
                 } else {
-                    LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, gradientStart: lyricGradStart, gradientEnd: lyricGradEnd, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
+                    LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, gradientStart: lyricGradStart, gradientEnd: lyricGradEnd, baseFontSize: CGFloat(lyricFontSize), lineSpacing: CGFloat(lyricLineSpacing), glowRadius: lyricGlowRadius) { line in
                         BeansHaptics.tap()
                         player.seek(to: line.time)
                     }
@@ -973,6 +976,7 @@ struct LyricsSection: View {
     var gradientStart: Color? = nil
     var gradientEnd: Color? = nil
     var baseFontSize: CGFloat = 17
+    var lineSpacing: CGFloat = 24
     var glowRadius: CGFloat = 9
     let onTapLine: (LyricLine) -> Void
 
@@ -997,7 +1001,7 @@ struct LyricsSection: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(showsIndicators: false) {
-                LazyVStack(spacing: 24) {
+                LazyVStack(spacing: lineSpacing) {
                     ForEach(Array(lyrics.enumerated()), id: \.element.id) { index, line in
                         lyricRow(index: index, line: line)
                             .contentShape(Rectangle())
@@ -1084,6 +1088,7 @@ struct LyricSettingsSheet: View {
     @Binding var gradStartRaw: String
     @Binding var gradEndRaw: String
     @Binding var gradMode: Int
+    @Binding var lineSpacing: Int
     let palette: CoverPalette
     @Environment(\.dismiss) private var dismiss
 
@@ -1193,6 +1198,27 @@ struct LyricSettingsSheet: View {
                             .font(BeansFont.appFont(22, .bold))
                     }
                     Text("\(fontSize) pt")
+                        .font(BeansFont.appFont(13))
+                        .foregroundStyle(Color.beansSecondary)
+                }
+
+                Section("行距") {
+                    HStack(spacing: 12) {
+                        Text("紧凑")
+                            .font(BeansFont.appFont(12))
+                        Slider(
+                            value: Binding(
+                                get: { Double(lineSpacing) },
+                                set: { lineSpacing = Int($0) }
+                            ),
+                            in: 14...40,
+                            step: 1
+                        )
+                        .tint(Color.beansAmber)
+                        Text("宽松")
+                            .font(BeansFont.appFont(12))
+                    }
+                    Text("\(lineSpacing) pt")
                         .font(BeansFont.appFont(13))
                         .foregroundStyle(Color.beansSecondary)
                 }

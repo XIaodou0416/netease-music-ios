@@ -31,7 +31,14 @@ struct MiniPlayerView: View {
             showPlayer = true
         } label: {
             HStack(spacing: 12) {
-                CoverImage(url: player.currentSong?.coverURL, size: 40, cornerRadius: 8)
+                ZStack {
+                    Circle()
+                        .fill(theme.accent.highlight.opacity(0.32))
+                        .frame(width: 48, height: 48)
+                        .blur(radius: 9)
+                    CoverImage(url: player.currentSong?.coverURL, size: 40, cornerRadius: 8)
+                }
+                .frame(width: 48, height: 48)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(player.currentSong?.name ?? "")
                         .font(BeansFont.appFont(14, .semibold))

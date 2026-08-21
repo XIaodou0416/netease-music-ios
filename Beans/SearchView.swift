@@ -410,7 +410,22 @@ struct SearchView: View {
                                 BeansHaptics.tap()
                                 player.play(songs: songResults, startAt: index)
                             }
-                            Divider().overlay(Color.beansSecondary.opacity(0.15))
+                            .padding(.horizontal, 2)
+                            .padding(.vertical, 3)
+                            .background {
+                                GlassEffectContainer {
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(.clear)
+                                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                }
+                            }
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .strokeBorder(
+                                        LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
+                                        lineWidth: 0.8
+                                    )
+                            }
                         }
                     }
                     .padding(.horizontal, 20)

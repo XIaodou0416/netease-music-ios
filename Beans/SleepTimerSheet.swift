@@ -5,7 +5,7 @@ struct SleepTimerSheet: View {
     @EnvironmentObject private var player: PlayerManager
     @Environment(\.dismiss) private var dismiss
 
-    private let options = [15, 30, 45, 60]
+    private let options = [5, 15, 30, 45, 60, 90]
 
     var body: some View {
         let _ = theme.accent

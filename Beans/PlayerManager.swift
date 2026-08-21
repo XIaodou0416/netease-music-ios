@@ -181,6 +181,17 @@ final class PlayerManager: NSObject, ObservableObject {
         loadCurrent()
     }
 
+    /// 删除单条播放历史（含持久化）
+    func removeHistory(at offsets: IndexSet) {
+        for index in offsets.sorted(by: >) {
+            guard history.indices.contains(index) else { continue }
+            history.remove(at: index)
+        }
+        if let data = try? JSONEncoder().encode(history) {
+            defaults.set(data, forKey: historyKey)
+        }
+    }
+
     /// 清空播放历史（含持久化）
     func clearHistory() {
         history.removeAll()

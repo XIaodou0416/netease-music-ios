@@ -305,18 +305,18 @@ struct SearchView: View {
                     guard resultType != type else { return }
                     resultType = type
                     let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty {
-                        let hasResult: Bool = {
-                            switch type {
-                            case .song: return !songResults.isEmpty
-                            case .artist: return !artistResults.isEmpty
-                            case .album: return !albumResults.isEmpty
-                            }
-                        }()
-                        if !hasResult {
-                            Task { await startSearch(trimmed) }
-                        }
+                    guard !trimmed.isEmpty else { return }
+                    // 切换分类：清空该分类旧结果并立即进入加载态，避免显示过期数据或空态闪烁
+                    debounceTask?.cancel()
+                    searchTask?.cancel()
+                    switch type {
+                    case .song: songResults = []
+                    case .artist: artistResults = []
+                    case .album: albumResults = []
                     }
+                    errorMessage = nil
+                    searching = true
+                    Task { await startSearch(trimmed) }
                 } label: {
                     Text(type.rawValue)
                         .font(BeansFont.appFont(13, .semibold))
@@ -492,6 +492,7 @@ struct SearchView: View {
                         ForEach(artistResults) { artist in
                             Button {
                                 BeansHaptics.tap()
+                                searchController.dismissKeyboard()
                                 selectedArtist = artist
                             } label: {
                                 HStack(spacing: 12) {
@@ -562,6 +563,8 @@ struct SearchView: View {
                         .padding(.vertical, 8)
                         ForEach(albumResults) { album in
                             Button {
+                                BeansHaptics.tap()
+                                searchController.dismissKeyboard()
                                 searchBy(album.name)
                             } label: {
                                 HStack(spacing: 12) {

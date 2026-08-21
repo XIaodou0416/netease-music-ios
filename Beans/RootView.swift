@@ -98,6 +98,8 @@ struct TabBarAppearanceConfigurator: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         let controller = UIViewController()
         controller.view.backgroundColor = .clear
+        // 纯外观配置视图：禁止拦截触摸，避免透明全屏视图吃掉页面按钮点击
+        controller.view.isUserInteractionEnabled = false
         DispatchQueue.main.async { Self.apply(from: controller) }
         return controller
     }

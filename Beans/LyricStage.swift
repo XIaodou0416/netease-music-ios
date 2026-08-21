@@ -391,7 +391,7 @@ struct LyricStageLandscapeView: View {
             let tracks = (try? await NetEaseAPI.shared.playlistTracks(id: playlist.id)) ?? []
             playlistLoading = false
             guard !tracks.isEmpty else {
-                BeansHaptics.error()
+                BeansHaptics.tap()
                 return
             }
             player.play(songs: tracks, startAt: 0)

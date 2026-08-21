@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct BeansApp: App {
     @StateObject private var auth = AuthStore()
+    @StateObject private var emailAuth = EmailAuthStore()
     @StateObject private var player = PlayerManager()
     @StateObject private var theme = ThemeStore.shared
 
@@ -15,6 +16,7 @@ struct BeansApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(auth)
+                .environmentObject(emailAuth)
                 .environmentObject(player)
                 .environmentObject(theme)
         }

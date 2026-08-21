@@ -245,7 +245,7 @@ struct DiscoverView: View {
         return LinearGradient(colors: palettes[seed], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
-    // MARK: - 每日推荐（封面横幅 + 横滑歌曲卡）
+    // MARK: - 每日推荐（横滑歌曲卡 + 播放）
 
     private var dailySection: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -253,49 +253,6 @@ struct DiscoverView: View {
                 BeansHaptics.tap()
                 showDailyList = true
             }
-            // 全宽横幅：头像背景 + 渐变叠层 + 播放按钮
-            Button {
-                BeansHaptics.tap()
-                showDailyList = true
-            } label: {
-                ZStack(alignment: .bottomLeading) {
-                    AsyncImage(url: auth.user?.avatarURL) { phase in
-                        if case .success(let image) = phase {
-                            image.resizable().scaledToFill()
-                        } else {
-                            LinearGradient(
-                                colors: AccentTheme.current.gradientColors,
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            )
-                        }
-                    }
-                    LinearGradient(
-                        colors: [.black.opacity(0.12), .black.opacity(0.72)],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                    HStack(spacing: 12) {
-                        CoverImage(url: dailySongs.first?.coverURL, size: 56, cornerRadius: 14)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("每日推荐")
-                                .font(BeansFont.appFont(20, .bold))
-                                .foregroundStyle(.white)
-                            Text("为你精选 \(dailySongs.count) 首 · 每日更新")
-                                .font(BeansFont.appFont(12))
-                                .foregroundStyle(.white.opacity(0.85))
-                        }
-                        Spacer(minLength: 8)
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: 38))
-                            .foregroundStyle(.white)
-                    }
-                    .padding(16)
-                }
-                .frame(height: 190)
-                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-            }
-            .buttonStyle(GlassPressButtonStyle(scale: 0.97))
-            .beansCardShadow(radius: 12, y: 5)
-
             // 横滑歌曲卡：每日推荐前 8 首
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 12) {

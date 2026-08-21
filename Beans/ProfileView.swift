@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct ProfileView: View {
     @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var emailAuth: EmailAuthStore
     @EnvironmentObject private var player: PlayerManager
     @AppStorage("beans.themeMode") private var themeModeRaw = BeansThemeMode.system.rawValue
 
@@ -40,6 +41,7 @@ struct ProfileView: View {
             VStack(alignment: .leading, spacing: 22) {
                 userCard
                 qqCard
+                emailAccountCard
                 settingsSection
                 aboutSection
             }
@@ -315,6 +317,56 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
             .zIndex(2)
+        }
+    }
+
+    /// 邮箱账号（本地登录）卡片
+    private var emailAccountCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "账号")
+            VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    Image(systemName: "envelope.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.beansAmber)
+                        .frame(width: 30)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("邮箱账号")
+                            .font(BeansFont.appFont(13))
+                            .foregroundStyle(Color.beansSecondary)
+                        Text(emailAuth.currentEmail ?? "未登录")
+                            .font(BeansFont.appFont(15, .semibold))
+                            .foregroundStyle(Color.beansLabel)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    Spacer(minLength: 8)
+                    Button {
+                        BeansHaptics.medium()
+                        emailAuth.logout()
+                        ToastCenter.shared.show("已退出邮箱账号")
+                    } label: {
+                        Text("退出")
+                            .font(BeansFont.appFont(13, .semibold))
+                            .foregroundStyle(Color.red)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .background(.ultraThinMaterial, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 13)
+                .background {
+                    GlassEffectContainer {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(.clear)
+                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .beansCardShadow(radius: 8, y: 3)
+            }
         }
     }
 

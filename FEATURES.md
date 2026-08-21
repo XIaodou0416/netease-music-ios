@@ -1,4 +1,4 @@
-# Beans 功能清单（90 项）
+# Beans 功能清单（92 项）
 
 ## 一、播放核心（14 项）
 1. 播放 / 暂停
@@ -110,6 +110,8 @@
 88. 迷你播放器原生液态玻璃（GlassEffectContainer + glassEffect，不再只是半透明）
 89. 网易云收藏接口修复（alg/time 标准参数，收藏/取消收藏云端同步）
 90. QQ 音乐搜索修正（search_type 0/1/2 + musicu POST JSON，修复歌手/专辑/搜索无结果）
+91. 邮箱注册 / 登录门禁：进入 App 必须先注册邮箱账号（本地加盐哈希存储）
+92. 我的页新增邮箱账号卡片：查看当前邮箱 / 一键退出
 
 ## 构建与安装
 - 云端：GitHub Actions「Build Unsigned IPA」自动打包（详见 README）

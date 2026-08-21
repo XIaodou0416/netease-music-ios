@@ -401,7 +401,7 @@ struct SearchView: View {
                 EmptyStateView(icon: "music.note", text: "\(provider.rawValue)未找到相关歌曲")
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
+                    LazyVStack(spacing: 8) {
                         HStack {
                             Text("找到 \(songResults.count) 首 · \(provider.rawValue)")
                                 .font(BeansFont.appFont(12))
@@ -426,13 +426,13 @@ struct SearchView: View {
                                 BeansHaptics.tap()
                                 player.play(songs: songResults, startAt: index)
                             }
-                            .padding(.horizontal, 2)
-                            .padding(.vertical, 3)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
                             .background {
                                 GlassEffectContainer {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                                         .fill(.clear)
-                                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 }
                             }
                         }
@@ -465,7 +465,7 @@ struct SearchView: View {
                 EmptyStateView(icon: "person.crop.circle", text: "\(provider.rawValue)未找到相关歌手")
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
+                    LazyVStack(spacing: 8) {
                         HStack {
                             Text("找到 \(artistResults.count) 位 · \(provider.rawValue)")
                                 .font(BeansFont.appFont(12))
@@ -494,14 +494,14 @@ struct SearchView: View {
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundStyle(Color.beansSecondary)
                                 }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 10)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
                                 .contentShape(Rectangle())
                                 .background {
                                     GlassEffectContainer {
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
                                             .fill(.clear)
-                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     }
                                 }
                             }
@@ -536,7 +536,7 @@ struct SearchView: View {
                 EmptyStateView(icon: "square.stack", text: "\(provider.rawValue)未找到相关专辑")
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
+                    LazyVStack(spacing: 8) {
                         HStack {
                             Text("找到 \(albumResults.count) 张 · \(provider.rawValue)")
                                 .font(BeansFont.appFont(12))
@@ -564,14 +564,14 @@ struct SearchView: View {
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundStyle(Color.beansSecondary)
                                 }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 10)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
                                 .contentShape(Rectangle())
                                 .background {
                                     GlassEffectContainer {
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
                                             .fill(.clear)
-                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     }
                                 }
                             }

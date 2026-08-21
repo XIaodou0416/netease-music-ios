@@ -26,6 +26,7 @@ struct PlayerView: View {
     @State private var showComments = false
     @State private var showDownloadPicker = false
     @State private var showLyricSettings = false
+    @State private var showLyricStage = false
     @State private var showArtistHome = false
     @State private var pickedArtistName = ""
     @State private var showArtistPicker = false
@@ -161,6 +162,10 @@ struct PlayerView: View {
             if let song {
                 CommentsSheet(song: song)
             }
+        }
+        .fullScreenCover(isPresented: $showLyricStage) {
+            LyricStageLandscapeView(lyrics: lyrics, coverURL: song?.coverURL)
+                .environmentObject(player)
         }
         .sheet(isPresented: $showLyricSettings) {
             LyricSettingsSheet(
@@ -313,6 +318,11 @@ struct PlayerView: View {
                     Label("下载歌曲", systemImage: "arrow.down.circle")
                 }
                 Divider()
+                Button {
+                    showLyricStage = true
+                } label: {
+                    Label("横屏歌词舞台", systemImage: "rotate.right")
+                }
                 Button {
                     showLyricSettings = true
                 } label: {

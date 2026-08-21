@@ -56,8 +56,21 @@ struct ImmersiveParticleBackground: View {
                     )
                 }
 
+                // 扫描光带（斜向流动，增强炫酷感）
+                let bandT = (t * 0.05).truncatingRemainder(dividingBy: 1.0)
+                let bandX = CGFloat(bandT) * w * 1.6 - w * 0.3
+                let band = Path(CGRect(x: bandX, y: -h * 0.3, width: w * 0.22, height: h * 1.6))
+                context.fill(
+                    band,
+                    with: .linearGradient(
+                        Gradient(colors: [accent.opacity(0), accent.opacity(isPlaying ? 0.10 : 0.04), accent.opacity(0)]),
+                        startPoint: CGPoint(x: bandX, y: 0),
+                        endPoint: CGPoint(x: bandX + w * 0.22, y: h)
+                    )
+                )
+
                 // 粒子：播放时缓慢漂移 + 节拍扩散；暂停时静止
-                for i in 0..<48 {
+                for i in 0..<72 {
                     let px = rand(i, 3)
                     let py = rand(i, 4)
                     let baseX = px * w
@@ -71,6 +84,23 @@ struct ImmersiveParticleBackground: View {
                         .opacity(0.08 + py * 0.20 + (isPlaying ? pulse * 0.08 : 0))
                     let rect = CGRect(x: x - radius, y: y - radius, width: radius * 2, height: radius * 2)
                     context.fill(Path(ellipseIn: rect), with: .color(color))
+                }
+
+                // 星点（高亮小十字闪光）
+                for i in 0..<8 {
+                    let sx = rand(i, 7) * w
+                    let sy = rand(i, 8) * h
+                    let twinkle = 0.5 + 0.5 * sin(t * 1.6 + Double(i) * 1.3)
+                    let star = 1.2 + CGFloat(twinkle) * (isPlaying ? 2.2 : 0.8)
+                    let sc = Color.white.opacity(0.35 + CGFloat(twinkle) * (isPlaying ? 0.45 : 0.15))
+                    let cx = sx + sin(t * 0.6 + Double(i)) * 12
+                    let cy = sy + cos(t * 0.5 + Double(i) * 1.4) * 10
+                    var path = Path()
+                    path.move(to: CGPoint(x: cx - star * 2.2, y: cy))
+                    path.addLine(to: CGPoint(x: cx + star * 2.2, y: cy))
+                    path.move(to: CGPoint(x: cx, y: cy - star * 2.2))
+                    path.addLine(to: CGPoint(x: cx, y: cy + star * 2.2))
+                    context.stroke(path, with: .color(sc), lineWidth: 1.1)
                 }
             }
         }

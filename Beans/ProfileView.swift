@@ -7,8 +7,6 @@ struct ProfileView: View {
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var player: PlayerManager
     @AppStorage("beans.themeMode") private var themeModeRaw = BeansThemeMode.system.rawValue
-    /// 沉浸视觉（新样式）开关：与播放器更多菜单同步，默认关闭
-    @AppStorage("beans.immersiveVisual") private var immersiveVisual = false
 
     @State private var showHistory = false
     @State private var confirmLogout = false
@@ -311,26 +309,6 @@ struct ProfileView: View {
 
             if appearanceExpanded {
             VStack(alignment: .leading, spacing: 14) {
-                Toggle(isOn: $immersiveVisual) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "sparkles.tv")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Color.beansAmber)
-                            .frame(width: 28)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("沉浸视觉（新样式）")
-                                .font(BeansFont.appFont(15))
-                                .foregroundStyle(Color.beansLabel)
-                            Text("播放页粒子背景、歌词舞台、3D 歌单架")
-                                .font(BeansFont.appFont(11))
-                                .foregroundStyle(Color.beansSecondary)
-                        }
-                    }
-                }
-                .tint(Color.beansAmber)
-
-                Divider().overlay(Color.beansSecondary.opacity(0.15))
-
                 Picker("主题模式", selection: $themeModeRaw) {
                     ForEach(BeansThemeMode.allCases) { mode in
                         Text(mode.title).tag(mode.rawValue)

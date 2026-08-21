@@ -39,8 +39,6 @@ struct PlayerView: View {
     @AppStorage("beans.lyricGradEnd") private var lyricGradEndRaw = ""
     /// 渐变模式：0=跟随封面自动取色（默认），1=始终保持用户自定义渐变
     @AppStorage("beans.lyricGradMode") private var lyricGradMode = 0
-    /// 沉浸视觉（新样式）开关：默认关闭保持旧样式
-    @AppStorage("beans.immersiveVisual") private var immersiveVisual = false
 
     private var song: Song? { player.currentSong }
     private let rateOptions: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
@@ -215,13 +213,6 @@ struct PlayerView: View {
             )
             CoverBlurBackground(url: song?.coverURL, scheme: colorScheme)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            if immersiveVisual {
-                ImmersiveParticleBackground(
-                    accent: palette.accent,
-                    secondary: palette.secondary,
-                    isPlaying: player.isPlaying
-                )
-            }
             LinearGradient(
                 colors: colorScheme == .dark
                     ? [.black.opacity(0.22), .clear, .black.opacity(0.34)]
@@ -272,10 +263,6 @@ struct PlayerView: View {
             Spacer(minLength: 0)
 
             Menu {
-                Toggle(isOn: $immersiveVisual) {
-                    Label("沉浸视觉（新样式）", systemImage: "sparkles.tv")
-                }
-                Divider()
                 Menu {
                     ForEach(rateOptions, id: \.self) { option in
                         Button {
@@ -356,7 +343,6 @@ struct PlayerView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.easeInOut(duration: 0.22), value: showLyrics)
-        .animation(.easeInOut(duration: 0.4), value: immersiveVisual)
     }
 
     /// 封面尺寸：固定算法，与布局时序无关
@@ -387,11 +373,6 @@ struct PlayerView: View {
                         .shadow(color: .black.opacity(0.35), radius: 22, y: 10)
                 }
                 .frame(width: size, height: size)
-                .rotation3DEffect(
-                    .degrees(immersiveVisual ? 5 : 0),
-                    axis: (x: 0.5, y: 1, z: 0),
-                    perspective: 0.9
-                )
             }
             .buttonStyle(GlassPressButtonStyle(scale: 0.96))
 
@@ -478,7 +459,7 @@ struct PlayerView: View {
                 if lyrics.isEmpty {
                     emptyLyricsView
                 } else {
-                    LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, gradientStart: lyricGradStart, gradientEnd: lyricGradEnd, baseFontSize: CGFloat(lyricFontSize) + (immersiveVisual ? 5 : 0), glowRadius: lyricGlowRadius + (immersiveVisual ? 2 : 0)) { line in
+                    LyricsSection(lyrics: lyrics, accent: lyricCurrentColor, secondary: lyricDimColor, gradientStart: lyricGradStart, gradientEnd: lyricGradEnd, baseFontSize: CGFloat(lyricFontSize), glowRadius: lyricGlowRadius) { line in
                         BeansHaptics.tap()
                         player.seek(to: line.time)
                     }

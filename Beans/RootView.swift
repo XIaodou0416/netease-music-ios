@@ -92,6 +92,8 @@ struct AppStoreTabBar: View {
 
     @State private var showQueue = false
     @Namespace private var tabNS
+    /// 指尖按压位置：按下时在玻璃上渲染液态折射光斑，滑动时跟随（参照 liquid-glass 拖动交互）
+    @State private var pressLocation: CGPoint?
 
     var body: some View {
         let _ = theme.accent
@@ -102,14 +104,14 @@ struct AppStoreTabBar: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(height: 62)
-        .padding(.horizontal, 14)
-        .padding(.bottom, 6)
+        .frame(height: 64)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
         .animation(.spring(response: 0.4, dampingFraction: 0.78), value: selection)
         .sheet(isPresented: $showQueue) { QueueView().environmentObject(player) }
     }
 
-    /// iOS 26 原生液态玻璃悬浮底栏：顶部大圆角、底边贴近屏幕、真实玻璃折射 + 环境高光、无硬边框
+    /// 悬浮液态玻璃底栏：iOS 26 原生 glass + 高光 + 描边三层，悬浮于内容之上
     private var barCapsule: some View {
         HStack(spacing: 4) {
             ForEach(RootTab.allCases) { tab in
@@ -118,45 +120,38 @@ struct AppStoreTabBar: View {
         }
         .padding(5)
         .background {
-            // 液态玻璃主体：系统 glassEffect 智能模糊下方内容，通透半透明
             GlassEffectContainer {
-                barShape()
+                Capsule()
                     .fill(.clear)
-                    .glassEffect(.clear, in: barShape())
+                    .glassEffect(.clear, in: Capsule())
             }
-            // 微弱环境高光反光（左上 → 右下），还原真实玻璃折射光感
             .overlay {
                 LinearGradient(
-                    colors: [.white.opacity(0.28), .white.opacity(0.06), .clear, .white.opacity(0.03)],
+                    colors: [.white.opacity(0.22), .clear, .white.opacity(0.05)],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 )
             }
-            // 极淡顶部边缘光，非生硬边框
-            .overlay(alignment: .top) {
-                barShape()
-                    .strokeBorder(.white.opacity(0.22), lineWidth: 0.6)
-                    .mask(
+            .overlay {
+                Capsule()
+                    .strokeBorder(
                         LinearGradient(
-                            colors: [.white.opacity(0.9), .clear],
+                            colors: [.white.opacity(0.45), .white.opacity(0.08)],
                             startPoint: .top, endPoint: .bottom
-                        )
+                        ),
+                        lineWidth: 0.8
                     )
             }
         }
-        .clipShape(barShape())
-        // 微弱柔和外阴影
-        .shadow(color: .black.opacity(0.10), radius: 18, y: 6)
-    }
-
-    /// 悬浮条外形：顶部大圆角、底部贴近屏幕（直角）
-    private func barShape() -> UnevenRoundedRectangle {
-        UnevenRoundedRectangle(
-            topLeadingRadius: 28,
-            bottomLeadingRadius: 0,
-            bottomTrailingRadius: 0,
-            topTrailingRadius: 28,
-            style: .continuous
-        )
+        .clipShape(Capsule())
+        .overlay {
+            // 指尖液态折射：按住/滑动时跟随手指的光斑（模拟玻璃受压位移高光）
+            if let loc = pressLocation {
+                PressGlowRefraction()
+                    .position(loc)
+                    .transition(.opacity)
+            }
+        }
+        .shadow(color: .black.opacity(0.14), radius: 16, y: 8)
     }
 
     private func tabButton(_ tab: RootTab) -> some View {
@@ -171,7 +166,6 @@ struct AppStoreTabBar: View {
                     .font(BeansFont.appFont(10, .medium))
             }
             .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
-            .opacity(selection == tab ? 1 : 0.55)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 9)
             .contentShape(Rectangle())
@@ -226,10 +220,14 @@ struct AppStoreTabBar: View {
         }
     }
 
-    /// 触碰滑动选中：手指在底栏上横向滑动即可切换 tab（与点击 / 长按共存）
+    /// 触碰滑动选中 + 原生液态按压：按下即渲染折射光斑，滑动跟随指尖并切换 tab，抬手光斑消散
     private func dragToSelect(width: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(minimumDistance: 0)
             .onChanged { value in
+                // 折射光斑跟随指尖（轻微弹簧，模拟玻璃折射延迟感）
+                withAnimation(.spring(response: 0.16, dampingFraction: 0.75)) {
+                    pressLocation = value.location
+                }
                 let tabs = RootTab.allCases
                 let count = max(tabs.count, 1)
                 let index = min(max(Int(value.location.x / max(width / CGFloat(count), 1)), 0), count - 1)
@@ -239,6 +237,12 @@ struct AppStoreTabBar: View {
                     withAnimation(.spring(response: 0.3)) {
                         selection = tab
                     }
+                }
+            }
+            .onEnded { _ in
+                // 抬手：折射光斑柔化消散
+                withAnimation(.easeOut(duration: 0.3)) {
+                    pressLocation = nil
                 }
             }
     }
@@ -252,4 +256,36 @@ struct AppStoreTabBar: View {
         }
     }
 
+}
+
+
+// MARK: - 指尖液态玻璃折射光斑（按住 / 滑动时跟随手指，模拟 iOS 26 原生玻璃按压反馈）
+
+struct PressGlowRefraction: View {
+    var body: some View {
+        ZStack {
+            // 主高光：指尖下玻璃折射的柔和径向光晕（specular）
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [.white.opacity(0.6), .white.opacity(0.2), .white.opacity(0.06), .clear],
+                        center: .center, startRadius: 1, endRadius: 50
+                    )
+                )
+                .frame(width: 100, height: 100)
+                .blur(radius: 1.2)
+            // 折射边缘环：玻璃受压凹陷的轮廓光
+            Circle()
+                .strokeBorder(.white.opacity(0.4), lineWidth: 1.4)
+                .frame(width: 52, height: 52)
+                .blur(radius: 0.4)
+            // 内圈聚焦光：指尖中心的小亮点
+            Circle()
+                .fill(.white.opacity(0.55))
+                .frame(width: 14, height: 14)
+                .blur(radius: 2.5)
+        }
+        .compositingGroup()
+        .allowsHitTesting(false)
+    }
 }

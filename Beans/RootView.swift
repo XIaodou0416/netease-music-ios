@@ -83,7 +83,7 @@ struct RootView: View {
     }
 }
 
-// MARK: - 悬浮液态玻璃底栏（iOS 26 glass 三层；长按按压液态反馈 + 快捷菜单 / 滑动选中）
+// MARK: - 悬浮液态玻璃底栏（iOS 26 glass 三层；原生长按触感 + 快捷菜单 / 滑动选中）
 
 struct AppStoreTabBar: View {
     @EnvironmentObject private var theme: ThemeStore
@@ -91,8 +91,6 @@ struct AppStoreTabBar: View {
     @EnvironmentObject private var player: PlayerManager
 
     @State private var menuTab: RootTab?
-    @State private var rippleTab: RootTab?
-    @State private var pressedTab: RootTab?
     @State private var anchors: [RootTab: CGFloat] = [:]
     @State private var showQueue = false
 
@@ -171,41 +169,11 @@ struct AppStoreTabBar: View {
             .foregroundStyle(selection == tab ? Color.beansAmber : Color.beansSecondary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 9)
-            .scaleEffect(pressedTab == tab ? 0.86 : (rippleTab == tab ? 1.1 : 1))
-            .animation(.spring(response: 0.3, dampingFraction: 0.5), value: pressedTab)
-            .background {
-                if selection == tab && pressedTab != tab {
-                    Capsule().fill(Color.beansAmber.opacity(0.14))
-                }
-                if pressedTab == tab {
-                    Capsule().fill(.white.opacity(0.16))
-                }
-                if rippleTab == tab {
-                    LiquidRippleEffect()
-                }
-            }
-            .clipShape(Capsule())
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 14, pressing: { isPressing in
-            if isPressing {
-                BeansHaptics.tap()
-                rippleTab = tab
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.5)) {
-                    pressedTab = tab
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if pressedTab == nil {
-                        withAnimation(.easeOut(duration: 0.2)) { rippleTab = nil }
-                    }
-                }
-            } else {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
-                    pressedTab = nil
-                }
-                withAnimation(.easeOut(duration: 0.2)) { rippleTab = nil }
-            }
-        }, perform: {
+        // 原生长按：系统触感 + 快捷菜单（无自定义缩放/涟漪）
+        .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 14, perform: {
             longPress(tab)
         })
         .background(anchorReader(tab))
@@ -316,13 +284,8 @@ struct AppStoreTabBar: View {
     }
 
     private func longPress(_ tab: RootTab) {
+        // 系统级 Haptic Touch 触感
         BeansHaptics.medium()
-        rippleTab = tab
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-            if rippleTab == tab {
-                withAnimation(.easeOut(duration: 0.25)) { rippleTab = nil }
-            }
-        }
         guard player.currentSong != nil else { return }
         withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
             menuTab = tab
@@ -332,30 +295,6 @@ struct AppStoreTabBar: View {
     private func dismissMenu() {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             menuTab = nil
-        }
-    }
-}
-
-// MARK: - 液态涟漪（长按扩散的玻璃波纹）
-
-struct LiquidRippleEffect: View {
-    @State private var active = false
-
-    var body: some View {
-        ZStack {
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .scaleEffect(active ? 1.28 : 0.35)
-                .opacity(active ? 0 : 0.9)
-            Capsule()
-                .strokeBorder(.white.opacity(0.45), lineWidth: 1)
-                .scaleEffect(active ? 1.55 : 0.3)
-                .opacity(active ? 0 : 0.85)
-        }
-        .onAppear {
-            withAnimation(.spring(response: 0.55, dampingFraction: 0.6)) {
-                active = true
-            }
         }
     }
 }

@@ -105,7 +105,6 @@ struct LyricStageLandscapeView: View {
     @State private var dragStart: Double = 0
     @State private var coverLoaded = false
     @State private var showPlaylists = false
-    @State private var showParticlePanel = false
     @State private var playlistLoading = false
 
     /// 二分查找当前歌词行（与歌词页一致，避免逐行扫描）
@@ -129,6 +128,11 @@ struct LyricStageLandscapeView: View {
     private var currentLine: String {
         guard let currentIndex, lyrics.indices.contains(currentIndex) else { return "♪" }
         return lyrics[currentIndex].text.isEmpty ? "♪" : lyrics[currentIndex].text
+    }
+
+    private func fmt(_ t: TimeInterval) -> String {
+        let total = max(0, Int(t))
+        return String(format: "%d:%02d", total / 60, total % 60)
     }
 
     /// 歌词颜色：提取封面主色并提亮，保证在深色空间里看得清
@@ -191,9 +195,17 @@ struct LyricStageLandscapeView: View {
                             .fill(lyricColor.opacity(0.55))
                             .frame(width: 44, height: 3)
                             .cornerRadius(1.5)
-                        Text(currentIndex.map { index in "\(index + 1)/\(lyrics.count)" } ?? "")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.6))
+                        HStack(spacing: 14) {
+                            if lyrics.isEmpty {
+                                Text("暂无歌词")
+                                    .font(.system(size: 12, weight: .medium))
+                            } else {
+                                Text(currentIndex.map { index in "\(index + 1)/\(lyrics.count)" } ?? "1/\(lyrics.count)")
+                            }
+                            Text("\(fmt(player.progress)) / \(fmt(player.currentSong?.duration ?? 0))")
+                        }
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.65))
                     }
                 }
                 .frame(width: stageW, height: stageH)
@@ -237,21 +249,6 @@ struct LyricStageLandscapeView: View {
                         }
                         Spacer()
 
-                        // 粒子密度设置
-                        Button {
-                            BeansHaptics.select()
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                                showParticlePanel.toggle()
-                            }
-                        } label: {
-                            Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .frame(width: 40, height: 40)
-                                .background(.ultraThinMaterial, in: Circle())
-                        }
-                        .buttonStyle(.plain)
-
                         // 收藏歌单
                         Button {
                             BeansHaptics.tap()
@@ -270,39 +267,36 @@ struct LyricStageLandscapeView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 10)
 
-                    // 粒子密度面板（顶部下拉）
-                    if showParticlePanel {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text("粒子密度")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(.white.opacity(0.85))
-                                Spacer()
-                                Text("\(density) × \(density)")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
-                            Slider(
-                                value: Binding(
-                                    get: { Double(density) },
-                                    set: { density = Int($0) }
-                                ),
-                                in: 10...60,
-                                step: 2
-                            )
-                            .tint(.white)
+                    // 粒子密度滑块（常驻，随时可调）
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("粒子密度")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.85))
+                            Spacer()
+                            Text("\(density) × \(density)")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.white)
                         }
-                        .padding(14)
-                        .frame(maxWidth: 300)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(.white.opacity(0.15), lineWidth: 0.8)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 10)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                        Slider(
+                            value: Binding(
+                                get: { Double(density) },
+                                set: { density = Int($0) }
+                            ),
+                            in: 10...60,
+                            step: 2
+                        )
+                        .tint(.white)
                     }
+                    .padding(14)
+                    .frame(maxWidth: 340)
+                    .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .strokeBorder(.white.opacity(0.12), lineWidth: 0.8)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
 
                     Spacer()
                 }
@@ -373,11 +367,6 @@ struct LyricStageLandscapeView: View {
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .ignoresSafeArea()
-        .onTapGesture {
-            guard !showPlaylists, let currentIndex else { return }
-            BeansHaptics.tap()
-            player.seek(to: lyrics[currentIndex].time)
-        }
         .task(id: density) {
             coverLoaded = false
             particles = await ParticleCoverSampler.sample(from: coverURL, grid: density)

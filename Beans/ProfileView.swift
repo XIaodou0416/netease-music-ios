@@ -1,6 +1,5 @@
 import SwiftUI
 import PhotosUI
-import UniformTypeIdentifiers
 
 struct ProfileView: View {
     @EnvironmentObject private var theme: ThemeStore
@@ -92,15 +91,17 @@ struct ProfileView: View {
             }
             Button("取消", role: .cancel) {}
         }
-        .fileImporter(isPresented: $showFontImporter, allowedContentTypes: [
-            UTType(filenameExtension: "ttf") ?? .data,
-            UTType(filenameExtension: "otf") ?? .data,
-            UTType(filenameExtension: "ttc") ?? .data
-        ]) { result in
+        // 用 .data 让所有文件可选，选中后再校验扩展名（ttf/otf 属于导入类型，直接限定会导致点选无反应）
+        .fileImporter(isPresented: $showFontImporter, allowedContentTypes: [.data]) { result in
             switch result {
             case .success(let url):
                 let didAccess = url.startAccessingSecurityScopedResource()
                 defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+                let ext = url.pathExtension.lowercased()
+                guard ["ttf", "otf", "ttc"].contains(ext) else {
+                    ToastCenter.shared.show("请选择 ttf / otf 字体文件")
+                    return
+                }
                 if let name = FontManager.install(from: url) {
                     BeansHaptics.success()
                     ToastCenter.shared.show("字体已应用：\(name)")

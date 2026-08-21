@@ -472,6 +472,30 @@ struct ProfileView: View {
                 }
                 .toggleStyle(.switch)
                 .tint(Color.beansAmber)
+
+                Divider().overlay(Color.beansSecondary.opacity(0.15))
+
+                HStack(spacing: 12) {
+                    Image(systemName: "rectangle.bottomthird.inset.filled")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.beansAmber)
+                        .frame(width: 28)
+                    Text("底栏透明度")
+                        .font(BeansFont.appFont(15))
+                        .foregroundStyle(Color.beansLabel)
+                    Spacer()
+                    Slider(value: Binding(
+                        get: { theme.tabBarAlpha },
+                        set: { theme.setTabBarAlpha($0) }
+                    ), in: 0.1...1.0)
+                        .tint(Color.beansAmber)
+                        .frame(width: 130)
+                    Text("\(Int(theme.tabBarAlpha * 100))%")
+                        .font(BeansFont.appFont(12, .regular, .monospaced))
+                        .foregroundStyle(Color.beansSecondary)
+                        .frame(width: 38, alignment: .trailing)
+                }
+
                 HStack {
                     Button {
                         theme.setBackground("")

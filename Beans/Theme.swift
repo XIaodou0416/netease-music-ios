@@ -180,6 +180,8 @@ final class ThemeStore: ObservableObject {
     @Published var backgroundImagePath: String = ""
     /// 壁纸库：所有已上传壁纸的文件路径
     @Published var wallpaperPaths: [String] = []
+    /// 底栏液态玻璃透明度（0.1 ~ 1.0，越小越透）
+    @Published var tabBarAlpha: CGFloat = 0.55
 
     private let customAccentKey = "beans.accent.custom"
     private let backgroundKey = "beans.background.custom"
@@ -188,6 +190,7 @@ final class ThemeStore: ObservableObject {
     private let wallpaperListKey = "beans.wallpapers.list"
     private let wallpaperDataKey = "beans.wallpapers.data"
     private let deletedKey = "beans.wallpapers.deleted"
+    private let tabBarAlphaKey = "beans.tabbar.alpha"
 
     private init() {
         accent = BeansAccent(rawValue: UserDefaults.standard.string(forKey: AccentTheme.key) ?? "") ?? .amber
@@ -197,6 +200,7 @@ final class ThemeStore: ObservableObject {
         backgroundSyncAll = UserDefaults.standard.object(forKey: syncAllKey) as? Bool ?? true
         backgroundImagePath = UserDefaults.standard.string(forKey: backgroundImageKey) ?? ""
         wallpaperPaths = UserDefaults.standard.stringArray(forKey: wallpaperListKey) ?? []
+        tabBarAlpha = UserDefaults.standard.object(forKey: tabBarAlphaKey) as? CGFloat ?? 0.55
         // 自动恢复壁纸（覆盖安装/数据迁移后：文件仍在用文件，文件丢失用 base64 备份重建）
         restoreWallpapers()
     }
@@ -215,10 +219,14 @@ final class ThemeStore: ObservableObject {
             if deleted.contains(path) { continue }
             if FileManager.default.fileExists(atPath: path) {
                 restored.append(path)
-            } else if let b64 = backup[path], let data = Data(base64Encoded: b64) {
-                if (try? data.write(to: URL(fileURLWithPath: path), options: .atomic)) != nil {
-                    restored.append(path)
-                }
+                continue
+            }
+            // 覆盖安装后沙盒容器路径会变：备份重建必须写到当前沙盒的有效路径
+            guard let b64 = backup[path], let data = Data(base64Encoded: b64) else { continue }
+            let fileName = URL(fileURLWithPath: path).lastPathComponent
+            let newPath = Self.wallpaperDirectory().appendingPathComponent(fileName).path
+            if (try? data.write(to: URL(fileURLWithPath: newPath), options: .atomic)) != nil {
+                restored.append(newPath)
             }
         }
         if let names = try? FileManager.default.contentsOfDirectory(atPath: dir.path) {
@@ -233,7 +241,12 @@ final class ThemeStore: ObservableObject {
         if !backgroundImagePath.isEmpty, !deleted.contains(backgroundImagePath) {
             if !FileManager.default.fileExists(atPath: backgroundImagePath),
                let b64 = backup[backgroundImagePath], let data = Data(base64Encoded: b64) {
-                try? data.write(to: URL(fileURLWithPath: backgroundImagePath), options: .atomic)
+                let fileName = URL(fileURLWithPath: backgroundImagePath).lastPathComponent
+                let newPath = Self.wallpaperDirectory().appendingPathComponent(fileName).path
+                if (try? data.write(to: URL(fileURLWithPath: newPath), options: .atomic)) != nil {
+                    backgroundImagePath = newPath
+                    UserDefaults.standard.set(newPath, forKey: backgroundImageKey)
+                }
             }
             if !FileManager.default.fileExists(atPath: backgroundImagePath) {
                 backgroundImagePath = wallpaperPaths.first ?? ""
@@ -269,6 +282,12 @@ final class ThemeStore: ObservableObject {
     func setBackgroundSyncAll(_ on: Bool) {
         backgroundSyncAll = on
         UserDefaults.standard.set(on, forKey: syncAllKey)
+    }
+
+    /// 底栏透明度（越小越透），持久化保存
+    func setTabBarAlpha(_ value: CGFloat) {
+        tabBarAlpha = min(max(value, 0.1), 1.0)
+        UserDefaults.standard.set(tabBarAlpha, forKey: tabBarAlphaKey)
     }
 
     /// 自定义强调色 Color

@@ -140,6 +140,8 @@ struct CoverImage: View {
     let url: URL?
     var size: CGFloat
     var cornerRadius: CGFloat = 12
+    /// 封面未加载时的提示文字（播放器大封面用：等待开始播放）；nil 显示中性图标
+    var emptyHint: String? = nil
 
     // 布局尺寸完全由外层固定容器决定；AsyncImage 只放在 overlay 中渲染，
     // 图片加载完成与否都不会改变任何布局尺寸（根治"封面加载后错乱"）。
@@ -175,9 +177,19 @@ struct CoverImage: View {
         ZStack {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(Color.beansGlassFill)
-            Image(systemName: "music.note")
-                .font(.system(size: size * 0.32, weight: .medium))
-                .foregroundStyle(Color.beansSecondary)
+            if let emptyHint {
+                Text(emptyHint)
+                    .font(BeansFont.appFont(max(11, min(size * 0.09, 15)), .medium))
+                    .foregroundStyle(Color.beansSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .padding(.horizontal, 8)
+            } else {
+                // 中性等待图标（不再使用音乐音符）
+                Image(systemName: "waveform")
+                    .font(.system(size: size * 0.28, weight: .medium))
+                    .foregroundStyle(Color.beansSecondary)
+            }
         }
         .frame(width: size, height: size)
     }

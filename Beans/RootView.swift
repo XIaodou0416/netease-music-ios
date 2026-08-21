@@ -112,6 +112,8 @@ struct TabBarAppearanceConfigurator: UIViewControllerRepresentable {
         guard let tabBar = controller.tabBarController?.tabBar else { return }
         let appearance = UITabBarAppearance()
         appearance.configureWithTransparentBackground()
+        // 超薄材质模糊：与迷你播放器一致的清透玻璃透明度
+        appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
         appearance.backgroundColor = .clear
         appearance.shadowColor = .clear
         tabBar.standardAppearance = appearance

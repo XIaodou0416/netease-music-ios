@@ -209,6 +209,7 @@ struct SearchView: View {
                     Task { await startSearch(trimmed) }
                 }
             )
+            .frame(height: 32)
             .frame(maxWidth: .infinity)
             if searching {
                 ProgressView()
@@ -248,7 +249,7 @@ struct SearchView: View {
             .buttonStyle(GlassPressButtonStyle(scale: 0.9))
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 13)
+        .padding(.vertical, 8)
         .background {
             GlassEffectContainer {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)

@@ -432,7 +432,7 @@ struct PlayerView: View {
                     .allowsHitTesting(false)
 
                     // 封面（静态）
-                    CoverImage(url: song?.coverURL, size: size, cornerRadius: min(24, size * 0.08))
+                    CoverImage(url: song?.coverURL, size: size, cornerRadius: min(24, size * 0.08), emptyHint: player.isBuffering ? "等待开始播放…" : nil)
                         .matchedGeometryEffect(id: "playerCover", in: coverNS)
                         .overlay {
                             RoundedRectangle(cornerRadius: min(24, size * 0.08), style: .continuous)
@@ -630,11 +630,29 @@ struct PlayerView: View {
         return parts.isEmpty ? "未知歌曲" : parts.joined(separator: " · ")
     }
 
+    /// 高潮提示时间点（秒）：有歌词时取歌词行最密集的 20 秒窗口中心，无歌词时取全曲 68% 处
+    private var climaxTime: Double? {
+        let total = player.duration
+        guard total > 1 else { return nil }
+        guard !lyrics.isEmpty else { return total * 0.68 }
+        let times = lyrics.map { $0.time }.filter { $0 >= 0 && $0 <= total }
+        guard !times.isEmpty else { return total * 0.68 }
+        let window: Double = 20
+        var bestTime = times[0]
+        var bestCount = 0
+        for t in times {
+            var count = 0
+            for u in times where u >= t && u < t + window { count += 1 }
+            if count > bestCount { bestCount = count; bestTime = t }
+        }
+        return min(max(bestTime + window / 2, 0), total)
+    }
+
     // MARK: - 进度区块（可点按 / 拖动的进度条 + 当前时间 / 总时长 + ±15 秒）
 
     private var progressBlock: some View {
         VStack(spacing: 2) {
-            SeekBar(accent: palette.accent, track: palette.secondary.opacity(0.3))
+            SeekBar(accent: palette.accent, track: palette.secondary.opacity(0.3), climaxTime: climaxTime)
             HStack(spacing: 6) {
                 seekPillButton("gobackward.15") { player.seekBy(-15) }
                 Text(beansTimeString(player.progress))
@@ -892,6 +910,8 @@ struct SeekBar: View {
     @EnvironmentObject private var player: PlayerManager
     let accent: Color
     let track: Color
+    /// 高潮提示点（秒），nil 不显示
+    var climaxTime: Double? = nil
 
     @State private var scrubbing = false
     @State private var scrubValue: Double = 0
@@ -936,6 +956,18 @@ struct SeekBar: View {
                         .clipShape(Capsule())
                         .padding(.horizontal, 2)
                     }
+                // 高潮提示点：小圆点标记高潮段，仅提示不影响拖动
+                if let climax = climaxTime, total > 1 {
+                    let cx = min(max(width * (climax / total), 9), width - 9)
+                    Circle()
+                        .fill(accent)
+                        .frame(width: 7, height: 7)
+                        .overlay {
+                            Circle().strokeBorder(.white.opacity(0.6), lineWidth: 0.8)
+                        }
+                        .shadow(color: .black.opacity(0.18), radius: 2, y: 0.5)
+                        .offset(x: cx - 3.5)
+                }
                 // 滑块：原生小圆点（白色 + 细描边）
                 Circle()
                     .fill(.white)

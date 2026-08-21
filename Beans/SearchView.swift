@@ -1,5 +1,42 @@
 import SwiftUI
 
+// MARK: - 流式标签布局（热搜标签云）
+
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 10
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 0
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if x + size.width > width, x > 0 {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: width, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if x + size.width > bounds.maxX, x > bounds.minX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            sub.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
 enum SearchProvider: String, CaseIterable, Identifiable {
     case netease = "网易云"
     case qq = "QQ音乐"
@@ -296,22 +333,14 @@ struct SearchView: View {
 
     private var hotSection: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    SectionHeader(title: "\(provider.rawValue)热搜")
-                    Spacer()
-                    Text("点击直接搜索")
-                        .font(BeansFont.appFont(11))
-                        .foregroundStyle(Color.beansSecondary)
-                }
-                .padding(.top, 6)
-
+            VStack(alignment: .leading, spacing: 16) {
+                SectionHeader(title: "\(provider.rawValue)热搜")
                 if hotWords.isEmpty {
                     LoadingStateView()
                 } else {
-                    LazyVStack(spacing: 10) {
+                    FlowLayout(spacing: 10) {
                         ForEach(Array(hotWords.enumerated()), id: \.offset) { index, word in
-                            hotRow(index: index, word: word)
+                            hotTag(index: index, word: word)
                         }
                     }
                 }
@@ -323,7 +352,8 @@ struct SearchView: View {
         .scrollDismissesKeyboard(.interactively)
     }
 
-    private func hotRow(index: Int, word: String) -> some View {
+    /// 热搜标签：前三名带主题色序号圆标
+    private func hotTag(index: Int, word: String) -> some View {
         Button {
             BeansHaptics.tap()
             keyword = word
@@ -331,32 +361,23 @@ struct SearchView: View {
             debounceTask?.cancel()
             Task { await startSearch(word) }
         } label: {
-            HStack(spacing: 12) {
-                Text("\(index + 1)")
-                    .font(BeansFont.appFont(14, .bold, .rounded))
-                    .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
-                    .frame(width: 24, alignment: .leading)
-                Text(word)
-                    .font(BeansFont.appFont(15, .medium))
-                    .foregroundStyle(Color.beansLabel)
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.beansSecondary.opacity(0.7))
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background {
-                GlassEffectContainer {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.clear)
-                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            HStack(spacing: 6) {
+                if index < 3 {
+                    Text("\(index + 1)")
+                        .font(BeansFont.appFont(11, .bold, .rounded))
+                        .foregroundStyle(.white)
+                        .frame(width: 18, height: 18)
+                        .background(Color.beansAmber, in: Circle())
                 }
+                Text(word)
+                    .font(BeansFont.appFont(14, .medium))
+                    .foregroundStyle(Color.beansLabel)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(.ultraThinMaterial, in: Capsule())
         }
-        .buttonStyle(GlassPressButtonStyle(scale: 0.97))
+        .buttonStyle(GlassPressButtonStyle(scale: 0.92))
     }
 
     // MARK: - 结果区

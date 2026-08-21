@@ -112,43 +112,33 @@ struct LibraryView: View {
                 newPlaylistName = ""
                 showCreatePlaylist = true
             }
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 16) {
-                if auth.playlists.isEmpty {
-                    createPlaylistCard
-                        .gridCellColumns(2)
-                } else {
+            if auth.playlists.isEmpty {
+                createPlaylistCard
+            } else {
+                VStack(spacing: 0) {
                     ForEach(auth.playlists) { playlist in
                         Button {
                             selectedPlaylist = playlist
                         } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                CoverImage(url: playlist.coverURL, size: 160, cornerRadius: 16)
-                                    .frame(maxWidth: .infinity)
-                                    .overlay(alignment: .bottomTrailing) {
-                                        Image(systemName: "play.fill")
-                                            .font(.system(size: 11, weight: .bold))
-                                            .foregroundStyle(.white)
-                                            .frame(width: 26, height: 26)
-                                            .background(.black.opacity(0.4), in: Circle())
-                                            .padding(8)
-                                    }
-                                Text(playlist.name)
-                                    .font(BeansFont.appFont(12, .medium))
-                                    .foregroundStyle(Color.beansLabel)
-                                    .lineLimit(1)
-                                Text("\(playlist.trackCount) 首")
-                                    .font(BeansFont.appFont(11))
-                                    .foregroundStyle(Color.beansSecondary)
-                            }
-                            .padding(8)
-                            .background {
-                                GlassEffectContainer {
-                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .fill(.clear)
-                                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            HStack(spacing: 12) {
+                                CoverImage(url: playlist.coverURL, size: 56, cornerRadius: 12)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(playlist.name)
+                                        .font(BeansFont.appFont(15, .medium))
+                                        .foregroundStyle(Color.beansLabel)
+                                        .lineLimit(1)
+                                    Text("\(playlist.trackCount) 首")
+                                        .font(BeansFont.appFont(12))
+                                        .foregroundStyle(Color.beansSecondary)
                                 }
+                                Spacer(minLength: 8)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Color.beansSecondary.opacity(0.6))
                             }
-                            .beansCardShadow(radius: 8, y: 3)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
@@ -159,9 +149,45 @@ struct LibraryView: View {
                                 Label("删除歌单", systemImage: "trash")
                             }
                         }
+                        Divider().overlay(Color.beansSecondary.opacity(0.12))
                     }
-                    createPlaylistCard
+                    // 新建歌单行
+                    Button {
+                        BeansHaptics.tap()
+                        newPlaylistName = ""
+                        showCreatePlaylist = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(style: StrokeStyle(lineWidth: 1.2, dash: [5, 3]))
+                                    .foregroundStyle(Color.beansSecondary.opacity(0.45))
+                                    .frame(width: 56, height: 56)
+                                Image(systemName: "plus")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundStyle(Color.beansSecondary)
+                            }
+                            Text("新建歌单")
+                                .font(BeansFont.appFont(15, .medium))
+                                .foregroundStyle(Color.beansSecondary)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
+                .padding(.vertical, 6)
+                .background {
+                    GlassEffectContainer {
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(.clear)
+                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .beansCardShadow(radius: 9, y: 3)
             }
         }
     }

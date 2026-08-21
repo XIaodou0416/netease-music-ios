@@ -162,51 +162,32 @@ struct DiscoverView: View {
         }
     }
 
-    /// 排行榜：横向滑动液态玻璃卡片（网易云榜单 / QQ 峰尖榜）
+    // MARK: - 排行榜（竖排行列表）
+
     private var topListsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "排行榜")
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 12) {
-                    if source == .netease {
-                        ForEach(topLists) { topList in
-                            topListCard(topList: topList)
+            VStack(spacing: 0) {
+                if source == .netease {
+                    ForEach(Array(topLists.prefix(6).enumerated()), id: \.element.id) { index, topList in
+                        rankRow(index: index, name: topList.name, subtitle: topList.updateFrequency, coverURL: topList.coverURL) {
+                            BeansHaptics.tap()
+                            selectedTopList = topList
                         }
-                    } else {
-                        ForEach(qqTopLists) { info in
-                            qqTopCard(info: info)
+                        Divider().overlay(Color.beansSecondary.opacity(0.12))
+                    }
+                } else {
+                    ForEach(Array(qqTopLists.prefix(6).enumerated()), id: \.element.id) { index, info in
+                        rankRow(index: index, name: info.name, subtitle: "QQ 峰尖榜", coverURL: info.coverURL) {
+                            BeansHaptics.tap()
+                            selectedQQTopList = info
                         }
+                        Divider().overlay(Color.beansSecondary.opacity(0.12))
                     }
                 }
-                .padding(.vertical, 2)
             }
-        }
-    }
-
-    private func topListCard(topList: TopList) -> some View {
-        Button {
-            BeansHaptics.tap()
-            selectedTopList = topList
-        } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                CoverImage(url: topList.coverURL, size: 140, cornerRadius: 18)
-                    .overlay(alignment: .bottomLeading) {
-                        Text(topList.updateFrequency)
-                            .font(BeansFont.appFont(10, .medium))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(.black.opacity(0.42), in: Capsule())
-                            .padding(8)
-                    }
-                Text(topList.name)
-                    .font(BeansFont.appFont(13, .semibold))
-                    .foregroundStyle(Color.beansLabel)
-                    .lineLimit(1)
-                    .frame(width: 140, alignment: .leading)
-            }
-            .padding(8)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
             .background {
                 GlassEffectContainer {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -214,51 +195,43 @@ struct DiscoverView: View {
                         .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                 }
             }
-            .beansCardShadow(radius: 10, y: 4)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .beansCardShadow(radius: 9, y: 3)
         }
-        .buttonStyle(GlassPressButtonStyle(scale: 0.95))
     }
 
-    private func qqTopCard(info: QQTopInfo) -> some View {
+    private func rankRow(index: Int, name: String, subtitle: String, coverURL: URL?, action: @escaping () -> Void) -> some View {
         Button {
-            BeansHaptics.tap()
-            selectedQQTopList = info
+            action()
         } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                Group {
-                    if let cover = info.coverURL {
-                        CoverImage(url: cover, size: 140, cornerRadius: 18)
-                    } else {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(qqRankGradient(info.name))
-                            .frame(width: 140, height: 140)
-                            .overlay {
-                                Image(systemName: "music.note")
-                                    .font(.system(size: 30, weight: .semibold))
-                                    .foregroundStyle(.white.opacity(0.9))
-                            }
-                    }
+            HStack(spacing: 12) {
+                Text("\(index + 1)")
+                    .font(BeansFont.appFont(16, .bold, .rounded))
+                    .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
+                    .frame(width: 24)
+                CoverImage(url: coverURL, size: 52, cornerRadius: 12)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(name)
+                        .font(BeansFont.appFont(15, .semibold))
+                        .foregroundStyle(Color.beansLabel)
+                        .lineLimit(1)
+                    Text(subtitle)
+                        .font(BeansFont.appFont(12))
+                        .foregroundStyle(Color.beansSecondary)
+                        .lineLimit(1)
                 }
-                Text(info.name)
-                    .font(BeansFont.appFont(13, .semibold))
-                    .foregroundStyle(Color.beansLabel)
-                    .lineLimit(1)
-                    .frame(width: 140, alignment: .leading)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.beansSecondary.opacity(0.6))
             }
-            .padding(8)
-            .background {
-                GlassEffectContainer {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(.clear)
-                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                }
-            }
-            .beansCardShadow(radius: 10, y: 4)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(GlassPressButtonStyle(scale: 0.95))
+        .buttonStyle(.plain)
     }
 
-    /// QQ 峰尖榜占位封面：按榜单名确定性取一组渐变，不加载网络图
+    /// QQ 峰尖榜占位渐变（保留备用）
     private func qqRankGradient(_ name: String) -> LinearGradient {
         let palettes: [[Color]] = [
             [Color(red: 0.35, green: 0.55, blue: 0.95), Color(red: 0.20, green: 0.30, blue: 0.65)],
@@ -272,146 +245,131 @@ struct DiscoverView: View {
         return LinearGradient(colors: palettes[seed], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
-    /// 每日推荐：主题渐变晕染大卡 + 播放/随机 + 前 3 首带序号
+    // MARK: - 每日推荐（封面横幅 + 横滑歌曲卡）
+
     private var dailySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             SectionHeader(title: "每日推荐", trailing: "查看全部") {
                 BeansHaptics.tap()
                 showDailyList = true
             }
-            // 每日推荐大卡：点击查看今日全部推荐
+            // 全宽封面横幅：封面模糊 + 渐变叠层 + 播放按钮
             Button {
                 BeansHaptics.tap()
                 showDailyList = true
             } label: {
-                HStack(spacing: 14) {
-                    CoverImage(url: dailySongs.first?.coverURL, size: 64, cornerRadius: 16)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("为你精选 \(dailySongs.count) 首")
-                            .font(BeansFont.appFont(17, .bold))
-                            .foregroundStyle(Color.beansLabel)
-                        Text("每日更新 · 按你的口味推荐")
-                            .font(BeansFont.appFont(12))
-                            .foregroundStyle(Color.beansSecondary)
+                ZStack(alignment: .bottomLeading) {
+                    AsyncImage(url: dailySongs.first?.coverURL) { phase in
+                        if case .success(let image) = phase {
+                            image.resizable().scaledToFill()
+                        } else {
+                            LinearGradient(
+                                colors: AccentTheme.current.gradientColors,
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        }
                     }
-                    Spacer(minLength: 8)
-                    Image(systemName: "play.circle.fill")
-                        .font(.system(size: 34))
-                        .foregroundStyle(
-                            LinearGradient(colors: AccentTheme.current.gradientColors, startPoint: .topLeading, endPoint: .bottomTrailing)
-                        )
-                }
-                .padding(14)
-                .background {
-                    GlassEffectContainer {
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(.clear)
-                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .blur(radius: 8)
+                    LinearGradient(
+                        colors: [.black.opacity(0.12), .black.opacity(0.72)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                    HStack(spacing: 12) {
+                        CoverImage(url: dailySongs.first?.coverURL, size: 56, cornerRadius: 14)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("每日推荐")
+                                .font(BeansFont.appFont(20, .bold))
+                                .foregroundStyle(.white)
+                            Text("为你精选 \(dailySongs.count) 首 · 每日更新")
+                                .font(BeansFont.appFont(12))
+                                .foregroundStyle(.white.opacity(0.85))
+                        }
+                        Spacer(minLength: 8)
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 38))
+                            .foregroundStyle(.white)
                     }
+                    .padding(16)
                 }
-                .beansCardShadow(radius: 10, y: 4)
+                .frame(height: 190)
+                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             }
             .buttonStyle(GlassPressButtonStyle(scale: 0.97))
+            .beansCardShadow(radius: 12, y: 5)
 
-            // 播放全部 / 随机播放
-            HStack(spacing: 10) {
-                GlassButton(title: "播放全部", systemName: "play.fill", prominent: true) {
-                    BeansHaptics.tap()
-                    player.play(songs: dailySongs, startAt: 0)
-                }
-                GlassButton(title: "随机播放", systemName: "shuffle") {
-                    BeansHaptics.tap()
-                    player.play(songs: dailySongs, startAt: Int.random(in: 0..<dailySongs.count))
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background {
-                GlassEffectContainer {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(.clear)
-                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .beansCardShadow(radius: 8, y: 3)
-
-            // 今日推荐前 3 首：序号 + 歌曲行
-            VStack(spacing: 0) {
-                ForEach(Array(dailySongs.prefix(3).enumerated()), id: \.element.id) { index, song in
-                    HStack(spacing: 12) {
-                        Text("\(index + 1)")
-                            .font(BeansFont.appFont(14, .bold, .rounded))
-                            .foregroundStyle(index < 3 ? Color.beansAmber : Color.beansSecondary)
-                            .frame(width: 22)
-                        SongCell(song: song) {
-                            BeansHaptics.tap()
-                            player.play(songs: dailySongs, startAt: index)
-                        }
-                    }
-                    .padding(.horizontal, 14)
-                    Divider().overlay(Color.beansSecondary.opacity(0.15))
-                }
-            }
-            .padding(.vertical, 6)
-            .background {
-                GlassEffectContainer {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(.clear)
-                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .beansCardShadow(radius: 8, y: 3)
-        }
-    }
-
-    /// 歌单广场：横向滑动大卡
-    private var personalizedSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "歌单广场")
+            // 横滑歌曲卡：每日推荐前 8 首
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 12) {
-                    ForEach(personalized) { playlist in
+                    ForEach(Array(dailySongs.prefix(8).enumerated()), id: \.element.id) { index, song in
                         Button {
-                            if source == .qq {
-                                selectedQQPlaylist = playlist
-                            } else {
-                                selectedPlaylist = playlist
-                            }
+                            BeansHaptics.tap()
+                            player.play(songs: dailySongs, startAt: index)
                         } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                CoverImage(url: playlist.coverURL, size: 120, cornerRadius: 18)
+                            VStack(alignment: .leading, spacing: 6) {
+                                CoverImage(url: song.coverURL, size: 108, cornerRadius: 16)
                                     .overlay(alignment: .bottomTrailing) {
                                         Image(systemName: "play.fill")
-                                            .font(.system(size: 11, weight: .bold))
+                                            .font(.system(size: 10, weight: .bold))
                                             .foregroundStyle(.white)
-                                            .frame(width: 26, height: 26)
-                                            .background(.black.opacity(0.4), in: Circle())
-                                            .padding(8)
+                                            .frame(width: 24, height: 24)
+                                            .background(.black.opacity(0.45), in: Circle())
+                                            .padding(7)
                                     }
-                                Text(playlist.name)
+                                Text(song.name)
                                     .font(BeansFont.appFont(12, .medium))
                                     .foregroundStyle(Color.beansLabel)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(width: 120, alignment: .leading)
+                                    .lineLimit(1)
+                                    .frame(width: 108, alignment: .leading)
+                                Text(song.artists.isEmpty ? song.album : song.artists)
+                                    .font(BeansFont.appFont(10))
+                                    .foregroundStyle(Color.beansSecondary)
+                                    .lineLimit(1)
+                                    .frame(width: 108, alignment: .leading)
                             }
-                            .padding(8)
-                            .background {
-                                GlassEffectContainer {
-                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                        .fill(.clear)
-                                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                                }
-                            }
-                            .beansCardShadow(radius: 10, y: 4)
                         }
-                        .buttonStyle(GlassPressButtonStyle(scale: 0.95))
+                        .buttonStyle(GlassPressButtonStyle(scale: 0.94))
                     }
                 }
                 .padding(.vertical, 2)
+            }
+        }
+    }
+
+    // MARK: - 歌单广场（双列网格）
+
+    private var personalizedSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "歌单广场")
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                ForEach(personalized) { playlist in
+                    Button {
+                        if source == .qq {
+                            selectedQQPlaylist = playlist
+                        } else {
+                            selectedPlaylist = playlist
+                        }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 6) {
+                            CoverImage(url: playlist.coverURL, size: 144, cornerRadius: 18)
+                                .frame(maxWidth: .infinity)
+                            Text(playlist.name)
+                                .font(BeansFont.appFont(12, .medium))
+                                .foregroundStyle(Color.beansLabel)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                        }
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background {
+                            GlassEffectContainer {
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .fill(.clear)
+                                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                            }
+                        }
+                    }
+                    .buttonStyle(GlassPressButtonStyle(scale: 0.96))
+                }
             }
         }
     }
